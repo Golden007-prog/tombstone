@@ -154,3 +154,65 @@ jobs:
               )
           print("catalogue matches source")
           PY
+
+  # The README promises `git clone && pip install && ./run.sh`. That promise was unchecked for 45
+  # commits, and when it was finally run on a machine that already had FalkorDB, it FAILED --
+  # compose fixes `container_name: falkordb`, so anyone with that container already present (a
+  # second checkout, or anyone who has used FalkorDB before) got a hard stop on the first command
+  # the README gives them. This job reproduces that machine deliberately: it starts a container
+  # called falkordb FIRST, then runs the quickstart, and requires it to reuse rather than collide.
+  quickstart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Put a container called falkordb in the way, as a judge's machine would have
+        run: |
+          docker run -d --name falkordb -p 6380:6379 \
+            -e FALKORDB_ARGS="RESULTSET_SIZE 1000000 TIMEOUT 0" \
+            falkordb/falkordb:v4.22.1
+          for _ in $(seq 1 40); do
+            docker exec falkordb redis-cli PING 2>/dev/null | grep -q PONG && break
+            sleep 2
+          done
+          docker ps --format '  {{.Names}} {{.Status}}'
+
+      - name: The quickstart, exactly as the README writes it
+        run: |
+          python3 -m venv .venv && ./.venv/bin/pip install -q -r requirements.txt
+          nohup ./run.sh > /tmp/run.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf -m 3 http://localhost:8099/api/health >/dev/null && break
+            sleep 2
+          done
+          curl -sf -m 5 http://localhost:8099/api/health || { cat /tmp/run.log; exit 1; }
+          grep -q "already serving on 6380" /tmp/run.log \
+            || { echo "run.sh did not reuse the existing FalkorDB"; cat /tmp/run.log; exit 1; }
+          echo "  reused the existing instance, as it should"
+
+      - name: It serves and answers, not just starts
+        run: |
+          python - <<'PY'
+          import json, sys, urllib.request
+
+          def post(path, body):
+              req = urllib.request.Request(
+                  f"http://localhost:8099{path}", method="POST",
+                  data=json.dumps(body).encode(),
+                  headers={"content-type": "application/json"})
+              return json.load(urllib.request.urlopen(req, timeout=120))
+
+          answered = {"ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY"}
+          got = post("/api/tool", {"tool": "draft_owners_patch", "args": {}})
+          print("  draft_owners_patch ->", got["shape"])
+          assert got["shape"] in answered, got
+
+          typed = post("/api/ask", {"question": "which areas have exactly one approver?"})
+          print("  typed, keyless     ->", typed["shape"], typed.get("routed_to"))
+          assert typed["shape"] in answered, typed
+          assert typed.get("headline"), "a typed answer came back with no headline"
+          PY
