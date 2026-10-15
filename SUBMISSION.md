@@ -168,10 +168,20 @@ weakest things — stated first, because every one of them is already written do
       that is slow, or a required field discovered at 23:30 — and everything after it becomes an
       update rather than a race. Check whether edits are allowed the moment you are inside.
 
+      **Submitting early costs nothing, because this is already a valid entry.** Run
+      `python3 submission_audit.py`: all six of Rule 10's required items are satisfied right now.
+      The repository is public and Apache-2.0, the README carries the setup and the data model,
+      the Cypher has its own section, **a demo video is committed** (the captioned walkthrough —
+      every frame a real screenshot of the running app), the setup instructions are complete and
+      CI-runs them from a clean clone, and the track is named at the top of the page. A live
+      Space and a narrated cut are both *improvements* the FAQ prefers, not missing requirements.
+      Do not hold the submission waiting for them.
+
 **Then, in order:**
 
-- [ ] `git config core.hooksPath scripts` — once, so a push cannot carry a state the checks
-      already know is broken (it happened twice; resolve is not a mechanism)
+- [x] `git config core.hooksPath scripts` — done; `submission_audit.py` confirms it. The push
+      gate now also refuses any commit carrying a credential-shaped string, which matters on the
+      next line of this list.
 - [ ] `./preflight.sh` — one command, nineteen checks: every number against the live graph,
       every rendered answer state, the README's printed output, the demo script's facts and
       timing, both benchmarks, and whether the page still renders on GitHub
@@ -189,5 +199,7 @@ weakest things — stated first, because every one of them is already written do
       sign-in
 - [ ] Publish the blog post if you want the side prize, and add its link above
 - [ ] Submit, naming **every** track you are entering (Rule 5)
+- [ ] `python3 submission_audit.py` one last time — it exits non-zero while anything real is
+      outstanding, and it reads the repository and the live Space rather than this list
 
 Aim to submit by **18:00 IST Sunday**. The deadline is 11:59 PM IST, and panels get slow.
