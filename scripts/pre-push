@@ -19,7 +19,10 @@ cd "$(git rev-parse --show-toplevel)"
 # no pyyaml, so that check printed "ok" on every push for its entire life while parsing nothing.
 # A check that cannot run must say so, never pass.
 YAML_PY=""
-for _c in "${PY:-}" ".venv/bin/python" "$(command -v python3 || true)"; do
+# /usr/bin/python3 is listed explicitly because on macOS it ships WITH pyyaml while the Homebrew
+# python3 that usually shadows it on PATH does not -- and a git hook runs with its own PATH, so
+# "whatever python3 resolves to" is not a decision worth leaving to chance.
+for _c in "${PY:-}" ".venv/bin/python" "$(command -v python3 || true)" "/usr/bin/python3"; do
   [ -n "$_c" ] && [ -x "${_c%% *}" ] || continue
   if "$_c" -c "import yaml" >/dev/null 2>&1; then YAML_PY="$_c"; break; fi
 done
