@@ -15,12 +15,12 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   finds — and refuses to patch the strongest-looking case, because that file is vendored.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
 >   free-text questions work anyway, routed locally.
-> - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
+> - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **19/20 vs 4/20**.
 > - **The graph loses one of those twenty on purpose,** and ties the baseline on the
 >   control category. See why below.
 > - **Nothing here is asserted.** 119 tests, 31 graph claims, 18 rendered UI states and every
->   benchmark re-run by **30 CI steps on each push** — including the claims I had to withdraw,
+>   benchmark re-run by **31 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
@@ -166,7 +166,7 @@ the *parsed* file — the committed snapshot stores parsed OWNERS structures, so
 and key order are not preserved — and the full proposed file is appended underneath, because a
 minimal diff can reuse an identical line and read misleadingly.
 
-`PYTHONPATH=src python verify_action.py` re-checks every number in this section against a live run.
+`PYTHONPATH=src ./.venv/bin/python verify_action.py` re-checks every number in this section against a live run.
 
 ## Track 03's own "Key focus", line by line
 
@@ -246,7 +246,7 @@ mutating the whole graph, re-running a recursive traversal over the mutated copy
 without touching the original. That is `GRAPH.COPY`: a copy of the freshly seeded graph —
 3,087 nodes, 15,735 edges, 7 indexes — takes **roughly 300–460 ms**, varying with machine load
 across repeated runs. A single figure here would be wrong on anyone else's machine and was
-already wrong on mine, so `PYTHONPATH=src python bench_copy.py` re-measures it and asserts the
+already wrong on mine, so `PYTHONPATH=src ./.venv/bin/python bench_copy.py` re-measures it and asserts the
 part that *is* invariant: that the copy carries the whole graph and its indexes, and the original
 is untouched.
 
@@ -430,7 +430,7 @@ test pass, which is precisely the failure the rules describe.
 
 Recall is semantic, so it survives rewording: ask a fresh session *"who currently owns the podgc
 controller"* and it finds the earlier *"who owns pkg/controller/podgc?"*, with its citations intact.
-There is a test for each of these, and `PYTHONPATH=src python verify_memory.py` re-checks every number in this section against a live run, in CI.
+There is a test for each of these, and `PYTHONPATH=src ./.venv/bin/python verify_memory.py` re-checks every number in this section against a live run, in CI.
 
 ## Turn FalkorDB off and here is exactly what stops working
 
@@ -533,7 +533,7 @@ answer was never written down anywhere.** Nobody ever wrote "one person is the e
 capacity for the apiserver metrics endpoints". It is only true as a consequence of the structure.
 
 ```bash
-PYTHONPATH=src python eval_graph_vs_text.py     # re-run it
+PYTHONPATH=src ./.venv/bin/python eval_graph_vs_text.py     # re-run it
 ```
 
 ## Why not just use Graphiti, Cognee or GraphRAG-SDK?
@@ -572,7 +572,7 @@ Fair. This page carried a comparison answering that for most of the project's li
 script behind it**, quoting a graph of "3,300 nodes / 39,987 edges" — which is not this product's
 graph. So I wrote the benchmark against the real one and ran it.
 
-`PYTHONPATH=src python bench_vs_networkx.py` — the product's own seeded graph, **3,087 nodes,
+`PYTHONPATH=src ./.venv/bin/python bench_vs_networkx.py` — the product's own seeded graph, **3,087 nodes,
 15,735 edges**, both engines cross-checked to agree on the result before being timed. Median of
 three runs:
 
@@ -676,13 +676,13 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src python -m pytest tests/ -q     # 119 invariant tests
-PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 119 invariant tests
+PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-checks every number in this README
 ```
 
 ```bash
-PYTHONPATH=src python eval_retrieval.py       # 12 paraphrases + 3 negative controls
-PYTHONPATH=src python eval_graph_vs_text.py   # graph vs a TF-IDF baseline on the same corpus
+PYTHONPATH=src ./.venv/bin/python eval_retrieval.py       # 12 paraphrases + 3 negative controls
+PYTHONPATH=src ./.venv/bin/python eval_graph_vs_text.py   # graph vs a TF-IDF baseline on the same corpus
 ```
 
 `verify_claims.py` exists so you can falsify any factual claim here in one command. It queries the
@@ -1031,7 +1031,7 @@ requires — the snapshot contains verbatim KEP prose.
 
 The first sentence of this README says large orgs keep re-proposing things they already rejected.
 That is the motivation for everything here, and I had never measured it. So I did:
-`PYTHONPATH=src python measure_repeat_rejections.py`.
+`PYTHONPATH=src ./.venv/bin/python measure_repeat_rejections.py`.
 
 Compare all 752 named rejected alternatives pairwise by embedding, keep pairs belonging to
 different decisions, and ask whether the record **already links** those two decisions through

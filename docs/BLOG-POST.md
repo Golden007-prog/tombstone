@@ -354,7 +354,7 @@ honestly say nothing is there, and that is only worth anything if the claim is b
 I ended up writing a lot of verification — a script that re-queries every number in the README
 against the live graph, another that drives every rendered answer state through a headless browser,
 another that reads the demo script's narration and asserts the app actually returns what it claims.
-Thirty CI steps. The thing nobody warns you about is that **the checks fail in their own
+Thirty-one CI steps. The thing nobody warns you about is that **the checks fail in their own
 ways**, and a check that fails for the wrong reason costs more than the bug it was meant to catch.
 
 Four that cost me the most:

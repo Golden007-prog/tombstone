@@ -229,6 +229,14 @@ jobs:
             || { echo "run.sh did not reuse the existing FalkorDB"; cat /tmp/run.log; exit 1; }
           echo "  reused the existing instance, as it should"
 
+      - name: The README's "check me" commands, pasted verbatim
+        run: |
+          # A judge who follows the README runs these next. They used to say bare `python`, which
+          # after ./run.sh is whatever is on PATH -- not the .venv run.sh just built -- so both
+          # came back ModuleNotFoundError on a clean clone. Run exactly what the README prints.
+          PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q
+          PYTHONPATH=src ./.venv/bin/python verify_claims.py
+
       - name: It serves and answers, not just starts
         run: |
           python - <<'PY'
