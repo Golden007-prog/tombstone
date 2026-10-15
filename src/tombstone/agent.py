@@ -194,10 +194,33 @@ class Agent:
             return {"shape": "DEGRADED", "question": question,
                     "answer": f"Tool routing failed: {str(e)[:220]}", "health": h}
 
-        ans = self.dispatch(choice["tool"], choice.get("args", {}))
+        tool = choice["tool"]
+        args = choice.get("args", {})
+
+        # Answered before? Only reuse it if the nodes it cited are STILL THERE. A remembered
+        # answer whose citations have gone is a stale claim, not a memory -- fall through and
+        # re-run rather than serve it.
+        remembered = None
+        if self.memory and tool != "recall":
+            try:
+                remembered = self.memory.recall_exact(question, tool)
+            except Exception:
+                remembered = None
+
+        ans = self.dispatch(tool, args)
+
+        if (remembered and remembered[5] > 0 and ans.shape == "ANSWERED_WITH_PATH"
+                and len(ans.rows) == remembered[4]):
+            import datetime as _dt
+            when = _dt.datetime.fromtimestamp((remembered[3] or 0) / 1000).strftime("%d %b %H:%M")
+            ans.shape = "ANSWERED_FROM_MEMORY"
+            ans.note = (f"Asked before ({int(remembered[2] or 1)}x, last {when}). All "
+                        f"{remembered[5]} nodes that answer cited are still in the graph, and "
+                        f"re-running it just now returned the same {len(ans.rows)} rows.")
         # Remember what was learned. Additive and best-effort: a memory write must never break
         # the answer the user actually asked for.
-        if self.memory and ans.shape == "ANSWERED_WITH_PATH" and ans.tool != "recall":
+        if (self.memory and ans.shape in ("ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY")
+                and ans.tool != "recall"):
             try:
                 qv = list(self.embedder().embed([question]))[0].tolist()
                 self.memory.record(question, ans, qvec=qv)
@@ -220,6 +243,9 @@ class Agent:
 
 def render(a: Answer) -> str:
     """Deterministic phrasing. The model is never asked to describe what the graph returned."""
+    if a.shape == "ANSWERED_FROM_MEMORY":
+        body = render(Answer("ANSWERED_WITH_PATH", a.tool, rows=a.rows, cypher=a.cypher))
+        return f"{body}\n\n[from memory] {a.note}"
     if a.shape == "UNKNOWN_ENTITY":
         return a.note or "That name does not resolve in this graph, so nothing was run."
     if a.shape == "DEGRADED":

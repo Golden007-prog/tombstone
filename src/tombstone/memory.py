@@ -179,6 +179,29 @@ ORDER BY a.ts_ms DESC
 LIMIT $limit
 """
 
+    EXACT = """
+MATCH (a:Answer {qid: $qid})
+OPTIONAL MATCH (a)-[c:CITED]->(n)
+RETURN a.question    AS question,
+       a.tool        AS tool,
+       a.times_asked AS times_asked,
+       a.ts_ms       AS last_ms,
+       a.row_count   AS rows,
+       count(c)      AS citations_still_live
+"""
+
+    def recall_exact(self, question: str, tool: str):
+        """Has this EXACT question been answered before, and do its citations still resolve?
+
+        The re-check is the point. A remembered answer is only worth returning if the nodes it
+        cited are still there -- otherwise it is a cache serving a stale claim, which is the
+        failure this whole product argues against. Citations that have vanished make the memory
+        unusable, and the tool re-runs instead.
+        """
+        self.ensure()
+        rows = self.g.ro_query(self.EXACT, params={"qid": qid(question, tool)}).result_set
+        return rows[0] if rows else None
+
     def stats(self) -> dict:
         self.ensure()
         try:

@@ -7,6 +7,11 @@ from __future__ import annotations
 
 import pytest
 
+# Either shape means "the tool answered". ANSWERED_FROM_MEMORY is returned when the same question
+# was asked before AND its citations still resolve, so a repeat ask inside one test session
+# legitimately returns it.
+ANSWERED = {"ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY"}
+
 from graphkit.ingest import connect
 from tombstone.agent import Agent, render
 from tombstone.build import build, to_ms
@@ -295,7 +300,7 @@ def test_router_survives_the_shapes_models_actually_emit(agent, reply, expect_to
     agent._provider = _StubProvider(reply)
     out = agent.ask("which areas have nobody left?")
     assert out["routed_to"] == expect_tool
-    assert out["shape"] == "ANSWERED_WITH_PATH"
+    assert out["shape"] in ANSWERED
 
 
 def test_a_hallucinated_tool_is_refused_not_guessed(agent):
@@ -322,7 +327,7 @@ def test_answers_are_written_back_and_cite_real_nodes(agent):
     """
     agent._provider = _StubProvider('{"tool":"ownership_dilution","args":{}}')
     out = agent.ask("which areas have nobody left?")
-    assert out["shape"] == "ANSWERED_WITH_PATH"
+    assert out["shape"] in ANSWERED
 
     rows = agent.g.ro_query(
         """
@@ -381,7 +386,7 @@ def test_memory_write_failure_never_breaks_the_answer(agent, monkeypatch):
     agent._provider = _StubProvider('{"tool":"ownership_dilution","args":{}}')
     monkeypatch.setattr(agent.memory, "record", boom)
     out = agent.ask("which areas have nobody left?")
-    assert out["shape"] == "ANSWERED_WITH_PATH"
+    assert out["shape"] in ANSWERED
     assert len(out["rows"]) == 7
 
 
@@ -466,3 +471,38 @@ def test_dilution_reports_the_fallback_not_an_orphan(agent):
     # ordered by bus-factor risk: the thinnest fallback first
     fbs = [r[5] for r in a.rows]
     assert fbs == sorted(fbs), f"not ordered by fallback size: {fbs}"
+
+
+def test_answered_from_memory_is_earned_not_cached(agent):
+    """The organizer's taxonomy has four answer shapes; this is the fourth.
+
+    It is only returned when the prior answer's citations STILL RESOLVE and re-running the tool
+    returns the same row count. A remembered answer whose cited nodes have gone is a stale claim,
+    not a memory -- so the agent falls through and re-runs instead of serving it.
+    """
+    agent._provider = _StubProvider('{"tool":"ownership_dilution","args":{}}')
+    q = "which areas lost every dedicated approver, memory test?"
+
+    first = agent.ask(q)
+    assert first["shape"] in ANSWERED
+
+    second = agent.ask(q)
+    assert second["shape"] == "ANSWERED_FROM_MEMORY"
+    assert "still in the graph" in second["answer"]
+    # the rows are the live ones, not a replayed blob
+    assert second["rows"] == first["rows"]
+
+
+def test_memory_is_not_served_when_its_citations_are_gone(agent):
+    """Delete what a remembered answer cited; the agent must stop calling it a memory."""
+    agent._provider = _StubProvider('{"tool":"broken_lineage","args":{"min_cites":2}}')
+    q = "which cited records do not exist, staleness test?"
+    agent.ask(q)
+    assert agent.ask(q)["shape"] == "ANSWERED_FROM_MEMORY"
+
+    from tombstone.memory import qid
+    agent.g.query(
+        "MATCH (a:Answer {qid: $q})-[c:CITED]->() DELETE c", params={"q": qid(q, "broken_lineage")}
+    )
+    again = agent.ask(q)
+    assert again["shape"] == "ANSWERED_WITH_PATH", "served a memory with no surviving citations"

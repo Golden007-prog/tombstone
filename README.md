@@ -368,9 +368,16 @@ Every answer is one of four shapes:
 | shape | meaning |
 |---|---|
 | `ANSWERED_WITH_PATH` | found it, and here is the traversal |
+| `ANSWERED_FROM_MEMORY` | asked before — and the nodes that answer cited **still resolve** |
 | `NOT_IN_GRAPH` | the traversal ran and returned nothing — **always** with a coverage statement |
 | `UNKNOWN_ENTITY` | the name didn't resolve, so nothing else ran |
 | `DEGRADED` | the graph is unreachable. No fallback. |
+
+`ANSWERED_FROM_MEMORY` is **earned, not cached.** It is only returned when the prior answer's
+citations still resolve *and* re-running the tool returns the same rows — so what you read is the
+live result, with the memory noted. If the cited nodes have gone, the memory is discarded and the
+tool re-runs, because a remembered answer whose evidence has vanished is a stale claim rather than
+a memory. There is a test that deletes the citations and asserts the agent stops calling it one.
 
 Entity names are resolved against the graph *before* any traversal, because a plausible wrong name
 is worse than no answer. And a negative never stands alone — an empty traversal only means this

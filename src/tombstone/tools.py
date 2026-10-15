@@ -5,11 +5,13 @@ them, and let the model choose between them rather than compose them", and "the 
 a query". So every query here is hand-written and parameterised, the model only picks a tool name
 and fills its arguments, and no model output is ever concatenated into Cypher.
 
-Each tool returns an Answer with one of four SHAPES, mirroring the blog's own taxonomy:
-    ANSWERED_WITH_PATH  - found it, and here is the traversal that proves it
-    NOT_IN_GRAPH        - the traversal ran and returned nothing. This is a real answer.
-    UNKNOWN_ENTITY      - the name did not resolve, so nothing else ran
-    DEGRADED            - the graph is reachable but the query could not complete
+Each tool returns an Answer with one of these SHAPES, mirroring the kickoff blog's own taxonomy:
+    ANSWERED_WITH_PATH   - found it, and here is the traversal that proves it
+    ANSWERED_FROM_MEMORY - this exact question was answered before; the prior answer's citations
+                           were re-checked against the live graph and still hold
+    NOT_IN_GRAPH         - the traversal ran and returned nothing. This is a real answer.
+    UNKNOWN_ENTITY       - the name did not resolve, so nothing else ran
+    DEGRADED             - the graph is reachable but the query could not complete
 
 The UNKNOWN_ENTITY shape matters: the blog warns that "a plausible service name is worse than no
 answer", so every entity argument is resolved against the graph before any traversal runs.
