@@ -87,6 +87,26 @@ for path in / /app.js /style.css "/?run=draft_owners_patch&focus=1"; do
   [ "$code" = "200" ] || { echo "FAIL: $path returned $code"; exit 1; }
 done
 
+# Hugging Face renders a Space INSIDE AN IFRAME on its page. Two things break that silently and
+# neither produces an error anywhere a developer would look: a framing header, which leaves the
+# judge staring at a blank box, and browser storage, which throws in a cross-origin frame when
+# third-party cookies are blocked -- the default in Safari and increasingly elsewhere.
+headers="$(curl -s -D- -o /dev/null -m 10 "http://localhost:$PORT/")"
+if printf '%s' "$headers" | grep -qiE 'x-frame-options|frame-ancestors'; then
+  echo "FAIL: the app sends a framing header, so it will not render inside the Space's iframe"
+  printf '%s' "$headers" | grep -iE 'x-frame-options|content-security-policy' >&2
+  exit 1
+fi
+echo "  no framing headers -> embeds in the Space iframe"
+
+app_js="$(curl -s -m 10 "http://localhost:$PORT/app.js")"
+if printf '%s' "$app_js" | grep -qE 'localStorage|sessionStorage|document\.cookie|indexedDB'; then
+  echo "FAIL: the front end uses browser storage, which throws in a cross-origin iframe when"
+  echo "      third-party cookies are blocked. The Space would break for a chunk of judges."
+  exit 1
+fi
+echo "  no browser storage   -> survives third-party cookie blocking"
+
 echo
 echo "Deploy path verified. The only thing left is HF_TOKEN:"
 echo "  export HF_TOKEN=hf_...   &&   ./deploy_hf.sh"
