@@ -56,4 +56,26 @@ for label, (live, claimed) in CLAIMS.items():
     print(f"  {'PASS' if ok else 'FAIL'}  {label:<38} post={claimed:<7} live={live}{note}")
 
 print(f"\n{len(CLAIMS) - fails}/{len(CLAIMS)} blog claims verified")
+# The post states two counts of its own: how many FalkorDB lessons it carries, and how many CI
+# steps run. Both were typed. The second was already stale -- it said twenty-seven while thirty
+# run -- which is the same way five other numbers in this repo went wrong in two days.
+import re as _re
+
+_WORDS = {8: "Eight", 9: "Nine", 10: "Ten", 11: "Eleven", 12: "Twelve"}
+_n_lessons = len(_re.findall(r"^### \d+\.", blog, _re.M))
+_said = _re.search(r"^## (\w+) things FalkorDB taught me", blog, _re.M)
+_ok = bool(_said) and _said.group(1) == _WORDS.get(_n_lessons)
+print(f"  {'PASS' if _ok else 'FAIL'}  the post says it has {_said.group(1) if _said else '?'} "
+      f"FalkorDB lessons and carries {_n_lessons}")
+fails += not _ok
+
+_NUMWORDS = {27: "Twenty-seven", 28: "Twenty-eight", 29: "Twenty-nine", 30: "Thirty",
+             31: "Thirty-one", 32: "Thirty-two"}
+_steps = sum(1 for _l in open(".github/workflows/verify.yml") if _re.match(r"^\s*- name:", _l))
+_said_ci = _re.search(r"(\w+(?:-\w+)?) CI steps\.", blog)
+_ok_ci = bool(_said_ci) and _said_ci.group(1) == _NUMWORDS.get(_steps)
+print(f"  {'PASS' if _ok_ci else 'FAIL'}  the post says {_said_ci.group(1) if _said_ci else '?'} "
+      f"CI steps and the workflow has {_steps}")
+fails += not _ok_ci
+
 sys.exit(1 if fails else 0)

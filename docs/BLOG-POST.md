@@ -1,6 +1,6 @@
 # Kubernetes writes down who left. Nothing reads it.
 
-*Building a company brain on a graph, and eight things FalkorDB taught me the hard way.*
+*Building a company brain on a graph, and nine things FalkorDB taught me the hard way.*
 
 ---
 
@@ -77,7 +77,7 @@ You cannot find that by searching. You find it by counting inbound edges to a ga
 
 ---
 
-## Eight things FalkorDB taught me the hard way
+## Nine things FalkorDB taught me the hard way
 
 I measured rather than trusted, and most of what follows cost me time.
 
@@ -213,6 +213,40 @@ you benchmark a graph algorithm, assert the *result* first — compare it agains
 at minimum against a count you worked out by hand. The full story is in the networkx section below.
 
 
+### 9. `EXISTS { ... }` is not a subquery here, and the error will not tell you that
+
+I wanted "ownership files where nobody outside this cohort still approves", which in recent
+openCypher is one clause:
+
+```cypher
+WHERE NOT EXISTS { MATCH (x:Person)-[:APPROVES]->(o) WHERE NOT x.key IN $hs }
+```
+
+On v4.22.1 that fails with:
+
+```
+Invalid input '(': expected ':', ',' or '}'
+```
+
+Read that error twice. It is not saying the subquery is unsupported — it is saying that **after
+`{` it expected a map key**. The parser has no concept of an existential subquery, so it reads the
+brace as a map literal and then trips on the first `(` of the pattern inside. You go looking for a
+typo in a pattern that is perfectly well formed.
+
+The working version is an `OPTIONAL MATCH` and a count:
+
+```cypher
+OPTIONAL MATCH (x:Person)-[:APPROVES]->(o) WHERE NOT x.key IN $hs
+WITH o, leaving, count(DISTINCT x) AS others
+WHERE others = 0
+```
+
+The general lesson is about error messages rather than about this one clause: when a graph
+database's parser does not know a construct, it very often reports the failure in terms of the
+construct it *did* think you were writing. "Expected a map key" meant "I have never heard of
+`EXISTS {`". Checking the version's own documentation for the clause is faster than believing the
+error.
+
 ## "Why not just use networkx?" — I had this wrong
 
 Someone asked me this and it is the right question. My graph is about 3,000 nodes. That fits in
@@ -320,10 +354,10 @@ honestly say nothing is there, and that is only worth anything if the claim is b
 I ended up writing a lot of verification — a script that re-queries every number in the README
 against the live graph, another that drives every rendered answer state through a headless browser,
 another that reads the demo script's narration and asserts the app actually returns what it claims.
-Twenty-seven CI steps. The thing nobody warns you about is that **the checks fail in their own
+Thirty CI steps. The thing nobody warns you about is that **the checks fail in their own
 ways**, and a check that fails for the wrong reason costs more than the bug it was meant to catch.
 
-Three that cost me the most:
+Four that cost me the most:
 
 **A probe with a fixed question, against a store that persists.** A test asked a question, recorded
 the answer, then asserted the next ask came back remembered. It passed, and failed on the second
@@ -349,6 +383,25 @@ line containing a `%`, and headless Chrome instances sharing a profile directory
 screenshots of a page that never ran. None of them are about graphs.
 
 ---
+
+**A parser that lost any element containing another element.** The check that drives every
+rendered answer state through a headless browser tracks a handful of element ids and counts
+nesting depth to know when each one closes. It incremented the depth of only the innermost open
+element — so whenever one tracked element contained another, the outer one was left permanently
+one level deep and never recorded at all. Two of them did: the panel holding the reasoning path,
+and the one holding the headline number.
+
+The function asking "is this visible?" received nothing and answered *no*. So a feature that was
+rendering perfectly was reported as broken, and I spent an hour reading application code that had
+nothing wrong with it before opening the page in a real browser and seeing the panel sitting
+there.
+
+That is the worst shape a bad check can take. A check that fails loudly costs you minutes. A check
+that fails *as though it were a finding about your product* sends you to the wrong file with
+confidence. Two rules came out of it, and they are cheap: an element the parser could not find is
+reported as **a parse failure in the checker**, never as "not visible" — and anything that counts
+nesting must exclude void elements, because no closing tag is coming for them.
+
 
 ## What I would change
 
