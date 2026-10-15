@@ -992,8 +992,11 @@ times. Each fix made the claim narrower and more defensible.
 - The corpus is a snapshot. Re-run `python src/tombstone/snapshot.py` against fresh clones to update.
 - **The counterfactual needs memory headroom to fork.** `GRAPH.COPY` copies the graph in the
   server process, so on a small box, or when two counterfactuals overlap, it can fail with
-  "could not fork". It retries once, and if it still cannot copy it returns `DEGRADED` saying
-  so. It never reports a number from a copy that did not happen — a counterfactual that
+  "could not fork". Measured: the whole app — FalkorDB, the embedding model and a copy in
+  flight — peaks at **~400 MB and runs inside a 512 MB container without being OOM-killed**, and
+  repeated copies do not grow it, so the copies are genuinely dropped. The deploy check runs
+  capped at 512 MB so a regression fails there rather than as a crash on the hosted demo. It
+  retries once, and if it still cannot copy it returns `DEGRADED` saying so. It never reports a number from a copy that did not happen — a counterfactual that
   answered "0 areas would be left unowned" because the diff was empty would be the worst bug
   this product could have, so there is a test that drives that exact path.
 

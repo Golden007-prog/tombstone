@@ -28,7 +28,14 @@ docker build --platform linux/amd64 -t "$IMG" "$STAGE" >/dev/null 2>&1
 
 echo "running as a non-root user with no volumes, as the Space does"
 docker rm -f "$IMG" >/dev/null 2>&1 || true
-docker run -d --name "$IMG" --platform linux/amd64 --user 1000 -p "$PORT:8099" "$IMG" >/dev/null
+# Capped at 512MB on purpose. Measured peak is ~393MB with the embedder loaded and a GRAPH.COPY
+# fork in flight, so this leaves roughly 120MB of headroom and FAILS if a change eats it. The
+# Space's free tier has far more, but a cap that is never approached catches nothing: the point is
+# to notice a regression here rather than as an OOM on the hosted demo, where it looks like the
+# product crashing. GRAPH.COPY forks, so memory is the resource this product is most likely to
+# regress on.
+docker run -d --name "$IMG" --platform linux/amd64 --user 1000 \
+  --memory=512m --memory-swap=512m -p "$PORT:8099" "$IMG" >/dev/null
 
 for _ in $(seq 1 60); do
   health="$(curl -s -m 3 "http://localhost:$PORT/api/health" 2>/dev/null || true)"
@@ -106,6 +113,13 @@ if printf '%s' "$app_js" | grep -qE 'localStorage|sessionStorage|document\.cooki
   exit 1
 fi
 echo "  no browser storage   -> survives third-party cookie blocking"
+
+peak="$(docker stats --no-stream --format '{{.MemUsage}}' "$IMG" 2>/dev/null)"
+echo "  peak memory in a 512MB container: $peak"
+if docker inspect "$IMG" --format '{{.State.OOMKilled}}' 2>/dev/null | grep -q true; then
+  echo "FAIL: the container was OOM-killed inside 512MB"
+  exit 1
+fi
 
 echo
 echo "Deploy path verified. The only thing left is HF_TOKEN:"

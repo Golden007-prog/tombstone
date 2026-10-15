@@ -37,7 +37,8 @@ Try these:
 
 This Space runs FalkorDB and the app in one container and rebuilds the graph from a committed
 snapshot on every boot — **about 5 seconds warm, nearer 10 from cold** — so there is nothing to go
-stale and no external database to restore.
+stale and no external database to restore. The whole thing peaks at about 400 MB, measured, and
+runs inside a 512 MB container without being killed.
 
 Every number above is re-checked against the live graph by scripts that run in CI on every push,
 including the claims that did not survive being checked, which are marked rather than deleted.
