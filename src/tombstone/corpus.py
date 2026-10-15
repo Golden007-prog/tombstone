@@ -170,9 +170,20 @@ class Corpus:
     readmes: dict = field(default_factory=dict)     # rel_path -> markdown
     owners: dict = field(default_factory=dict)      # rel_path -> OWNERS dict
     aliases: dict = field(default_factory=dict)
+    legacy_files: list = field(default_factory=list)
 
     def load(self, enhancements_keps: str, k8s_root: str, aliases_path: str) -> "Corpus":
         self.aliases = load_alias_table(aliases_path)
+        self._keps_root = enhancements_keps
+        # Collect legacy flat-layout .md records up front so the snapshot can carry them. A
+        # snapshot has no filesystem to walk, and if the two paths disagree the published
+        # "broken references" number depends on how the graph was built.
+        legacy = []
+        for dp, _dn, fn in os.walk(enhancements_keps):
+            for f in fn:
+                if f.endswith(".md") and f != "README.md":
+                    legacy.append(os.path.relpath(os.path.join(dp, f), enhancements_keps))
+        self.legacy_files = sorted(legacy)
         for dp, _dn, fn in os.walk(enhancements_keps):
             rel = os.path.relpath(dp, enhancements_keps)
             if "kep.yaml" in fn:
@@ -199,6 +210,8 @@ class Corpus:
                 pass
         return self
 
+    _keps_root: str = ""
+
     def resolver(self):
         """Resolve a lineage reference to a KEP dir, or classify why it does not resolve."""
         dirs = set(self.keps)
@@ -208,6 +221,14 @@ class Corpus:
             if d.get("kep-number") is not None
         }
 
+        # Legacy flat-layout records: before KEPs became directories they were single .md files,
+        # and plenty of still-valid references point at those. Treat a reference whose file is
+        # present on disk as RESOLVED, not broken -- counting it as decay inflates the finding.
+        # A snapshot has no filesystem to walk, so the list is carried in it. Without this the
+        # snapshot build counts 2 legacy references as broken that the live build resolves --
+        # the two paths must agree or the published number depends on how you ran it.
+        legacy = set(self.legacy_files)
+
         def resolve(ref: str) -> tuple[str | None, str]:
             s = (ref or "").strip()
             if s.lower().strip(".,;") in PLACEHOLDER:
@@ -216,9 +237,13 @@ class Corpus:
                 return None, "external"
             if s.startswith("[") and "](" in s:
                 return None, "external"
-            t = re.sub(r"^/?keps/", "", s).strip("/")
+            # `/kep/` instead of `/keps/` is a typo that appears in the corpus; normalising it is
+            # resolution, not charity -- the target is unambiguous.
+            t = re.sub(r"^/?keps?/", "", s).strip("/")
             if t in dirs:
                 return t, "ok"
+            if t in legacy or (t + ".md") in legacy:
+                return None, "legacy-file"
             m = re.search(r"(\d{3,4})", t)
             if m and m.group(1) in bynum:
                 return bynum[m.group(1)], "ok"

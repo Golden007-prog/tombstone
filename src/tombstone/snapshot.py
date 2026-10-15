@@ -46,6 +46,7 @@ def export(corpus, path: str = SNAPSHOT) -> dict:
         "alternatives": alts,
         "owners": {k: _slim_owners(v) for k, v in corpus.owners.items()},
         "aliases": corpus.aliases,
+        "legacy_files": corpus.legacy_files,
     }
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with gzip.open(path, "wt", encoding="utf-8") as f:
@@ -121,6 +122,7 @@ def load(path: str = SNAPSHOT):
     c.keps = p["keps"]
     c.owners = p["owners"]
     c.aliases = p["aliases"]
+    c.legacy_files = p.get("legacy_files", [])
     c._prebuilt_alternatives = p["alternatives"]  # build() prefers this over re-parsing markdown
     return c
 

@@ -142,7 +142,7 @@ MERGE (a)-[e:CO_AUTHORED]->(b) SET e.w = shared
 |---|---|
 | decisions (`:Kep`) | 679 |
 | rejected alternatives (`:Alternative`) | 959 — of which **753 are titled, named options** |
-| missing decision records (`:MissingRecord`) | 52 (cited 63 times) |
+| missing decision records (`:MissingRecord`) | 49 (cited 60 times) |
 | people | 794 |
 | ownership files | 585 |
 | `APPROVES` / `EMERITUS_OF` | 2,584 / 298 |
@@ -150,7 +150,7 @@ MERGE (a)-[e:CO_AUTHORED]->(b) SET e.w = shared
 
 Findings that fall straight out of it, each checkable:
 
-- **63 of 363 internal decision pointers (17.4%) don't resolve.** One missing record,
+- **60 of 363 internal decision pointers (16.5%) don't resolve.** One missing record,
   `/keps/sig-api-machinery/0006-apply.md`, is cited by **four** separate decisions.
 - **83 of 111 departed owners hold no current approver role anywhere.**
 - **7 areas have no current approver at all**, including `pkg/controller/podgc` (gmarek, foxish).
@@ -462,3 +462,20 @@ library.
 Data: [kubernetes/enhancements](https://github.com/kubernetes/enhancements) and
 [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) OWNERS, both Apache-2.0. No email
 addresses are ingested, even though `sigs.yaml` publishes them — Rule 6 says "personal".
+
+## Two more claims I stress-tested after finding the first error
+
+Having got the ownership claim wrong, I assumed others were wrong too and went looking.
+
+**"83 of 111 departed owners hold no current approver role" — is that circular?**
+It would be, if `emeritus` automatically meant "gone from everything". It does not: **28 of the
+111 are emeritus in one area and still actively approve elsewhere** — `sttts` is emeritus in 1
+file and still approves 70. So the 83 are people who stepped back from *everything*, which is a
+real signal rather than a restatement of the field's definition. Claim survives.
+
+**"X% of internal decision pointers don't resolve" — decay, or just moved files?**
+Partly the latter, and my first number was inflated. Two references point at legacy flat-layout
+`.md` records that still exist, and one used `/kep/` instead of `/keps/` — a typo whose target is
+unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 60/363
+(16.5%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
+snapshot so a snapshot build and a live build cannot disagree.
