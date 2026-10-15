@@ -5,8 +5,19 @@ this product does. It is also the clearest case for a graph database rather than
 answering it means mutating the whole graph, re-running a recursive traversal over the mutated
 copy, and diffing the result against the original — without touching the original.
 
-FalkorDB does that with `GRAPH.COPY`, measured at **495 ms** for the full graph (3,088 nodes,
-15,760 edges) with all 8 indexes carried over. So the sequence is:
+FalkorDB does that with `GRAPH.COPY`. On a freshly seeded graph -- **3,087 nodes, 15,735 edges,
+7 indexes** -- a copy takes roughly **300-460 ms**, varying with machine load, and carries the
+indexes with it.
+
+(This previously read 3,088 nodes / 15,760 edges / 8 indexes / 495 ms. Every one of those was
+wrong. The sizes had drifted as the model grew; the index count came from a graph that had been
+USED, because remembering an answer adds an eighth index on `:Answer{qid, emb}`; and the timing
+was never re-measured. Two consecutive benchmark runs then gave medians of 323 ms and 384 ms,
+which is why this now quotes a range and `bench_copy.py` asserts only what is invariant -- that
+the copy is complete and the original untouched. The graph also GROWS as it is asked questions,
+since answers are nodes, so any size quoted here is the seeded one rather than whatever is live.)
+
+So the sequence is:
 
     GRAPH.COPY   ->   remove their approvals in the copy   ->   re-run the dilution traversal
                  ->   diff against the baseline            ->   drop the copy

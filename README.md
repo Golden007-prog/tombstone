@@ -181,8 +181,12 @@ For **one** person it is an exact query — 45 Kubernetes areas have exactly one
 For a **cohort** it is not, because coverage **cascades**: an area survives because its parent
 still has an approver, and that parent may be emptied by the same cohort. Answering it means
 mutating the whole graph, re-running a recursive traversal over the mutated copy, and diffing —
-without touching the original. That is `GRAPH.COPY`, measured at **~390ms** for the full graph
-with all 8 indexes carried:
+without touching the original. That is `GRAPH.COPY`: a copy of the freshly seeded graph —
+3,087 nodes, 15,735 edges, 7 indexes — takes **roughly 300–460 ms**, varying with machine load
+across repeated runs. A single figure here would be wrong on anyone else's machine and was
+already wrong on mine, so `PYTHONPATH=src python bench_copy.py` re-measures it and asserts the
+part that *is* invariant: that the copy carries the whole graph and its indexes, and the original
+is untouched.
 
 ```
 If deads2k, liggitt, jpbetz, smarterclayton, enj and serathius all stopped approving:

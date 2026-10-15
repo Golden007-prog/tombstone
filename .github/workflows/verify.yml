@@ -108,6 +108,9 @@ jobs:
       - name: Every rendered answer state, checked for visible-but-empty panels
         run: python scripts_check_ui.py
 
+      - name: GRAPH.COPY still carries the whole graph, and report the timing
+        run: python bench_copy.py
+
       - name: The premise measurement still matches what the README claims
         run: python measure_repeat_rejections.py
 
