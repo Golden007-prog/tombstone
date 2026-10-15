@@ -156,7 +156,9 @@ See the AI assistance disclosure section of the README.
 
 **Then, in order:**
 
-- [ ] `./preflight.sh` — one command, fourteen checks: every number against the live graph,
+- [ ] `git config core.hooksPath scripts` — once, so a push cannot carry a state the checks
+      already know is broken (it happened twice; resolve is not a mechanism)
+- [ ] `./preflight.sh` — one command, sixteen checks: every number against the live graph,
       every rendered answer state, the README's printed output, the demo script's facts and
       timing, both benchmarks, and whether the page still renders on GitHub
 - [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a

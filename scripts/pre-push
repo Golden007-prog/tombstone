@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Refuse a push that the checks already know is broken.
+#
+# Twice in one day I pushed a state whose checker was, at that moment, printing the failure on my
+# screen: once a CI step count the README had outgrown, once a demo beat at 3.1 words per second.
+# Both times the information existed and I did not read it. Resolve is not a mechanism.
+#
+# Install once:
+#     git config core.hooksPath scripts
+#
+# It runs the checks that need nothing but this repository, which is what makes it fast enough to
+# live in a push. The database-backed ones stay in ./preflight.sh and in CI -- a hook that takes a
+# minute is a hook people pass --no-verify to.
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+fail=0
+run() {
+  local label="$1"; shift
+  if out="$("$@" 2>&1)"; then
+    printf '  ok    %s\n' "$label"
+  else
+    printf '  FAIL  %s\n' "$label"
+    printf '%s\n' "$out" | tail -4 | sed 's/^/          /'
+    fail=1
+  fi
+}
+
+echo "pre-push: the checks that need no database"
+run "the demo script is speakable"  python3 scripts_check_demo_timing.py
+run "the workflow still parses"     python3 -c "
+import sys
+try:
+    import yaml
+except ImportError:
+    sys.exit(0)          # not installed here; CI parses it anyway
+yaml.safe_load(open('.github/workflows/verify.yml'))"
+
+if [ "$fail" -ne 0 ]; then
+  cat >&2 <<'MSG'
+
+  Push refused. Fix the above, or --no-verify if you mean it.
+  The database-backed checks are ./preflight.sh and they have not run here.
+MSG
+  exit 1
+fi
+echo "  (run ./preflight.sh for the database-backed checks)"
