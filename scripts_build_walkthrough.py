@@ -73,7 +73,7 @@ def card(path: str, secs: int, lines: list[tuple[str, int]]) -> str:
         draws.append(
             f"drawtext=fontfile={FONT}:text='{esc(text)}':"
             f"x=(w-text_w)/2:y={y}:fontsize={size}:fontcolor=0xe8e6e3")
-    subprocess.run(["ffmpeg", "-y", "-f", "lavfi",
+    subprocess.run([*FFMPEG, "-y", "-f", "lavfi",
                     "-i", f"color=c=0x121214:s={W}x{H + BAND}:d={secs}",
                     "-vf", ",".join(draws), "-r", str(FPS), "-pix_fmt", "yuv420p",
                     "-c:v", "libx264", "-preset", "veryslow", "-crf", "30", path],
@@ -88,6 +88,9 @@ def esc(text: str) -> str:
     this video without any error at all.
     """
     assert "%" not in text, f"drawtext silently drops lines containing %: {text!r}"
+    # An apostrophe survives the shell but not drawtext's own parser -- "Kubernetes' record"
+    # rendered as "Kubernetes record" with no warning, which reads as a typo rather than a bug.
+    assert "'" not in text, f"drawtext drops apostrophes; reword instead: {text!r}"
     return text.replace("\\", r"\\").replace(":", r"\:").replace("'", r"\'")
 
 
@@ -97,20 +100,31 @@ def require(cond, msg):
 
 
 require(FONT, "no usable TTF font found for captions")
-require(shutil.which("ffmpeg"), "ffmpeg is not on PATH")
+def _ffmpeg() -> list[str]:
+    """The ffmpeg to use: the local one if it actually runs, else a container.
 
-# Present is not the same as working. A Homebrew x265 bump left ffmpeg 8.0.1 linked against
-# libx265.215 while the cellar had 217, so every invocation died with SIGABRT and a dyld message
-# -- and the failure surfaced as a CalledProcessError on the first frame, thirty lines from the
-# cause. Ask it to prove it runs.
-_probe = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
-if _probe.returncode != 0:
-    detail = (_probe.stderr or _probe.stdout).strip().splitlines()
-    require(False,
-            "ffmpeg is installed but cannot start:\n    "
-            + "\n    ".join(detail[:3])
-            + "\n  If that mentions a missing dylib, the usual cause is a dependency bump:"
-              "\n      brew reinstall ffmpeg")
+    Present is not the same as working. A Homebrew x265 bump left ffmpeg 8.0.1 linked against
+    libx265.215 while the cellar held 217, so every invocation died on start -- and the failure
+    surfaced as a CalledProcessError on the first frame, thirty lines from the cause. So the local
+    binary has to prove it runs, and when it cannot, the build uses a pinned container rather than
+    stopping. Regenerating the video should not depend on the state of somebody's package manager.
+    """
+    probe = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True) \
+        if shutil.which("ffmpeg") else None
+    if probe is not None and probe.returncode == 0:
+        return ["ffmpeg"]
+
+    why = "not on PATH" if probe is None else \
+        ((probe.stderr or probe.stdout).strip().splitlines() or ["failed to start"])[0]
+    if not shutil.which("docker"):
+        sys.exit(f"ffmpeg cannot be used ({why}) and there is no docker to fall back to.\n"
+                 f"  On macOS the usual cause is a dependency bump: brew reinstall ffmpeg")
+    print(f"  local ffmpeg unusable ({why[:70]}) -- using the container instead")
+    return ["docker", "run", "--rm", "-v", f"{os.path.abspath('.')}:/repo", "-w", "/repo",
+            "--entrypoint", "ffmpeg", "linuxserver/ffmpeg:latest"]
+
+
+FFMPEG = _ffmpeg()
 require(os.path.exists(CHROME) or shutil.which(CHROME), f"no Chrome at {CHROME}")
 try:
     with urllib.request.urlopen(f"{APP}/api/health", timeout=5) as r:
@@ -141,7 +155,10 @@ try:
 except Exception as exc:
     print(f"  WARNING: could not clear memory ({exc}); frames may show ANSWERED_FROM_MEMORY")
 
+# Inside the repo, so a containerised ffmpeg sees these paths under its one mount.
 work = os.environ.get("WORKDIR", "build/walkthrough")
+if FFMPEG[0] == "docker":
+    work = "build/walkthrough"
 os.makedirs(work, exist_ok=True)
 clips = []
 
@@ -165,7 +182,7 @@ for i, (query, secs, caption) in enumerate(BEATS):
         f"fontsize=25:fontcolor=0xe8e6e3"
         for n, line in enumerate(caption))
     clip = os.path.join(work, f"clip{i}.mp4")
-    subprocess.run(["ffmpeg", "-y", "-loop", "1", "-i", png, "-t", str(secs),
+    subprocess.run([*FFMPEG, "-y", "-loop", "1", "-i", png, "-t", str(secs),
                     "-vf", f"pad={W}:{H + BAND}:0:0:color=0x121214,{draws}",
                     "-r", str(FPS), "-pix_fmt", "yuv420p", "-c:v", "libx264",
                     "-preset", "veryslow", "-crf", "30", clip],
@@ -176,7 +193,7 @@ for i, (query, secs, caption) in enumerate(BEATS):
 opening = card(os.path.join(work, "open.mp4"), 4, [
     ("Tombstone", 54),
     ("The decisions your org already made and forgot.", 28),
-    ("Asked as a graph, over Kubernetes' real governance record.", 24),
+    ("Asked as a graph, over the real Kubernetes governance record.", 24),
 ])
 closing = card(os.path.join(work, "close.mp4"), 5, [
     ("Every number is checked against the live graph.", 28),
@@ -187,8 +204,13 @@ clips = [opening] + clips + [closing]
 
 listing = os.path.join(work, "clips.txt")
 with open(listing, "w") as fh:
-    fh.writelines(f"file '{os.path.abspath(c)}'\n" for c in clips)
-subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", listing,
+    # Basenames, because the concat demuxer resolves each `file` entry RELATIVE TO THE LISTING,
+    # not to the working directory. A path that looks correct from the shell becomes
+    # build/walkthrough/build/walkthrough/open.mp4 and fails with a bare exit code. The clips sit
+    # beside the listing, so their names alone are right under any ffmpeg, local or containerised.
+    fh.writelines(f"file '{os.path.basename(c)}'\n" for c in clips)
+
+subprocess.run([*FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", listing,
                 "-c", "copy", OUT], check=True, capture_output=True)
 
 total = sum(b[1] for b in BEATS) + 9

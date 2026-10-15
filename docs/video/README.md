@@ -1,18 +1,11 @@
 # walkthrough-silent.mp4
 
-A 58-second captioned walkthrough of seven beats, every frame a real headless screenshot of the
+A 67-second captioned walkthrough: a title card, seven beats, and a closing card, every frame a real headless screenshot of the
 running app — no mockups and no reconstruction.
 
 **It is not the submission video.** That needs narration, per [`../DEMO-SCRIPT.md`](../DEMO-SCRIPT.md),
 which is written and timed to 3:00. This exists so there is something showing the product working
 even if the recording slips, and so the beats are proven to land visually.
-
-> **The committed cut predates the title and end cards.** The build script now opens with a
-> card naming the project and closes with the repository URL, so the silent video stands alone
-> for someone watching it with no commentary — which is the only situation it exists for. It
-> could not be rebuilt here: a Homebrew x265 bump left `ffmpeg 8.0.1` linked against
-> `libx265.215` while the cellar holds `217`, so ffmpeg aborts on start. `brew reinstall ffmpeg`
-> fixes it, then re-run the command below and the cards appear.
 
 ## Regenerating it
 
@@ -20,6 +13,12 @@ even if the recording slips, and so the beats are proven to land visually.
 ./run.sh                                   # in another shell
 python scripts_build_walkthrough.py
 ```
+
+It opens by naming the project and closes with the repository URL, because the one situation
+this video exists for is somebody watching with no commentary. If `ffmpeg` on your machine cannot
+start — a dependency bump can leave it linked against a dylib that no longer exists — the build
+falls back to a container and says so, so regenerating does not depend on the state of a package
+manager.
 
 The script captures each frame through the deep links the UI supports (`?run=<tool>&focus=1`), so
 it screenshots the real app rather than a mock, and **fails loudly if the app is not serving**
