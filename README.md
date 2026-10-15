@@ -312,9 +312,21 @@ nothing generated ever reaches a query either way.
 
 | | |
 |---|---|
-| in-domain questions routed to the right tool | **10/10** |
-| out-of-domain questions refused | **5/5** |
+| locked regression cases, in-domain | 10/10 |
+| locked regression cases, out-of-domain | 5/5 |
 | deterministic across runs | yes — same question, same tool, same score |
+
+Those first two rows are **not an accuracy measurement**, and it would be easy to read them as one.
+They are the cases the router was built against, locked so they cannot regress. What it does on
+language nobody wrote for it is a different number, measured separately and lower:
+[18 of 26 answered, 24 of 26 reachable, 0 routed to the wrong tool](#i-measured-that-router-on-language-it-had-never-seen).
+
+**When it cannot choose, it says so and hands you the choice.** Two tools within `MIN_MARGIN` is a
+coin toss, and a coin toss gets declined — but the refusal now carries the candidates it was torn
+between and their scores, and the page renders them as buttons. Clicking one is not the router
+guessing after all: it declined, showed its work, and a person chose. The arguments are still read
+out of the original question by rule, and the chosen name is validated against the same fixed
+catalogue, so this is not a way to reach a tool the catalogue does not have.
 
 **It is allowed to refuse, and that took a second attempt.** Routing is an *open* set; the
 catalogue is not. A bare similarity threshold cannot tell "unlike anything here" from "a bit like

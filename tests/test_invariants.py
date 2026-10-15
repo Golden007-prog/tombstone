@@ -1042,18 +1042,22 @@ def test_a_hallucinated_tool_name_is_refused_by_the_dispatcher(agent):
 
 
 def test_readme_routing_scores_match_the_cases_actually_tested():
-    """The README prints "10/10 in-domain" and "5/5 out-of-domain refused".
+    """The README prints the size of the locked regression suite, and it is these two lists.
 
     Those are counts of the lists in this file. Adding a case here without updating the README --
     or the reverse -- would leave the page quoting a score for a test suite that no longer exists.
     Every other number on that page is checked by a script; these two were not, and they are the
     kind that drifts silently because nothing fails when it does.
+
+    The rows are no longer bolded, and that is deliberate rather than cosmetic: bolded, beside a
+    held-out eval that scores lower, they read as this router's accuracy. They are not. They are
+    the cases it was built against, and the README now says so in the sentence underneath.
     """
     import re
     readme = open("README.md").read()
-    for label, actual in (("in-domain questions routed to the right tool", len(ROUTES)),
-                          ("out-of-domain questions refused", len(REFUSALS))):
-        row = re.search(rf"\| {re.escape(label)} \| \*\*(\d+)/(\d+)\*\* \|", readme)
+    for label, actual in (("locked regression cases, in-domain", len(ROUTES)),
+                          ("locked regression cases, out-of-domain", len(REFUSALS))):
+        row = re.search(rf"\| {re.escape(label)} \| (\d+)/(\d+) \|", readme)
         assert row, f"README no longer has a row for {label!r}"
         claimed_pass, claimed_total = int(row.group(1)), int(row.group(2))
         assert claimed_total == actual, (
