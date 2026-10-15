@@ -1087,3 +1087,36 @@ def test_the_sixty_second_box_counts_match_reality():
 
     actual_steps = len(re.findall(r"^      - name:", open(".github/workflows/verify.yml").read(), re.M))
     assert ci_claimed == actual_steps, f"box says {ci_claimed} CI steps, the workflow has {actual_steps}"
+
+
+def test_using_the_demo_cannot_change_what_it_answers(agent):
+    """Memory lives in the same graph as the facts, so using the product GROWS the graph.
+
+    That is the point of putting it there — one query can start in a remembered answer and end in
+    live nodes. It is also a hazard: the whole-graph algorithms would drift as judges clicked
+    around, and the centrality ranking the README prints would quietly stop matching. The queries
+    are scoped with `nodeLabels:['Person'], relationshipTypes:['CO_AUTHORED']`, which is easy to
+    remove while tidying and impossible to notice afterwards.
+
+    So this simulates a busy demo and requires the answers to be bit-identical.
+    """
+    graph = agent.g
+    graph.query("MATCH (x:Answer) DETACH DELETE x")
+    before = agent.dispatch("stepped_back_bridges", {"min_areas": 3}).rows
+    coverage_before = agent.dispatch("sole_approver_risk", {}).coverage
+
+    for i in range(25):
+        agent._remember(f"busy demo probe {i}", "sole_approver_risk",
+                        agent.dispatch("sole_approver_risk", {}))
+    remembered = graph.ro_query("MATCH (x:Answer) RETURN count(x)").result_set[0][0]
+    cited = graph.ro_query("MATCH ()-[r:CITED]->() RETURN count(r)").result_set[0][0]
+    assert remembered >= 25 and cited > 0, "the probe did not actually grow the graph"
+
+    after = agent.dispatch("stepped_back_bridges", {"min_areas": 3}).rows
+    coverage_after = agent.dispatch("sole_approver_risk", {}).coverage
+    graph.query("MATCH (x:Answer) DETACH DELETE x")
+
+    assert after == before, (
+        f"centrality changed after {remembered} remembered answers and {cited} CITED edges — "
+        f"a whole-graph algorithm is seeing memory it should be scoped away from")
+    assert coverage_after == coverage_before, "the coverage statement counted memory as corpus"
