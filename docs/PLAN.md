@@ -111,3 +111,29 @@ Cypher catalogue are **not** cuttable — they are the submission.
 | LLM cost/rate limits in a public demo | any | key stays server-side, hard provider spend cap, pre-baked answers for the demo questions while the graph query still runs live |
 | Scope creep (every critic's warning) | behind at any checkpoint | the cut list above, in that order |
 | `nodus` is a live Track-3 competitor | — | different problem (postmortem lesson matching vs decision archaeology + ownership attrition) and different corpus; differentiate explicitly in the README |
+
+## Clean-room verification (Oct 15, 17:50 IST)
+The README promises `git clone && pip install && ./run.sh`. That promise had never actually been
+tested from a fresh checkout, so I ran it as a judge would, in an empty directory.
+
+**Result: it works** — but only after fixing two portability bugs the test exposed.
+
+| step | result |
+|---|---|
+| `git clone` | 23 commits, 46 files, committed data intact (322KB corpus + 737KB vectors) |
+| `python3 -m venv .venv && pip install -r requirements.txt` | 44 packages, **14s** |
+| `./run.sh` | FalkorDB up, **seeded in 1.12s**, serving |
+| `/api/health` | `falkordb: up`, 679 decisions / 753 named options / 794 people |
+| 3 live tool calls | all `ANSWERED_WITH_PATH`, 12.9–19.6ms |
+| `/`, `/app.js`, `/style.css` | HTTP 200 |
+
+### The two bugs it caught
+1. **`run.sh` called bare `python`.** Plenty of systems only ship `python3`, and on others `python`
+   resolves *outside* the venv the README just told you to create — so the dependencies you had
+   just installed would appear missing. It now prefers `./.venv/bin/python`, then `$VIRTUAL_ENV`,
+   then `python3`, then `python`, and says which it picked.
+2. **The quickstart said `cd "graph hack"`**, which is not what a clone produces. Now
+   `git clone <repo> tombstone && cd tombstone`.
+
+`run.sh` also now fails fast with a readable message when Docker is absent or a dependency is
+missing, rather than halfway through.

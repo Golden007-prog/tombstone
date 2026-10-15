@@ -35,10 +35,13 @@ fully public. Every number below is checkable with one `git clone`.
 ## Quickstart
 
 ```bash
-git clone <this repo> && cd "graph hack"
-pip install -r requirements.txt
+git clone <this repo> tombstone && cd tombstone
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 ./run.sh
 ```
+
+`run.sh` prefers `./.venv` if it exists, so there is nothing to activate. It needs Docker running,
+and it tells you plainly if Docker or a dependency is missing rather than failing halfway.
 
 Then open <http://localhost:8099>. No API key needed: the scripted questions call the tools
 directly and run the same Cypher. `run.sh` starts FalkorDB, seeds it from the committed snapshot in
