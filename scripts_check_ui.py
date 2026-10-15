@@ -242,6 +242,25 @@ def main() -> int:
     ]
 
     failures = []
+    # The path drawing keeps a 560-unit viewBox even when the container is narrower, so the
+    # browser scales the whole thing down -- at phone width that was a factor of 0.53 and put the
+    # node labels at about 5.6 real pixels. Typography is multiplied by that same factor to keep
+    # text at its intended size on screen, which only works if EVERY font-size goes through the
+    # helper. A raw one reintroduces the bug silently and only on small screens, where I would not
+    # have looked again.
+    _app = open("web/app.js").read()
+    _start = _app.index("function renderPath(")
+    _ends = [_app.find(_t, _start + 10) for _t in ("\nfunction ", "\nasync function ", "\nconst ")]
+    _end = min([e for e in _ends if e > 0], default=len(_app))
+    _draw = _app[_start:_end]
+    _raw = re.findall(r'font-size="(?!\$\{fs\()([^"]+)"', _draw)
+    if _raw:
+        failures.append(
+            f"renderPath has font sizes that bypass the width scaler: {', '.join(_raw)} -- these "
+            f"render unreadably small on a phone and look fine on a laptop")
+    if "const k = W / Math.max(CW, 1)" not in _draw:
+        failures.append("renderPath no longer scales typography by the viewBox downscale factor")
+
     # Two defects that no rendered-state rule could ever catch, because the panel is present and
     # the text is non-empty -- they are just wrong to read. Both were found by pulling a frame out
     # of the walkthrough and looking at it: a counterfactual that reported "0ms" beside its own

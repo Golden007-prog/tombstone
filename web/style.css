@@ -154,3 +154,9 @@ pre.diff{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
 .choices .pick:hover{border-color:var(--area)}
 .choices .pick .sc{color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:11px;
   margin-left:6px}
+
+/* The path drawing carries its own viewBox, so letting the height follow the width keeps it
+   proportional instead of letterboxing it inside a fixed box. Before this, a 560-wide drawing in
+   a 307px container rendered 169px tall inside a 316px frame and left 147px of dead space on a
+   phone. */
+#cy svg{display:block;height:auto}

@@ -350,7 +350,16 @@ function renderPath(d) {
   d.nodes.forEach((n) => lanes[LANE[n.kind] ?? 0].push(n));
   const used = lanes.map((l) => l.length).filter(Boolean).length;
 
-  const W = Math.max(host.clientWidth || 760, 560);
+  // The lane layout needs about 560 units of width to read. When the container is narrower than
+  // that -- a phone, or the Space's iframe at a narrow breakpoint -- the viewBox stays 560 and
+  // the browser scales the whole drawing down to fit. At 307px that is a factor of 0.53, which
+  // rendered the node labels at about 5.6 real pixels: present, correctly laid out, and unreadable.
+  // So typography is multiplied by the same factor the browser is about to divide by, which keeps
+  // text at its intended SIZE ON SCREEN at any width.
+  const CW = host.clientWidth || 760;
+  const W = Math.max(CW, 560);
+  const k = W / Math.max(CW, 1);          // >= 1; exactly 1 on a wide screen
+  const fs = (pt) => Math.round(pt * k * 10) / 10;
   const rowH = 38;
   const maxRows = Math.max(...lanes.map((l) => l.length), 1);
   const H = Math.max(266, maxRows * rowH + 88);
@@ -378,7 +387,7 @@ function renderPath(d) {
 
   // lane captions
   activeLanes.forEach((li) => {
-    svg += `<text x="${laneX[li]}" y="12" fill="${P.ink}" font-size="9.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" opacity="0.55">${LANE_LABEL[li]}</text>`;
+    svg += `<text x="${laneX[li]}" y="12" fill="${P.ink}" font-size="${fs(9.5)}" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" opacity="0.55">${LANE_LABEL[li]}</text>`;
   });
 
   // Edges behind the nodes. Each relationship type is labelled ONCE per lane pair -- repeating
@@ -395,7 +404,7 @@ function renderPath(d) {
       // area that a successor ALREADY APPROVES), so stack their captions instead of overprinting.
       const stack = [...labelled].filter((k) => k.startsWith(lane.split(":")[0])).length;
       labelled.add(lane);
-      svg += `<text x="${mx}" y="${30 + stack * 11}" fill="${P.muted}" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" letter-spacing="0.04em">${esc(e.label)}</text>`;
+      svg += `<text x="${mx}" y="${30 + stack * 11}" fill="${P.muted}" font-size="${fs(8.5)}" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" letter-spacing="0.04em">${esc(e.label)}</text>`;
     }
   });
 
@@ -418,7 +427,7 @@ function renderPath(d) {
     }
     const anchor = n.x > W * 0.6 ? "end" : "start";
     const tx = anchor === "end" ? n.x - 14 : n.x + 14;
-    svg += `<text x="${tx}" y="${n.y + 3.5}" fill="${P.ink}" font-size="10.5" text-anchor="${anchor}">${esc(n.label)}<title>${esc(n.full || n.label)}</title></text>`;
+    svg += `<text x="${tx}" y="${n.y + 3.5}" fill="${P.ink}" font-size="${fs(10.5)}" text-anchor="${anchor}">${esc(n.label)}<title>${esc(n.full || n.label)}</title></text>`;
   });
 
   svg += `</svg>`;
