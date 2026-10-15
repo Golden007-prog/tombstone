@@ -200,6 +200,25 @@ else:
         checked += 1
         print(f"  all {len(_early)} commits fall inside the hackathon window (Rule 8)")
 
+# CI's quickstart job is titled "exactly as the README writes it", and it was not: CI ran
+# `python3 -m venv` while the README said `python3.13 -m venv`. A step that claims to run the
+# documented command must run the documented command, or the one thing it proves is that some
+# OTHER command works.
+_readme_cmd = re.search(r"^(python3[\d.]* -m venv \.venv [^\n#]*)", open("README.md").read(), re.M)
+_ci = open(".github/workflows/verify.yml").read()
+_ci_cmd = re.search(r"^\s*(python3[\d.]* -m venv \.venv [^\n]*)", _ci, re.M)
+if not _readme_cmd or not _ci_cmd:
+    problems.append("could not find the quickstart venv command in the README or the workflow")
+else:
+    _r = _readme_cmd.group(1).split("#")[0].strip()
+    _c = _ci_cmd.group(1).replace(" -q", "").strip()
+    if _r.split()[0] != _c.split()[0]:
+        problems.append(f"CI runs {_c.split()[0]!r} but the README documents "
+                        f"{_r.split()[0]!r} — the quickstart job does not test the quickstart")
+    else:
+        checked += 1
+        print(f"  CI runs the interpreter the README documents ({_r.split()[0]})")
+
 print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
 
 print(f"  the UI check drives {_states} rendered states and every document agrees")

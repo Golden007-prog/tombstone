@@ -645,11 +645,17 @@ Full methodology, the engine gotchas, and **nine ways a check lied to me** — e
 
 ```bash
 git clone https://github.com/aviralgarg05/tombstone && cd tombstone
-python3.13 -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # 3.11–3.14
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # needs 3.11–3.14
 ./run.sh
 ```
 
-**Python 3.11–3.14.** Not 3.15: `fastembed` needs `onnxruntime`, which publishes wheels for
+**Python 3.11–3.14.** The command says `python3` rather than naming a minor version, because
+naming one is its own trap: it read `python3.13` for a while, and on a machine without that exact
+interpreter the very first line of the quickstart fails with `command not found` before anything
+in this repository gets a chance to explain itself. If your `python3` is out of range, `run.sh`
+stops and prints the exact command for an interpreter you already have.
+
+Not 3.15: `fastembed` needs `onnxruntime`, which publishes wheels for
 cp311–cp314 only, so `pip install` there fails with a `ResolutionImpossible` wall that never
 mentions Python. `run.sh` and `preflight.sh` check the version first and name a working
 interpreter you already have. **The hosted demo is unaffected** — the image installs its Python
