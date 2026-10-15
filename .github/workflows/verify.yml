@@ -1,0 +1,97 @@
+name: verify
+
+# Everything this project claims should be checkable without cloning it. This workflow runs the
+# same three commands the README tells you to run, against a real FalkorDB, on every push.
+#
+# The drift job exists because of a bug I hit three times: the README's Cypher catalogue is
+# GENERATED from tools.py, and I edited the queries while leaving the generated block stale. A
+# judge reading "these are generated from source, so they are the queries that actually run"
+# would have been reading something that no longer ran.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      falkordb:
+        # Pinned, not :latest -- 6.x drops algo.AStar/CCH and carries crash and
+        # silently-wrong-result bugs. See docs/GROUND-TRUTH.md.
+        image: falkordb/falkordb:v4.22.1
+        ports: ["6380:6379"]
+        options: >-
+          --health-cmd "redis-cli PING"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      FALKORDB_HOST: localhost
+      FALKORDB_PORT: 6380
+      PYTHONPATH: src
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Raise the baked-in limits
+        # The image ships RESULTSET_SIZE 10000 (silently truncates), TIMEOUT 1000 (kills any
+        # algorithm call over a second) and MAX_QUEUED_QUERIES 25.
+        run: |
+          redis-cli -p 6380 GRAPH.CONFIG SET RESULTSET_SIZE 1000000
+          redis-cli -p 6380 GRAPH.CONFIG SET TIMEOUT_MAX 0 || true
+          redis-cli -p 6380 GRAPH.CONFIG SET MAX_QUEUED_QUERIES 4096
+
+      - name: Seed from the committed snapshot
+        run: |
+          python - <<'PY'
+          import time
+          from tombstone.snapshot import load
+          from tombstone.build import build
+          t0 = time.perf_counter()
+          st = build(load())
+          print(f"seeded in {time.perf_counter()-t0:.2f}s: {st}")
+          assert st["Kep"] > 600, st
+          assert st["parse_failures"] == 0, f"corpus parse failures: {st['parse_failures']}"
+          PY
+
+      - name: Tests
+        run: pytest tests/ -q
+
+      - name: Every README claim, re-checked against the live graph
+        run: python verify_claims.py
+
+      - name: Retrieval eval + negative controls
+        run: python eval_retrieval.py
+
+      - name: Graph vs a text baseline on the same corpus
+        run: python eval_graph_vs_text.py
+
+      - name: README Cypher catalogue has not drifted from the source
+        run: |
+          python scripts_gen_readme_cypher.py > /tmp/generated.md
+          python - <<'PY'
+          import sys
+          readme = open("README.md").read()
+          gen = open("/tmp/generated.md").read()
+          start = readme.index("## The Cypher this product depends on")
+          end = readme.index("## The agent")
+          if gen.strip() not in readme[start:end].strip():
+              sys.exit(
+                  "README's Cypher catalogue is stale.\n"
+                  "The README claims these queries are generated from src/tombstone/tools.py.\n"
+                  "Re-run: python scripts_gen_readme_cypher.py and splice the output back in."
+              )
+          print("catalogue matches source")
+          PY

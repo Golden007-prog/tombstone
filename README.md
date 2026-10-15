@@ -6,6 +6,8 @@
 
 Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 
+[![verify](https://github.com/aviralgarg05/tombstone/actions/workflows/verify.yml/badge.svg)](https://github.com/aviralgarg05/tombstone/actions/workflows/verify.yml)
+
 > **If you have 60 seconds**
 > - **One finding:** one person is the entire review capacity for the Kubernetes apiserver's
 >   metrics endpoints. Nobody wrote that down — it is only true as a consequence of the structure.
@@ -88,6 +90,10 @@ Age-dependent claims are checked against a **live clock**, not a frozen one — 
 hard-coded a timestamp, which meant the staleness numbers could never go stale themselves, which
 rather defeats the point. Counts marked *as of 15 October 2026* will drift as decisions age past the
 three-year line; set `AS_OF_MS` to pin the same instant this README used.
+
+CI runs all three of these against a real FalkorDB on every push, plus a check that the Cypher
+catalogue below has not drifted from `tools.py` — the README claims those queries are generated
+from source, and a stale block would make that claim false.
 
 `eval_retrieval.py` scores the headline tool on twelve paraphrases a contributor might plausibly
 type, written without looking at the corpus first: **12/12 return a real titled rejected option with
