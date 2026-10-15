@@ -5,6 +5,8 @@ These need a live FalkorDB on 6380 (`docker compose up -d`) and the committed sn
 """
 from __future__ import annotations
 
+import time
+
 import pytest
 
 # Either shape means "the tool answered". ANSWERED_FROM_MEMORY is returned when the same question
@@ -872,8 +874,12 @@ def test_keyless_router_never_invents_a_person(router):
 
 
 def test_keyless_ask_answers_or_refuses_but_never_guesses(agent):
+    # Either answered shape passes. This test is about answering versus guessing, not about
+    # memory, and another test in this file asks the same question -- so whether this one sees
+    # ANSWERED_WITH_PATH or ANSWERED_FROM_MEMORY depends on test order, which is no business of
+    # an assertion about honesty.
     out = agent.ask_locally("which areas have exactly one approver?")
-    assert out["shape"] == "ANSWERED_WITH_PATH"
+    assert out["shape"] in ANSWERED
     assert out["routed_by"] == "local-embedding"
     assert out["cypher"].strip(), "an answer with no Cypher behind it is not an answer"
 
@@ -894,9 +900,15 @@ def test_keyless_ask_earns_answered_from_memory_on_a_repeat(agent):
     so "remembers what it learns" was the one pillar a judge could not have seen working.
     Both paths now go through `Agent._remember`.
     """
-    question = "which areas are held alone by a single approver, bus factor one?"
+    # Timestamped so the run starts genuinely unasked. A fixed question makes this pass the
+    # first time and fail afterwards, because the graph persists between runs and the first ask
+    # then comes back remembered -- the feature working, reported as a failure. The same trap was
+    # found and fixed in verify_memory.py and not carried across to here.
+    question = (f"which areas are held alone by a single approver, bus factor one? "
+                f"[{time.time_ns()}]")
     first = agent.ask_locally(question)
-    assert first["shape"] == "ANSWERED_WITH_PATH"
+    assert first["shape"] == "ANSWERED_WITH_PATH", (
+        f"a freshly-worded question came back {first['shape']}")
     second = agent.ask_locally(question)
     assert second["shape"] == "ANSWERED_FROM_MEMORY", (
         f"a repeat keyless ask returned {second['shape']}, so nothing was remembered")
