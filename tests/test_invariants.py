@@ -1027,3 +1027,26 @@ def test_a_hallucinated_tool_name_is_refused_by_the_dispatcher(agent):
     assert ans.shape == "UNKNOWN_ENTITY"
     assert "not a tool in this catalogue" in ans.note
     assert not ans.cypher, "a refused tool must not carry Cypher"
+
+
+def test_readme_routing_scores_match_the_cases_actually_tested():
+    """The README prints "10/10 in-domain" and "5/5 out-of-domain refused".
+
+    Those are counts of the lists in this file. Adding a case here without updating the README --
+    or the reverse -- would leave the page quoting a score for a test suite that no longer exists.
+    Every other number on that page is checked by a script; these two were not, and they are the
+    kind that drifts silently because nothing fails when it does.
+    """
+    import re
+    readme = open("README.md").read()
+    for label, actual in (("in-domain questions routed to the right tool", len(ROUTES)),
+                          ("out-of-domain questions refused", len(REFUSALS))):
+        row = re.search(rf"\| {re.escape(label)} \| \*\*(\d+)/(\d+)\*\* \|", readme)
+        assert row, f"README no longer has a row for {label!r}"
+        claimed_pass, claimed_total = int(row.group(1)), int(row.group(2))
+        assert claimed_total == actual, (
+            f"README says {claimed_pass}/{claimed_total} for {label!r}, but this file tests "
+            f"{actual} cases")
+        assert claimed_pass == actual, (
+            f"README claims {claimed_pass} of {claimed_total} pass; the suite requires all "
+            f"{actual} to pass, so the two numbers must be equal")

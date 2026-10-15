@@ -82,6 +82,13 @@ CLAIMS = [
      "WHERE NOT a.path STARTS WITH 'vendor/' AND NOT a.path STARTS WITH 'third_party/' "
      "WITH p, sb, collect(DISTINCT a.path) AS still WHERE size(still) <= 2 "
      "RETURN count(DISTINCT p)", 3),
+    # The README names this person and these two counts in the refusal table. They are the
+    # single strongest-looking candidate in the corpus and the one that must NOT be patched, so
+    # if either number moves, the argument built on it moves too.
+    ("stewart-yu: OWNERS files recording them as emeritus",
+     "MATCH (p:Person {key:'stewart-yu'})-[:EMERITUS_OF]->(o:OwnersFile) RETURN count(o)", 20),
+    ("stewart-yu: files still naming them an active approver",
+     "MATCH (p:Person {key:'stewart-yu'})-[:APPROVES]->(o:OwnersFile) RETURN count(o)", 1),
     ("...excluded because the only straggler is a vendored file",
      "MATCH (p:Person)-[:EMERITUS_OF]->(e:OwnersFile) "
      "WITH p, collect(DISTINCT e.path) AS sb WHERE size(sb) >= 3 "
