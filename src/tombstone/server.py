@@ -164,22 +164,32 @@ def subgraph(path: str = "", handle: str = "", limit: int = 40):
                                       "target": add(f"{knum}:{alttitle}", alttitle, "rejected"),
                                       "label": "REJECTED"})
     elif handle:
+        # Deliberately narrow. The full overlap is dozens of people against dozens of areas, and
+        # drawing all of it produces exactly the hairball this panel exists to avoid. Show the
+        # three strongest successors against the areas they actually share -- the ranked list in
+        # the answer already carries the full result.
         rows = a.g.ro_query(
             """
             MATCH (p:Person {key: $h})-[:EMERITUS_OF]->(o:OwnersFile)
-            OPTIONAL MATCH (cand:Person)-[:APPROVES]->(o)
-            RETURN p.key, o.path, cand.key LIMIT $l
+            MATCH (cand:Person)-[:APPROVES]->(o)
+            WITH cand, collect(DISTINCT o.path) AS shared, count(DISTINCT o) AS n
+            ORDER BY n DESC LIMIT 3
+            RETURN cand.key, shared[0..3], n
             """,
-            params={"h": handle, "l": limit},
+            params={"h": handle},
         ).result_set
         if not rows:
             return {"nodes": [], "edges": [], "note": "no such person, or they left nothing behind"}
         who = add(handle, handle, "person_gone")
-        for _p, areapath, cand in rows:
-            ar = add(areapath, areapath.replace("/OWNERS", ""), "area")
-            edges.append({"source": who, "target": ar, "label": "EMERITUS_OF"})
-            if cand:
-                edges.append({"source": add(cand, cand, "person_live"), "target": ar, "label": "APPROVES"})
+        seen_area = set()
+        for cand, shared, n in rows:
+            c = add(cand, f"{cand} ({n})", "person_live")
+            for areapath in shared:
+                ar = add(areapath, areapath.replace("/OWNERS", ""), "area")
+                if areapath not in seen_area:
+                    seen_area.add(areapath)
+                    edges.append({"source": who, "target": ar, "label": "LEFT BEHIND"})
+                edges.append({"source": c, "target": ar, "label": "ALREADY APPROVES"})
     return {"nodes": list(nodes.values()), "edges": edges}
 
 

@@ -93,5 +93,7 @@ a{color:var(--accent)}
 @media (max-width:620px){
   .head{flex-direction:column;gap:10px}
   .row{flex-direction:column}
-  #cy{height:300px}
+  .health{white-space:normal;max-width:100%}
+  h1{font-size:23px}
+  .legend{font-size:10.5px;gap:8px}
 }

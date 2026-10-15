@@ -52,7 +52,9 @@ async function health() {
     el.className = "health " + (up ? "up" : "down");
     if (up) {
       const c = h.graph_contents || {};
-      el.textContent = `FalkorDB up · ${h.ms}ms · ${c.decisions ?? "?"} decisions, ${c.named_options ?? "?"} rejected options`;
+      el.textContent = window.innerWidth < 620
+        ? `FalkorDB up · ${c.decisions ?? "?"} decisions · ${c.named_options ?? "?"} rejected options`
+        : `FalkorDB up · ${h.ms}ms · ${c.decisions ?? "?"} decisions, ${c.named_options ?? "?"} rejected options`;
     } else {
       el.textContent = "FalkorDB DOWN — nothing to reason over";
     }
@@ -162,7 +164,7 @@ function renderPath(d) {
   const W = Math.max(host.clientWidth || 760, 560);
   const rowH = 38;
   const maxRows = Math.max(...lanes.map((l) => l.length), 1);
-  const H = Math.max(258, maxRows * rowH + 78);
+  const H = Math.max(266, maxRows * rowH + 88);
   const laneX = [];
   const activeLanes = lanes.map((l, i) => (l.length ? i : -1)).filter((i) => i >= 0);
   activeLanes.forEach((li, idx) => {
@@ -173,7 +175,7 @@ function renderPath(d) {
   lanes.forEach((list, li) => {
     const span = H - 62;
     list.forEach((n, i) => {
-      pos[n.id] = { x: laneX[li], y: 54 + (span - 24) * ((i + 0.5) / list.length),
+      pos[n.id] = { x: laneX[li], y: 62 + (span - 32) * ((i + 0.5) / list.length),
                     kind: n.kind, label: n.label, full: n.full };
     });
   });
@@ -199,8 +201,11 @@ function renderPath(d) {
     svg += `<path d="M${a.x + 10} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x - 12} ${b.y}" fill="none" stroke="${P.edge}" stroke-width="1.4" marker-end="url(#ar)"/>`;
     const lane = `${LANE[a.kind] ?? 0}>${LANE[b.kind] ?? 0}:${e.label}`;
     if (!labelled.has(lane)) {
+      // Two relationship types can span the same pair of lanes (a departed owner LEFT BEHIND an
+      // area that a successor ALREADY APPROVES), so stack their captions instead of overprinting.
+      const stack = [...labelled].filter((k) => k.startsWith(lane.split(":")[0])).length;
       labelled.add(lane);
-      svg += `<text x="${mx}" y="30" fill="${P.muted}" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" letter-spacing="0.04em">${esc(e.label)}</text>`;
+      svg += `<text x="${mx}" y="${30 + stack * 11}" fill="${P.muted}" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" letter-spacing="0.04em">${esc(e.label)}</text>`;
     }
   });
 
