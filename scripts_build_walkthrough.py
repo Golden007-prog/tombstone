@@ -59,6 +59,27 @@ BEATS = [
 ]
 
 
+def card(path: str, secs: int, lines: list[tuple[str, int]]) -> str:
+    """A plain text card on the same canvas, for the open and the close.
+
+    The video used to begin mid-answer, on a screenshot of a result, with no statement of what
+    the thing is. A judge who opens the fallback video cold has no commentary to orient them --
+    that is the whole point of it being the fallback -- so it now says what it is and where to
+    find it. `fontsize` is per line because a title and a subtitle are not the same weight.
+    """
+    draws = []
+    for i, (text, size) in enumerate(lines):
+        y = (H + BAND) // 2 - (len(lines) * 34) + i * 56
+        draws.append(
+            f"drawtext=fontfile={FONT}:text='{esc(text)}':"
+            f"x=(w-text_w)/2:y={y}:fontsize={size}:fontcolor=0xe8e6e3")
+    subprocess.run(["ffmpeg", "-y", "-f", "lavfi",
+                    "-i", f"color=c=0x121214:s={W}x{H + BAND}:d={secs}",
+                    "-vf", ",".join(draws), "-r", str(FPS), "-pix_fmt", "yuv420p",
+                    "-c:v", "libx264", "-preset", "veryslow", "-crf", "30", path],
+                   check=True, capture_output=True)
+    return path
+
 def esc(text: str) -> str:
     """Escape for ffmpeg drawtext.
 
@@ -77,6 +98,19 @@ def require(cond, msg):
 
 require(FONT, "no usable TTF font found for captions")
 require(shutil.which("ffmpeg"), "ffmpeg is not on PATH")
+
+# Present is not the same as working. A Homebrew x265 bump left ffmpeg 8.0.1 linked against
+# libx265.215 while the cellar had 217, so every invocation died with SIGABRT and a dyld message
+# -- and the failure surfaced as a CalledProcessError on the first frame, thirty lines from the
+# cause. Ask it to prove it runs.
+_probe = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
+if _probe.returncode != 0:
+    detail = (_probe.stderr or _probe.stdout).strip().splitlines()
+    require(False,
+            "ffmpeg is installed but cannot start:\n    "
+            + "\n    ".join(detail[:3])
+            + "\n  If that mentions a missing dylib, the usual cause is a dependency bump:"
+              "\n      brew reinstall ffmpeg")
 require(os.path.exists(CHROME) or shutil.which(CHROME), f"no Chrome at {CHROME}")
 try:
     with urllib.request.urlopen(f"{APP}/api/health", timeout=5) as r:
@@ -139,11 +173,23 @@ for i, (query, secs, caption) in enumerate(BEATS):
     clips.append(clip)
     print(f"  beat {i + 1}/{len(BEATS)}  {secs}s  {query}")
 
+opening = card(os.path.join(work, "open.mp4"), 4, [
+    ("Tombstone", 54),
+    ("The decisions your org already made and forgot.", 28),
+    ("Asked as a graph, over Kubernetes' real governance record.", 24),
+])
+closing = card(os.path.join(work, "close.mp4"), 5, [
+    ("Every number is checked against the live graph.", 28),
+    ("github.com/aviralgarg05/tombstone", 30),
+    ("Graph Hacks 2026 - Track 3, Company Brain", 22),
+])
+clips = [opening] + clips + [closing]
+
 listing = os.path.join(work, "clips.txt")
 with open(listing, "w") as fh:
     fh.writelines(f"file '{os.path.abspath(c)}'\n" for c in clips)
 subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", listing,
                 "-c", "copy", OUT], check=True, capture_output=True)
 
-total = sum(b[1] for b in BEATS)
+total = sum(b[1] for b in BEATS) + 9
 print(f"\n{OUT}  —  {total}s, {len(BEATS)} beats, {os.path.getsize(OUT) // 1024}KB")

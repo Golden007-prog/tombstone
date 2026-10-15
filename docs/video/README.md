@@ -7,6 +7,13 @@ running app — no mockups and no reconstruction.
 which is written and timed to 3:00. This exists so there is something showing the product working
 even if the recording slips, and so the beats are proven to land visually.
 
+> **The committed cut predates the title and end cards.** The build script now opens with a
+> card naming the project and closes with the repository URL, so the silent video stands alone
+> for someone watching it with no commentary — which is the only situation it exists for. It
+> could not be rebuilt here: a Homebrew x265 bump left `ffmpeg 8.0.1` linked against
+> `libx265.215` while the cellar holds `217`, so ffmpeg aborts on start. `brew reinstall ffmpeg`
+> fixes it, then re-run the command below and the cards appear.
+
 ## Regenerating it
 
 ```bash
