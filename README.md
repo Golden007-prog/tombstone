@@ -551,7 +551,7 @@ Eleven tools. The model picks one and fills its arguments; hand-written Cypher a
 deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
 so it cannot soften a negative into a maybe or name someone who isn't in the graph.
 
-Every answer is one of four shapes:
+Every answer is one of six shapes:
 
 | shape | meaning |
 |---|---|
@@ -560,6 +560,7 @@ Every answer is one of four shapes:
 | `NOT_IN_GRAPH` | the traversal ran and returned nothing — **always** with a coverage statement |
 | `UNKNOWN_ENTITY` | the name didn't resolve, so nothing else ran |
 | `DEGRADED` | the graph is unreachable. No fallback. |
+| `UNSURE_WHICH_TOOL` | the question was understood as *not one of these* — the router declined rather than guess |
 
 `ANSWERED_FROM_MEMORY` is **earned, not cached.** It is only returned when the prior answer's
 citations still resolve *and* re-running the tool returns the same rows — so what you read is the

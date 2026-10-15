@@ -150,7 +150,7 @@ drafts are committed under `docs/patches/`, so a judge can read them without run
 - No multi-tenancy benchmark. It is a strong result but it is not what Track 3 asks for, and it
   would cost 20 seconds this script does not have.
 - **No standalone "honest negative" beat.** It used to sit at 1:58 and it was cut to make room for
-  the drafting action. Nothing was lost: the 0:18 beat already shows `NOT_IN_GRAPH` with the
+  the drafting action. Nothing was lost: the 0:16 beat already shows `NOT_IN_GRAPH` with the
   coverage line, and the two refusals in the drafting beat make the same argument on a harder
   case — refusing to patch the single strongest signal in the corpus is a better demonstration of
   restraint than refusing to answer a question about COBOL.

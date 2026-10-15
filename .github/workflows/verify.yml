@@ -89,6 +89,22 @@ jobs:
       - name: Graph vs a text baseline on the same corpus
         run: python eval_graph_vs_text.py
 
+      - name: Serve the app for the UI check
+        run: |
+          # The graph is already seeded above, so this serves the same instance the checks use.
+          # No API key is set here on purpose: that is the hosted configuration, which is the one
+          # whose rendering matters most.
+          nohup python -m uvicorn tombstone.server:app --host 127.0.0.1 --port 8099 \
+            > /tmp/serve.log 2>&1 &
+          for _ in $(seq 1 40); do
+            curl -sf -m 3 http://localhost:8099/api/health >/dev/null && break
+            sleep 2
+          done
+          curl -sf -m 5 http://localhost:8099/api/health || { cat /tmp/serve.log; exit 1; }
+
+      - name: Every rendered answer state, checked for visible-but-empty panels
+        run: python scripts_check_ui.py
+
       - name: The premise measurement still matches what the README claims
         run: python measure_repeat_rejections.py
 

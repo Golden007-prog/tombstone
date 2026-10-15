@@ -18,6 +18,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.request
 
 APP = os.environ.get("APP", "http://localhost:8099")
@@ -89,10 +90,15 @@ clips = []
 for i, (query, secs, caption) in enumerate(BEATS):
     png = os.path.join(work, f"frame{i}.png")
     url = f"{APP}/?{query}&focus=1"
-    subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars",
-                    "--force-device-scale-factor=1", f"--window-size={W},{H}",
-                    "--virtual-time-budget=12000", f"--screenshot={png}", url],
-                   check=True, capture_output=True)
+    # Unique profile per capture: headless Chrome instances sharing the default user-data-dir
+    # can attach to an existing one and screenshot a page that never ran.
+    with tempfile.TemporaryDirectory() as profile:
+        subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+                        "--no-first-run", "--no-default-browser-check",
+                        f"--user-data-dir={profile}",
+                        "--force-device-scale-factor=1", f"--window-size={W},{H}",
+                        "--virtual-time-budget=12000", f"--screenshot={png}", url],
+                       check=True, capture_output=True)
     require(os.path.getsize(png) > 20_000, f"frame {i} came back blank — is {url} running?")
 
     y0 = H + 34

@@ -104,7 +104,7 @@ def call_tool(c: ToolCall):
 
 @app.post("/api/ask")
 def ask(q: Ask):
-    """Full loop with the model routing. Needs a key."""
+    """Full loop. A key swaps the router for a model; it does not switch free text on or off."""
     if not health().get("llm_configured"):
         # No key is not the same as no routing. The embedding model is already in this image, so
         # the question is routed locally against a fixed catalogue instead. The contract is
