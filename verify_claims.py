@@ -3,12 +3,22 @@
 Run: PYTHONPATH=src python verify_claims.py
 A judge should be able to falsify any number in this repo in one command.
 """
+import datetime
+import os
 import sys
+import time
+
 sys.path.insert(0, "src")
+
+# Claims about age must be checked against a real clock, or they quietly stop being falsifiable.
+# AS_OF lets a judge pin the same instant the README used; unset, it is simply now.
+AS_OF_MS = int(os.environ.get("AS_OF_MS") or time.time() * 1000)
+THREE_YEARS_MS = 3 * 31_557_600_000
 from graphkit.ingest import connect
 
 g = connect().select_graph("tomb:k8s")
-one = lambda q, p=None: g.ro_query(q, params=p or {}).result_set[0][0]
+def one(q, p=None):
+    return g.ro_query(q, params={"now": AS_OF_MS, "age": THREE_YEARS_MS, **(p or {})}).result_set[0][0]
 
 CLAIMS = [
     ("decisions (:Kep)", "MATCH (k:Kep) RETURN count(k)", 681),
@@ -46,12 +56,12 @@ CLAIMS = [
     ("stale decisions still cited",
      "MATCH (o:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
      "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
-     "AND (1760000000000 - k.created_ms) > 94672800000 "
-     "RETURN count(DISTINCT k)", 38),
+     "AND ($now - k.created_ms) > $age "
+     "RETURN count(DISTINCT k)", 43),
     ("...with an author who no longer hold approval authority",
      "MATCH (o:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
      "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
-     "AND (1760000000000 - k.created_ms) > 94672800000 "
+     "AND ($now - k.created_ms) > $age "
      "WITH DISTINCT k "
      "MATCH (au:Person)-[:AUTHORED|APPROVED]->(k) "
      "OPTIONAL MATCH (au)-[lr:APPROVES]->() "
@@ -72,5 +82,7 @@ for name, q, want in CLAIMS:
     ok = got == want
     fails += not ok
     print(f"  {'PASS' if ok else 'FAIL'}  {name:<34} claimed={want:<6} actual={got}")
-print(f"\n{len(CLAIMS) - fails}/{len(CLAIMS)} claims verified")
+_as_of = datetime.datetime.fromtimestamp(AS_OF_MS / 1000).strftime("%Y-%m-%d")
+print(f"\n{len(CLAIMS) - fails}/{len(CLAIMS)} claims verified "
+      f"(as of {_as_of}; set AS_OF_MS to pin a different instant)")
 sys.exit(1 if fails else 0)

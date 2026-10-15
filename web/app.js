@@ -7,12 +7,12 @@ const $ = (id) => document.getElementById(id);
 // Each chip is a real tool call. The first two are the same question at two depths, which is the
 // contrast the brief asks for: shallow finds silence, deep finds the reason for the silence.
 const CHIPS = [
-  { label: "Who owns pkg/controller/podgc? (shallow)",
-    tool: "who_owns", args: { path: "pkg/controller/podgc/OWNERS", depth: 1 },
-    graph: { path: "pkg/controller/podgc/OWNERS" } },
+  { label: "Who owns the apiserver metrics endpoint? (shallow)",
+    tool: "who_owns", args: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", depth: 1 },
+    graph: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS" } },
   { label: "…now ask the graph properly (4 hops)",
-    tool: "who_owns", args: { path: "pkg/controller/podgc/OWNERS", depth: 4 },
-    graph: { path: "pkg/controller/podgc/OWNERS" } },
+    tool: "who_owns", args: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", depth: 4 },
+    graph: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS" } },
   { label: "Has anyone tried moving this into the kubelet?",
     tool: "has_this_been_tried",
     args: { idea_text: "let the kubelet manage this state itself instead of the API server" } },

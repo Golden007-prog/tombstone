@@ -163,8 +163,8 @@ So I measured both, same machine, 3,300 nodes and 39,987 edges:
 |---|---|---|
 | build the graph | **21 ms** | 190 ms |
 | 2-hop neighbourhood (p50) | **0.017 ms** | 0.368 ms |
-| PageRank | 1,529 ms | **10 ms** |
-| betweenness (k=32) | 352 ms | **20 ms** |
+| PageRank | 1,529.1 ms | **10.0 ms** |
+| betweenness (k=32) | 351.6 ms | **19.8 ms** |
 
 networkx wins in-process pointer chasing by 22x. Of course it does — it is an in-memory adjacency
 dict, and anyone claiming otherwise can be disproved in five minutes.

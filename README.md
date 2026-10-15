@@ -62,6 +62,11 @@ PYTHONPATH=src python eval_retrieval.py       # 12 paraphrases + 3 negative cont
 `verify_claims.py` exists so you can falsify any factual claim here in one command. It queries the
 live graph and compares against the number printed in this file.
 
+Age-dependent claims are checked against a **live clock**, not a frozen one — an earlier version
+hard-coded a timestamp, which meant the staleness numbers could never go stale themselves, which
+rather defeats the point. Counts marked *as of 15 October 2026* will drift as decisions age past the
+three-year line; set `AS_OF_MS` to pin the same instant this README used.
+
 `eval_retrieval.py` scores the headline tool on twelve paraphrases a contributor might plausibly
 type, written without looking at the corpus first: **12/12 return a real titled rejected option with
 a substantive recorded rationale.** It also runs three negative controls — ideas this corpus should
@@ -360,7 +365,7 @@ KEP-2149 "ClusterID for ClusterSet Identification"
   1 author no longer holds approval authority; 2 whose status this corpus does not record
 ```
 
-**38 decisions are stale-and-still-cited; 2 have an author who no longer hold approval authority and none
+**43 decisions are stale-and-still-cited; 2 have an author who no longer hold approval authority and none
 who still holds an approver role.**
 
 The wording matters, and my first version got it wrong. I inferred "no living author" from the

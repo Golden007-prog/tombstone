@@ -26,7 +26,7 @@ while driving the UI is the single biggest cause of ten retakes at midnight.
 
 ### 0:18–0:38 — The shallow answer, and the silence
 
-> *[Screen: Tombstone. Click "Who owns pkg/controller/podgc? (shallow)".]*
+> *[Screen: Tombstone. Click "Who owns staging/src/k8s.io/apiserver/pkg/endpoints/metrics? (shallow)".]*
 >
 > "So let's ask an ordinary question. Who owns this part of the codebase?
 >
@@ -72,7 +72,7 @@ ownership files.*
 > areas behind. Losing a bridge costs more than losing a maintainer.
 >
 > That number is a whole-graph property. There is no SQL query and no embedding that produces it.
-> It took twelve milliseconds, inside the request."
+> It took under twenty milliseconds, inside the request."
 
 ### 1:58–2:14 — The honest negative
 
