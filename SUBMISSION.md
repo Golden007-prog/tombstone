@@ -80,8 +80,8 @@ There are no judging criteria, but WeMakeDevs published *How to build an agent t
 a graph*. The README maps every principle in it to where that piece lives here — the fixed tool
 catalogue, names resolved before any query runs, the four answer shapes (named the same way),
 "not in the graph" kept distinct from "nothing breaks", the path returned with the answer rather
-than an explanation written afterwards, memory as nodes with a date, tenants isolated by separate
-graphs, and a demo that asks the same question at two depths.
+than an explanation written afterwards, memory as nodes with a date, a demo that asks the same question at two depths — and, where the article
+asks for tenant isolation, an honest **partly**: the app is single-tenant, so what is shown is that the mechanism works rather than that this uses it.
 
 Worth saying in the submission because it was not designed to match: I found the article in the
 Resources page after building this.
