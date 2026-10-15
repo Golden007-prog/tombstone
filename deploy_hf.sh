@@ -25,10 +25,40 @@ PY="${PY:-.venv/bin/python}"
 [ -x "$PY" ] || PY="$(command -v python3)"
 "$PY" -c "import huggingface_hub" 2>/dev/null || "$PY" -m pip install -q huggingface_hub
 
+# git archive HEAD stages the COMMITTED tree, so anything uncommitted is silently not deployed.
+# That is a trap worth stopping for: the likely version of it is fixing something at 23:40,
+# deploying, and watching the Space serve the old behaviour with no indication why.
+if [ -n "$(git status --porcelain 2>/dev/null)" ] && [ -z "${ALLOW_DIRTY:-}" ]; then
+  echo "There are uncommitted changes, and this deploys the COMMITTED tree:" >&2
+  git status --short >&2
+  echo >&2
+  echo "  Commit them first, or re-run with ALLOW_DIRTY=1 to deploy HEAD as it stands." >&2
+  exit 1
+fi
+
+# A bad or read-only token is the most likely way this fails, and it used to fail by printing a
+# Python traceback with the one useful line at the bottom of it.
 USER=$("$PY" - <<'PY'
 import os
-from huggingface_hub import HfApi
-print(HfApi(token=os.environ["HF_TOKEN"]).whoami()["name"])
+import sys
+
+try:
+    from huggingface_hub import HfApi
+    me = HfApi(token=os.environ["HF_TOKEN"]).whoami()
+except Exception as exc:
+    msg = str(exc)
+    if "Invalid user token" in msg or "401" in msg:
+        sys.exit("HF_TOKEN is not a valid token. Create one with the WRITE role at "
+                 "https://huggingface.co/settings/tokens")
+    sys.exit(f"could not reach Hugging Face: {msg.splitlines()[0]}")
+
+# A READ token authenticates fine and then fails at upload, several steps and one build later.
+auth = (me.get("auth") or {}).get("accessToken") or {}
+role = auth.get("role")
+if role and role not in ("write", "fineGrained"):
+    sys.exit(f"HF_TOKEN has the '{role}' role; creating a Space needs WRITE. "
+             f"Make a new token at https://huggingface.co/settings/tokens")
+print(me["name"])
 PY
 )
 REPO="$USER/$SPACE_NAME"
@@ -58,8 +88,9 @@ PY
 LIVE="https://$(echo "$USER" | tr '[:upper:]' '[:lower:]')-${SPACE_NAME}.hf.space"
 
 echo
-echo "The Space builds the Dockerfile (several minutes on a first build), then boots in about ten"
-echo "seconds cold and five warm. Verify once it is running:"
+echo "The Space builds the Dockerfile (several minutes on a first build). Measured on the image"
+echo "this deploys: 3.7s from container start to the health endpoint, plus 1.5s for the first"
+echo "answer — on a laptop; a shared-CPU Space is slower. Verify once it is running:"
 echo "  curl -s $LIVE/api/health"
 
 # Everything below removes a step from the deadline-night path. Each one is a thing that is
