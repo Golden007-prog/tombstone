@@ -22,11 +22,16 @@ answers four questions that are each a traversal:
 | **What's going stale?** | decisions still cited, still undecided years on, with no author with authority left to ask |
 | **Has this been asked before?** | the prior answer, when, and the live nodes it cited |
 
+![Depth 1 returns nothing; depth 4 explains why](docs/img/depth-contrast.gif)
+
+*The same question, twice. **Depth 1:** silence — with an honest statement of what was searched.
+**Depth 4:** nobody named on that file still holds approval authority, approval has fallen back
+to a parent OWNERS with **one** approver, and the person who stepped back personally rejected six
+alternatives — one of them titled "Doing nothing is a viable alternative."*
+
 ![The reasoning path behind one answer](docs/img/path.svg)
 
-*Asked "who owns `pkg/controller/podgc`?", Tombstone returns silence at depth 1 and this at depth 4:
-every owner this directory specifically named has left, and one of them personally rejected six
-alternatives in KEP-383. It is not unowned — approval fell back to the parent group. Generated from the live API by `scripts_gen_readme_figure.py`.*
+*The path behind an answer, generated from the live API by `scripts_gen_readme_figure.py`.*
 
 It runs on **Kubernetes' own governance record** — a real organisation of thousands of people that
 publishes its decision history, its ownership map, and, unusually, its own attrition. Apache-2.0,
@@ -83,7 +88,8 @@ Rule 3 says a product that still works without the graph is decoration, so here 
 - **The rejected alternative loses its identity.** You cannot count how many times an idea was
   refused, because there is nothing to count.
 - **You lose the ability to answer *nothing*.** A vector index always returns its k nearest rows no
-  matter how far away they are. "No living owner" is the *absence* of an edge, and absence is not
+  matter how far away they are. "Nobody named here still holds approval authority" is the *absence*
+  of an edge, and absence is not
   something a similarity score can express.
 - **The ranking of whose departure hurt most disappears entirely.** That is betweenness centrality —
   a whole-graph property that no traversal, no SQL join and no embedding can compute.

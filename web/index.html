@@ -47,8 +47,8 @@
       <div class="panelhead">
         <span>The path behind this answer</span>
         <span class="legend">
-          <i class="sw gone"></i>departed
-          <i class="sw live"></i>current
+          <i class="sw gone"></i>stepped back
+          <i class="sw live"></i>still approves
           <i class="sw area"></i>area
           <i class="sw dec"></i>decision
           <i class="sw rej"></i>rejected idea
@@ -79,10 +79,11 @@
       contributors already have, and why the problem exists. The rejected alternative has no
       identity, so you cannot count how often an idea was refused, and you cannot return
       <em>nothing</em>: a vector index always hands back its k nearest rows, which is how a
-      plausible wrong answer gets made. “No living owner” is the <em>absence</em> of an edge, and
-      absence is not something a similarity score can express. And the ranking of whose departure
-      hurt most is betweenness centrality — a whole-graph property no traversal, join or embedding
-      can compute. There is no in-memory mirror and no cached fallback in this repo. With the
+      plausible wrong answer gets made. “Nobody named here still holds approval authority” is the
+      <em>absence</em> of an edge, and absence is not something a similarity score can express.
+      And the ranking of who held the most connective authority before stepping back is
+      betweenness centrality — a whole-graph property no traversal, join or embedding can
+      compute. There is no in-memory mirror and no cached fallback in this repo. With the
       database off, it fails loudly.
     </p>
   </section>
