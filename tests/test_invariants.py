@@ -136,7 +136,7 @@ def test_seeded_betweenness_is_reproducible(g):
 # ---------------- agent contract ----------------
 
 def test_all_four_answer_shapes_are_reachable(agent):
-    assert agent.dispatch("orphaned_ownership", {}).shape == "ANSWERED_WITH_PATH"
+    assert agent.dispatch("ownership_dilution", {}).shape == "ANSWERED_WITH_PATH"
     assert agent.dispatch("successor_for", {"handle": "no-such-human"}).shape == "UNKNOWN_ENTITY"
     assert agent.dispatch("not_a_tool", {}).shape == "UNKNOWN_ENTITY"
     absurd = agent.dispatch(
@@ -238,7 +238,7 @@ def test_agent_recovers_after_the_database_comes_back():
     try:
         a = Agent(graph_name=GRAPH)
         assert a.health()["falkordb"] == "down"
-        assert a.dispatch("orphaned_ownership", {}).shape == "DEGRADED"
+        assert a.dispatch("ownership_dilution", {}).shape == "DEGRADED"
     finally:
         if old is None:
             os.environ.pop("FALKORDB_PORT", None)
@@ -246,7 +246,7 @@ def test_agent_recovers_after_the_database_comes_back():
             os.environ["FALKORDB_PORT"] = old
     # same agent object, database now reachable again
     assert a.health()["falkordb"] == "up"
-    assert a.dispatch("orphaned_ownership", {}).shape == "ANSWERED_WITH_PATH"
+    assert a.dispatch("ownership_dilution", {}).shape == "ANSWERED_WITH_PATH"
 
 
 def test_agent_fails_loudly_without_the_database():
@@ -286,9 +286,9 @@ class _StubProvider:
 @pytest.mark.parametrize(
     "reply,expect_tool",
     [
-        ('{"tool":"orphaned_ownership","args":{}}', "orphaned_ownership"),
-        ('```json\n{"tool":"orphaned_ownership","args":{}}\n```', "orphaned_ownership"),
-        ('Sure! Here you go:\n{"tool": "orphaned_ownership", "args": {}}', "orphaned_ownership"),
+        ('{"tool":"ownership_dilution","args":{}}', "ownership_dilution"),
+        ('```json\n{"tool":"ownership_dilution","args":{}}\n```', "ownership_dilution"),
+        ('Sure! Here you go:\n{"tool": "ownership_dilution", "args": {}}', "ownership_dilution"),
     ],
 )
 def test_router_survives_the_shapes_models_actually_emit(agent, reply, expect_tool):
@@ -320,14 +320,14 @@ def test_answers_are_written_back_and_cite_real_nodes(agent):
     That is what makes recall a traversal instead of a cache, and it is why a remembered answer
     can be re-checked against the live graph rather than trusted.
     """
-    agent._provider = _StubProvider('{"tool":"orphaned_ownership","args":{}}')
+    agent._provider = _StubProvider('{"tool":"ownership_dilution","args":{}}')
     out = agent.ask("which areas have nobody left?")
     assert out["shape"] == "ANSWERED_WITH_PATH"
 
     rows = agent.g.ro_query(
         """
         MATCH (a:Answer)-[c:CITED]->(n)
-        WHERE a.tool = 'orphaned_ownership'
+        WHERE a.tool = 'ownership_dilution'
         RETURN DISTINCT labels(n)[0] AS label, c.role AS role
         """
     ).result_set
@@ -378,7 +378,7 @@ def test_memory_write_failure_never_breaks_the_answer(agent, monkeypatch):
     def boom(*_a, **_k):
         raise RuntimeError("simulated memory failure")
 
-    agent._provider = _StubProvider('{"tool":"orphaned_ownership","args":{}}')
+    agent._provider = _StubProvider('{"tool":"ownership_dilution","args":{}}')
     monkeypatch.setattr(agent.memory, "record", boom)
     out = agent.ask("which areas have nobody left?")
     assert out["shape"] == "ANSWERED_WITH_PATH"
@@ -406,3 +406,39 @@ def test_stale_knowledge_admits_when_nothing_qualifies(agent):
     a = agent.dispatch("stale_knowledge", {"min_years": 40})
     assert a.shape == "NOT_IN_GRAPH"
     assert a.coverage.get("decisions_indexed", 0) > 500
+
+
+def test_no_directory_is_actually_unowned(g):
+    """The correction that mattered most.
+
+    An earlier version claimed 7 directories were "orphaned" because every approver in their own
+    OWNERS file had departed. That is false: Kubernetes OWNERS INHERIT, so prow covers a directory
+    with its ancestors' approvers too unless `options.no_parent_owners` is set. Verified against
+    kubernetes.dev/docs/guide/owners. Zero directories are genuinely unowned, and this test fails
+    loudly if that claim ever creeps back in.
+    """
+    unowned = g.ro_query(
+        """
+        MATCH (d:Person)-[:EMERITUS_OF]->(f:OwnersFile)
+        OPTIONAL MATCH (own:Person)-[:APPROVES]->(f)
+        WITH f, count(DISTINCT own) AS n WHERE n = 0
+        OPTIONAL MATCH (f)-[:INHERITS_FROM*1..8]->(a:OwnersFile)<-[:APPROVES]-(:Person)
+        WITH f, count(a) AS covered WHERE covered = 0
+        RETURN count(f)
+        """
+    ).result_set[0][0]
+    assert unowned == 0, f"{unowned} directories claimed unowned -- check OWNERS inheritance"
+
+
+def test_dilution_reports_the_fallback_not_an_orphan(agent):
+    """The honest finding: approval WIDENED to a group that never owned the code."""
+    a = agent.dispatch("ownership_dilution", {})
+    assert a.shape == "ANSWERED_WITH_PATH"
+    for area, departed, n_dep, fallback, levels, n_fb, _url in a.rows:
+        assert departed, f"{area} reported with no departed owners"
+        assert fallback and fallback != area, f"{area} fell back to itself"
+        assert levels >= 1, f"{area} reported a 0-level fallback"
+        assert n_fb >= 1, f"{area} fell back to a group with no approvers"
+    # ordered by bus-factor risk: the thinnest fallback first
+    fbs = [r[5] for r in a.rows]
+    assert fbs == sorted(fbs), f"not ordered by fallback size: {fbs}"

@@ -25,10 +25,19 @@ CLAIMS = [
     ("'0006-apply.md' cited by",
      "MATCH (k:Kep)-[:CITES_MISSING]->(:MissingRecord{key:'/keps/sig-api-machinery/0006-apply.md'}) "
      "RETURN count(k)", 4),
-    ("areas with zero current approvers",
+    ("areas that lost every dedicated approver",
      "MATCH (d:Person)-[:EMERITUS_OF]->(f:OwnersFile) "
      "OPTIONAL MATCH (c:Person)-[:APPROVES]->(f) "
      "WITH f, count(DISTINCT c) AS n WHERE n = 0 RETURN count(f)", 7),
+    ("OWNERS inheritance edges", "MATCH ()-[r:INHERITS_FROM]->() RETURN count(r)", 584),
+    ("OWNERS files that sever inheritance",
+     "MATCH (o:OwnersFile) WHERE o.severs_inheritance = true RETURN count(o)", 57),
+    ("areas genuinely unowned after walking the tree",
+     "MATCH (d:Person)-[:EMERITUS_OF]->(f:OwnersFile) "
+     "OPTIONAL MATCH (own:Person)-[:APPROVES]->(f) "
+     "WITH f, count(DISTINCT own) AS n WHERE n = 0 "
+     "OPTIONAL MATCH (f)-[:INHERITS_FROM*1..8]->(a:OwnersFile)<-[:APPROVES]-(:Person) "
+     "WITH f, count(a) AS covered WHERE covered = 0 RETURN count(f)", 0),
     ("departed with no current role",
      "MATCH (p:Person)-[:EMERITUS_OF]->() OPTIONAL MATCH (p)-[c:APPROVES]->() "
      "WITH p, count(c) AS n WHERE n = 0 RETURN count(DISTINCT p)", 83),

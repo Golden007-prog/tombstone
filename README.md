@@ -17,7 +17,7 @@ answers four questions that are each a traversal:
 |---|---|
 | **Has this been tried?** | the rejected option, its recorded reason, and whether any decider still works here |
 | **Who owns this?** | at depth 1, silence. At depth 4, that it's **orphaned** — and what its departed owners decided elsewhere |
-| **Which areas have no living owner?** | 7 of them, with every recorded owner gone |
+| **Who inherited this code when its owners left?** | the broader group approval silently fell back to |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
 | **What's going stale?** | decisions still cited, still undecided years on, with no author left to ask |
 | **Has this been asked before?** | the prior answer, when, and the live nodes it cited |
@@ -402,6 +402,31 @@ doesn't even list the label. Honest caveat: 10,000 tenants × 491 KB ≈ 4.8 GB,
 graphs" headline is memory-bound, not architecture-bound.
 
 Full methodology and six engine gotchas I hit: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
+
+## A correction I made, and why it is in the README
+
+An earlier version of this claimed **7 directories were "orphaned" — no current approver at all**.
+That was **wrong**, and it was the demo's centrepiece.
+
+Kubernetes OWNERS files **inherit**. [The docs are explicit](https://www.kubernetes.dev/docs/guide/owners/):
+an OWNERS file "applies to everything within the directory, including ... child directories", and a
+child is covered by its ancestors unless it sets `options.no_parent_owners`. I checked all seven:
+**every one is covered by an ancestor. Zero are unowned.** `pkg/controller/podgc` falls back to
+`pkg/controller/OWNERS`, which has 10 live approvers.
+
+The true finding is better, and more graph-shaped. Those directories lost every *dedicated*
+approver, so approval **silently widened** to people who never owned that code — and finding who
+inherited it requires walking the tree:
+
+```
+apiserver/pkg/endpoints/metrics   lost logicalhan
+  -> falls back 1 level to apiserver/pkg/endpoints -- 1 approver
+cluster/gce/windows               lost yujuhong, yliaog, pjh, mtaufen, ibabou
+  -> falls back 2 levels to cluster/ -- the directory in between is also dead
+```
+
+`test_no_directory_is_actually_unowned` now fails loudly if the wrong claim ever creeps back.
+Of 585 OWNERS files, 57 set `no_parent_owners`; none of those is left without a live approver.
 
 ## Honest limits
 

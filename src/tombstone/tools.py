@@ -142,22 +142,56 @@ LIMIT $limit
                       cypher=self.HAS_THIS_BEEN_TRIED, params={"k": k, "maxDist": max_dist})
 
     # ---------- TOOL 2 ----------
-    ORPHANED_OWNERSHIP = """
-MATCH (dep:Person)-[:EMERITUS_OF]->(f:OwnersFile)
-OPTIONAL MATCH (cur:Person)-[:APPROVES]->(f)
-WITH f, collect(DISTINCT dep.key) AS departed, count(DISTINCT cur) AS live_approvers
-WHERE live_approvers = 0
-RETURN f.path AS orphaned_area, departed, f.url AS source_url
-ORDER BY f.path
+    # NOTE: this query replaced an earlier, WRONG one.
+    #
+    # The first version claimed a directory was "orphaned" when every approver in its own OWNERS
+    # file had departed. That is false. Kubernetes OWNERS files INHERIT: prow treats a directory
+    # as covered by its own approvers PLUS every ancestor's, unless an OWNERS on the way up sets
+    # `options.no_parent_owners`. Checked against kubernetes.dev/docs/guide/owners: ALL seven
+    # directories I called orphaned are in fact covered by an ancestor. Zero are unowned.
+    #
+    # The true finding is both correct and more interesting: those directories lost every
+    # DEDICATED approver, so approval silently falls back to a broader group who never
+    # specifically owned that code. That is expertise dilution, and computing it requires
+    # walking up the tree -- a traversal, not a lookup.
+    OWNERSHIP_DILUTION = """
+// 1. areas where every dedicated approver has departed
+MATCH (departed:Person)-[:EMERITUS_OF]->(area:OwnersFile)
+OPTIONAL MATCH (own:Person)-[:APPROVES]->(area)
+WITH area, collect(DISTINCT departed.key) AS departed_owners, count(DISTINCT own) AS own_live
+WHERE own_live = 0
+
+// 2. walk UP the OWNERS tree to the nearest ancestor that still has live approvers
+MATCH path = (area)-[:INHERITS_FROM*1..8]->(anc:OwnersFile)
+MATCH (fb:Person)-[:APPROVES]->(anc)
+WITH area, departed_owners, anc, length(path) AS up, count(DISTINCT fb) AS n_fb
+ORDER BY up ASC
+WITH area, departed_owners,
+     collect({path: anc.path, up: up, n: n_fb})[0] AS nearest
+
+RETURN area.path             AS area,
+       departed_owners,
+       size(departed_owners) AS n_departed,
+       nearest.path          AS approval_falls_back_to,
+       nearest.up            AS levels_up,
+       nearest.n             AS fallback_approvers,
+       area.url              AS source_url
+ORDER BY fallback_approvers ASC, n_departed DESC
 LIMIT $limit
 """
 
-    def orphaned_ownership(self, limit: int = 25) -> Answer:
-        """Which areas have NO current approver at all, only departed ones? Proof by absence."""
-        rows, ms = self._run("orphaned_ownership", self.ORPHANED_OWNERSHIP, {"limit": limit})
+    def ownership_dilution(self, limit: int = 20) -> Answer:
+        """Which areas lost every dedicated owner, and who inherits them now?
+
+        Not "unowned" -- almost nothing in Kubernetes is literally unowned. This is the real
+        failure: the people who specifically owned a directory have all gone, and approval now
+        falls back to a broader group who never signed up for that code. The fallback is found by
+        walking the OWNERS tree, so it is a traversal a lookup cannot do.
+        """
+        rows, ms = self._run("ownership_dilution", self.OWNERSHIP_DILUTION, {"limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
-        return Answer(shape, "orphaned_ownership", rows=rows, ms=ms,
-                      cypher=self.ORPHANED_OWNERSHIP, coverage=self._coverage())
+        return Answer(shape, "ownership_dilution", rows=rows, ms=ms,
+                      cypher=self.OWNERSHIP_DILUTION, coverage=self._coverage())
 
     # ---------- TOOL 3 ----------
     DEPARTED_BRIDGES = """
@@ -340,7 +374,7 @@ LIMIT $limit
 
 CATALOGUE = {
     "has_this_been_tried": "Search recorded rejected design alternatives by meaning, and report whether anyone who made that call is still around. Args: idea_text.",
-    "orphaned_ownership": "List areas that have NO current approver, only departed ones. Args: none.",
+    "ownership_dilution": "Which areas lost every DEDICATED approver, and which broader group inherits them now? Walks the OWNERS tree. Args: none.",
     "departed_bridges": "Rank departed people by how much CONNECTIVE knowledge left with them (betweenness centrality). Args: min_areas.",
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",

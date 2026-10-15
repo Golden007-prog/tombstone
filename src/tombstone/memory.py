@@ -102,7 +102,7 @@ class Memory:
                     keys["Kep"].add(str(r[2]))
                     for d in (r[8] or []):
                         keys["Person"].add(d)
-                elif t == "orphaned_ownership":
+                elif t == "ownership_dilution":
                     keys["OwnersFile"].add(r[0])
                     for d in (r[1] or []):
                         keys["Person"].add(d)

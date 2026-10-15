@@ -77,7 +77,7 @@ def _slim_kep(d: dict) -> dict:
 def _slim_owners(d: dict) -> dict:
     return {
         k: d[k]
-        for k in ("approvers", "reviewers", "emeritus_approvers", "labels")
+        for k in ("approvers", "reviewers", "emeritus_approvers", "labels", "options")
         if d.get(k)
     }
 

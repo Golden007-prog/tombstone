@@ -187,6 +187,48 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
 
     ing.nodes("Person", [dict(key=p) for p in sorted(people)])
     ing.nodes("OwnersFile", owners_rows)
+
+    # OWNERS files form a TREE, and that tree is load-bearing. Kubernetes OWNERS inherit from
+    # parent directories by default -- prow treats a directory as covered by its own approvers
+    # PLUS every ancestor's, unless an OWNERS on the way up sets `options.no_parent_owners`.
+    #
+    # Without these edges you cannot tell "this code has no owner" (which is almost never true)
+    # from "this code lost its dedicated owners and silently fell back to a broader group"
+    # (which is true, and is the more interesting failure). Computing that fallback is a
+    # variable-length traversal up the tree, which is exactly the shape a graph is for.
+    import os as _os
+
+    paths = {r["key"] for r in owners_rows}
+
+    def _parent(rel: str) -> str | None:
+        d = _os.path.dirname(rel)
+        while d:
+            d = _os.path.dirname(d)
+            cand = _os.path.join(d, "OWNERS") if d else "OWNERS"
+            if cand in paths and cand != rel:
+                return cand
+        return None
+
+    parent_pairs = []
+    for rel in paths:
+        par = _parent(rel)
+        if par:
+            parent_pairs.append((rel, par))
+    ing.edges("OwnersFile", "INHERITS_FROM", "OwnersFile", parent_pairs)
+    stats["INHERITS_FROM"] = len(parent_pairs)
+
+    # `no_parent_owners: true` genuinely severs inheritance; mark those so a traversal can stop.
+    severed = [
+        r for r, d in corpus.owners.items()
+        if isinstance(d.get("options"), dict) and d["options"].get("no_parent_owners")
+    ]
+    if severed:
+        for batch in chunked([{"k": k} for k in severed]):
+            g.query(
+                "UNWIND $rows AS x MATCH (o:OwnersFile {key: x.k}) SET o.severs_inheritance = true",
+                params={"rows": list(batch)},
+            )
+    stats["severs_inheritance"] = len(severed)
     for rel_type, pairs in kep_people.items():
         ing.edges("Person", rel_type, "Kep", pairs)
     ing.edges("Person", "APPROVES", "OwnersFile", cur_edges)

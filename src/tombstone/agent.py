@@ -139,8 +139,8 @@ class Agent:
                 qvec = list(self.embedder().embed([text]))[0].tolist()
                 return self.tools.has_this_been_tried(
                     qvec, max_dist=num(args.get("max_dist", 0.45), 0.45, float))
-            if tool == "orphaned_ownership":
-                return self.tools.orphaned_ownership()
+            if tool == "ownership_dilution":
+                return self.tools.ownership_dilution()
             if tool == "departed_bridges":
                 return self.tools.departed_bridges(min_areas=max(0, num(args.get("min_areas", 3), 3)))
             if tool == "successor_for":
@@ -254,10 +254,19 @@ def render(a: Answer) -> str:
                 f"  source: {url}"
             )
         return f"Yes — {n} recorded rejection(s) of something close to this:\n\n" + "\n\n".join(lines)
-    if t == "orphaned_ownership":
-        lines = [f"• {r[0]} — last known owners: {', '.join(r[1])}" for r in a.rows]
-        return (f"{n} area(s) have NO current approver at all, only departed ones:\n\n"
-                + "\n".join(lines))
+    if t == "ownership_dilution":
+        lines = []
+        for area, departed, nd, fallback, levels, n_fb, _url in a.rows:
+            lines.append(
+                f"• {area}\n"
+                f"    every dedicated approver departed: {', '.join(departed[:4])}"
+                + (f" (+{len(departed)-4} more)" if len(departed) > 4 else "") + "\n"
+                f"    approval now falls back {levels} level(s) up to {fallback} — "
+                f"{n_fb} approver(s) who never specifically owned this"
+            )
+        return (f"{n} area(s) lost every dedicated approver. They are not unowned — Kubernetes "
+                f"OWNERS inherit — but approval has silently widened to people who never signed "
+                f"up for this code:\n\n" + "\n".join(lines))
     if t == "departed_bridges":
         lines = [f"• {r[0]} — betweenness {r[1]}, left {r[2]} area(s) behind" for r in a.rows]
         return ("Ranked by how much CONNECTIVE knowledge left with them (betweenness centrality "
