@@ -160,10 +160,26 @@ minimal diff can reuse an identical line and read misleadingly.
 
 `PYTHONPATH=src python verify_action.py` re-checks every number in this section against a live run.
 
+## Track 03's own "Key focus", line by line
+
+The track page lists five things a Company Brain should do. They are not labelled judging criteria,
+but they are the organisers' own words for the track I entered, so they are the closest thing to a
+rubric this submission has. Four are answered by the graph. One is not, and saying which one is
+cheaper than pretending otherwise.
+
+| Track 03 asks for | where it is here |
+|---|---|
+| *"Knowledge from docs, tickets, and chats in one graph"* | **Docs only, and deliberately.** 681 decision records and 585 ownership files, in one graph with the 958 rejected options pulled out of their prose as nodes. No tickets and no chats: the rules forbid private company data, and the alternative is a fabricated "Acme Corp" with invented tickets, which proves nothing. Kubernetes is a real organisation of thousands of people that publishes its decision records, its ownership map **and its own attrition**, under Apache-2.0 — so every number here is checkable by a judge in one `git clone`. [The corpus, and what I refused to ingest from it](docs/K8S-CORPUS-VERIFIED.md). |
+| *"Who owns what, and who knows what"* | Two different questions, and the gap between them is the product. 585 ownership files say who owns what *on paper*; **729 of the 794 people** carry expertise edges to decisions they authored, approved or reviewed. **83 people are listed as emeritus somewhere and hold no current approval anywhere** — they are who knows, minus who owns. |
+| *"Tracing decisions back to their source"* | **681 of 681** decision records carry their source URL, so every row of every answer traces to the document it came from. Not a sample — all of them, asserted in CI. |
+| *"Keeping knowledge current as things change"* | Honest size: 9 `REPLACES`/`SUPERSEDED_BY` edges and **47 records cited by name that do not exist** — knowledge that has already rotted, found structurally. `stale_knowledge` asks what still cites a decision that was replaced, and the agent's own memory stops answering from a remembered finding once the records it cited no longer resolve. |
+| *"Answers with clear sources"* | Every answer carries its rows, the exact Cypher, the query's hash, a coverage statement, and a line saying no model wrote the prose. The one thing it will not do is name a plausible owner — [an unrecognised name stops before the traversal](#the-agent). |
+
 ## The organisers published what they are looking for. Here is where each piece is.
 
-There are no judging criteria on the event page or the rules — I checked both. But WeMakeDevs
-published [**How to build an agent that reasons over a graph**](https://www.wemakedevs.org/blogs/how-to-build-an-agent-that-reasons-over-a-graph),
+There are no *scored* criteria published on the event page or the rules — the five bullets above are
+as close as the site comes, and they are framed as a track's emphasis rather than a rubric. But
+WeMakeDevs published [**How to build an agent that reasons over a graph**](https://www.wemakedevs.org/blogs/how-to-build-an-agent-that-reasons-over-a-graph),
 which is the closest thing that exists to a specification. I found it late, in the Resources page,
 after building this. The overlap is not a coincidence so much as evidence that the same problems
 force the same answers.

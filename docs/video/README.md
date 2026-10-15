@@ -40,6 +40,19 @@ Beats 3 and 6 are captured through `?ask=<question>&focus=1`, which deep-links a
 question — so a question and its answer can be shared as a URL, and so the walkthrough can show
 someone typing rather than only clicking.
 
+## Why there is no staleness check on this file
+
+The obvious one would fingerprint the sources and fail when they move, and I started writing it
+before noticing it would be redundant. Every caption here states a **behaviour**, not a number --
+"depth 1 returns nothing", "it refuses the handle an alias expands to", "it declines the poem by
+name" -- and each of those behaviours is already asserted by a named check: the rendered-state
+check covers the depth-1 refusal and the alias strand, the router's out-of-domain bucket is tested
+directly, and betweenness is in the Cypher-drift check. So the way this video goes wrong is by a
+check going red, not by a number drifting underneath it.
+
+Had the captions quoted figures, the fingerprint would be worth having. They deliberately do not,
+which is also why they are still true sixty-seven seconds at a time.
+
 One trap worth keeping written down: ffmpeg's `drawtext` **silently drops** a line containing an
 unescaped `%`, with no error. That is how "72%" vanished from a caption in the first cut. The
 build script asserts on it rather than trusting anyone to remember.

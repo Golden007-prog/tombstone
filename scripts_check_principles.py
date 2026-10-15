@@ -194,6 +194,65 @@ server_src = open("src/tombstone/server.py").read()
 check("the tenancy hedge's premise holds -- no request can switch graphs",
       not re.search(r"graph_name\s*=\s*(c\.|body|req|request|payload)", server_src))
 
+# ---------------------------------------------------------------------------
+# The Track 03 "Key focus" table. Its numbers come straight out of the graph, and one of its rows
+# is an admission -- docs only, no tickets and no chats. An admission needs checking too: if a
+# ticket or chat label ever lands in the graph, that row becomes false by being too modest, and a
+# judge reading it would be misled about what they are looking at.
+start2 = readme.find('Track 03\'s own "Key focus"')
+assert start2 > 0, "Track 03 table not found"
+track = readme[start2:readme.find("\n## ", start2 + 10)]
+
+for quoted in ("Knowledge from docs, tickets, and chats in one graph",
+               "Who owns what, and who knows what",
+               "Tracing decisions back to their source",
+               "Keeping knowledge current as things change",
+               "Answers with clear sources"):
+    check(f'the track bullet "{quoted[:38]}..." is quoted verbatim', quoted in track)
+
+g = a.tools.g
+
+
+def scalar(q: str) -> int:
+    rs = g.query(q).result_set
+    return int(rs[0][0]) if rs else 0
+
+
+labels = {r[0] for r in g.query("CALL db.labels()").result_set}
+check("no ticket or chat data is in the graph, as the first row admits",
+      not {l for l in labels if re.search(r"ticket|chat|message|issue|slack|email", l, re.I)},
+      ", ".join(sorted(labels)))
+
+for pattern, query, label in (
+    (r"\*\*(\d+) of (\d+)\*\* decision records carry their source URL",
+     None, "source-url coverage"),
+    (r"\*\*(\d+) of the \d+ people\*\* carry expertise edges",
+     "MATCH (p:Person)-[:AUTHORED|APPROVED|REVIEWED]->(:Kep) RETURN count(DISTINCT p)",
+     "people with expertise edges"),
+    (r"\*\*(\d+) people are listed as emeritus somewhere and hold no current approval",
+     "MATCH (p:Person)-[:EMERITUS_OF]->(:OwnersFile) WHERE NOT (p)-[:APPROVES]->() "
+     "RETURN count(DISTINCT p)", "emeritus-only people"),
+    (r"(\d+) `REPLACES`/`SUPERSEDED_BY` edges",
+     "MATCH ()-[r:REPLACES|SUPERSEDED_BY]->() RETURN count(r)", "superseding edges"),
+    (r"\*\*(\d+) records cited by name that do not exist\*\*",
+     "MATCH (m:MissingRecord) RETURN count(m)", "missing records"),
+):
+    m2 = re.search(pattern, track)
+    if not m2:
+        check(f"the table states {label}", False, "pattern not found")
+        continue
+    if query is None:                      # "N of M" -- both halves, and they must be equal
+        have, total = int(m2.group(1)), int(m2.group(2))
+        live_have = scalar("MATCH (k:Kep) WHERE k.url IS NOT NULL AND k.url <> '' RETURN count(k)")
+        live_total = scalar("MATCH (k:Kep) RETURN count(k)")
+        check("every decision record carries a source URL, as claimed",
+              (have, total) == (live_have, live_total) and live_have == live_total,
+              f"table says {have} of {total}, graph has {live_have} of {live_total}")
+    else:
+        live = scalar(query)
+        check(f"{label} in the table matches the graph", int(m2.group(1)) == live,
+              f"table says {m2.group(1)}, graph has {live}")
+
 print()
 if fails:
     print(f"{len(fails)} row(s) in the principles table do not describe this build:")
