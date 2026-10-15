@@ -19,7 +19,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
 > - **Nothing here is asserted.** 105 tests, 25 graph claims, 17 rendered UI states and every
->   benchmark re-run by **21 CI steps on each push** — including the claims I had to withdraw,
+>   benchmark re-run by **22 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
@@ -311,6 +311,9 @@ RETURN a.question, p.key, count(DISTINCT f) AS areas_they_left
 ```
 "whose departure hurt most?"    -> lavalamp    left 31 areas
 "which areas have nobody left?" -> vishh       left 14 areas
+
+(rows of the query above, ordered by areas left — not the ranked answer to either
+ question. lavalamp left the most areas; he is third by centrality.)
 ```
 
 (Those rows exist only once those questions have actually been asked — memory starts empty, which

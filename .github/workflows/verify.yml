@@ -119,6 +119,9 @@ jobs:
       - name: The premise measurement still matches what the README claims
         run: python measure_repeat_rejections.py
 
+      - name: The README's printed output blocks match a live run
+        run: python scripts_check_readme_examples.py
+
       - name: The demo script narrates what the app actually returns
         run: python scripts_check_demo_facts.py
 
