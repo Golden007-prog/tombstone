@@ -48,7 +48,16 @@ def chip_args() -> dict[str, dict]:
         args: dict = {}
         for k, v in re.findall(r'(\w+)\s*:\s*("(?:[^"\\]|\\.)*"|[\d.]+|\[[^\]]*\])', raw):
             if v.startswith('"'):
-                args[k] = v[1:-1].encode().decode("unicode_escape")
+                # Unescape only when there IS an escape. `.encode().decode("unicode_escape")`
+                # turns a literal "…" into "â¦" -- encode gives three UTF-8 bytes and
+                # unicode_escape reads each as latin-1. The same line in the demo-facts check
+                # reported a chip as missing for exactly that reason. No chip argument carries a
+                # non-ASCII character today, so this one is latent rather than wrong, which is
+                # the only interesting thing about it: the bug was found elsewhere and this copy
+                # would have waited for the first argument with an em dash in it.
+                raw_v = v[1:-1]
+                args[k] = (raw_v if "\\" not in raw_v else
+                           raw_v.encode("latin-1", "backslashreplace").decode("unicode_escape"))
             elif v.startswith("["):
                 args[k] = [x.strip().strip('"') for x in v[1:-1].split(",") if x.strip()]
             else:
