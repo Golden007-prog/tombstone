@@ -621,7 +621,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src python -m pytest tests/ -q     # 107 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 119 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 

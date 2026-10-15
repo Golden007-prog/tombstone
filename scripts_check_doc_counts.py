@@ -121,6 +121,38 @@ for _doc in ("README.md", "SUBMISSION.md"):
         problems.append(f"{_doc}: says {', '.join(_said)} CI steps, the workflow has {_steps}")
     else:
         checked += len(_said)
+# The test count and the rendered-state count each appear in more than one document, and the
+# README states the test count TWICE -- once in the 60-second box and once as a comment beside the
+# pytest command in the Quickstart. Updating one and not the other is exactly what happened, and
+# it was caught by CI rather than here, which is the slow way to find out.
+import subprocess  # noqa: E402
+_collected = subprocess.run([sys.executable, "-m", "pytest", "tests/", "--collect-only", "-q"],
+                            capture_output=True, text=True).stdout
+_m = re.search(r"(\d+) tests? collected", _collected)
+if not _m:
+    problems.append("could not read the collected test count from pytest")
+else:
+    _tests = int(_m.group(1))
+    for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md"):
+        for _said in re.findall(r"(\d+) (?:invariant )?tests\b", open(_doc).read()):
+            if int(_said) != _tests:
+                problems.append(f"{_doc}: says {_said} tests, pytest collects {_tests}")
+            else:
+                checked += 1
+    print(f"  pytest collects {_tests} tests and every document agrees")
+
+_ui = open("scripts_check_ui.py").read()
+_chips = len(re.findall(r'tool:\s*"[a-z_]+"', open("web/app.js").read()))
+_extra = _ui[_ui.index("cases = chips() + ["):_ui.index("]", _ui.index("cases = chips() + ["))]
+_states = _chips + len(re.findall(r'^\s{8}\("', _extra, re.M))
+for _doc in ("README.md", "SUBMISSION.md"):
+    for _said in re.findall(r"(\d+) rendered UI states", open(_doc).read()):
+        if int(_said) != _states:
+            problems.append(f"{_doc}: says {_said} rendered UI states, the check drives {_states}")
+        else:
+            checked += 1
+print(f"  the UI check drives {_states} rendered states and every document agrees")
+
 print(f"  the workflow has {_steps} named steps and both docs say so")
 
 # ---------------------------------------------------------------------------
