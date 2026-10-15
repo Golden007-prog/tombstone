@@ -46,12 +46,20 @@ jobs:
           pip install -r requirements.txt pytest
 
       - name: Raise the baked-in limits
-        # The image ships RESULTSET_SIZE 10000 (silently truncates), TIMEOUT 1000 (kills any
-        # algorithm call over a second) and MAX_QUEUED_QUERIES 25.
+        # The image ships RESULTSET_SIZE 10000 (silently TRUNCATES larger returns with no error),
+        # TIMEOUT 1000 (kills any algorithm call over a second) and MAX_QUEUED_QUERIES 25.
+        # Set through the Python client rather than redis-cli, which the runner does not have.
         run: |
-          redis-cli -p 6380 GRAPH.CONFIG SET RESULTSET_SIZE 1000000
-          redis-cli -p 6380 GRAPH.CONFIG SET TIMEOUT_MAX 0 || true
-          redis-cli -p 6380 GRAPH.CONFIG SET MAX_QUEUED_QUERIES 4096
+          python - <<'PY'
+          from graphkit.ingest import connect
+          c = connect().connection
+          for k, v in (("RESULTSET_SIZE", 1000000), ("MAX_QUEUED_QUERIES", 4096)):
+              try:
+                  c.execute_command("GRAPH.CONFIG", "SET", k, v)
+                  print(f"  {k} = {v}")
+              except Exception as e:
+                  print(f"  {k}: {e}")
+          PY
 
       - name: Seed from the committed snapshot
         run: |
