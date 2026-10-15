@@ -308,7 +308,7 @@ LIMIT $limit
 
 ### `who_owns` — Who owns this area? (depth 4 — what the graph serves)
 
-*Why a graph:* Four hops: area → departed owner → decisions they shaped → alternatives they personally rejected → the SIGs those reached. Returns the reason the depth-1 answer was silent.
+*Why a graph:* Four hops: area → the owner who stepped back → decisions they shaped → alternatives they personally rejected → the SIGs those reached. Returns the reason depth 1 was silent.
 
 ```cypher
 MATCH (o:OwnersFile {path: $path})

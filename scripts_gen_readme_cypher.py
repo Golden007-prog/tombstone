@@ -31,8 +31,8 @@ ORDER = [
      "A single join. Included deliberately as the control arm of the depth contrast."),
     ("who_owns", "WHO_OWNS_DEPTH4",
      "Who owns this area? (depth 4 — what the graph serves)",
-     "Four hops: area → departed owner → decisions they shaped → alternatives they personally "
-     "rejected → the SIGs those reached. Returns the reason the depth-1 answer was silent."),
+     "Four hops: area → the owner who stepped back → decisions they shaped → alternatives "
+     "they personally rejected → the SIGs those reached. Returns the reason depth 1 was silent."),
 ]
 
 print("## The Cypher this product depends on\n")
