@@ -205,7 +205,7 @@ function renderPath(d) {
     svg += `<path d="M${a.x + 10} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x - 12} ${b.y}" fill="none" stroke="${P.edge}" stroke-width="1.4" marker-end="url(#ar)"/>`;
     const lane = `${LANE[a.kind] ?? 0}>${LANE[b.kind] ?? 0}:${e.label}`;
     if (!labelled.has(lane)) {
-      // Two relationship types can span the same pair of lanes (a departed owner LEFT BEHIND an
+      // Two relationship types can span the same pair of lanes (an owner who stepped back LEFT BEHIND an
       // area that a successor ALREADY APPROVES), so stack their captions instead of overprinting.
       const stack = [...labelled].filter((k) => k.startsWith(lane.split(":")[0])).length;
       labelled.add(lane);

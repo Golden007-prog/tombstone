@@ -209,7 +209,7 @@ LIMIT $limit
 ```
 `query_sha` = `52f160988857` — stamped on every answer this query produces.
 
-### `ownership_dilution` — Which areas lost every approver with dedicated authority, and which broader group inherits them now?
+### `ownership_dilution` — Which areas lost every DEDICATED approver, and which broader group inherits them now?
 
 *Why a graph:* Kubernetes OWNERS inherit, so finding who actually covers a directory means walking UP the tree until you hit live approvers — a variable-length traversal. One area falls back two levels because the directory in between is also dead.
 
@@ -240,7 +240,7 @@ LIMIT $limit
 ```
 `query_sha` = `b0145239cfc7` — stamped on every answer this query produces.
 
-### `stepped_back_bridges` — Who held the most CONNECTIVE authority before stepping back — not just the most files?
+### `departed_bridges` — Whose departure cost the most CONNECTIVE knowledge — not just the most files?
 
 *Why a graph:* Betweenness centrality is a whole-graph property. No traversal, no SQL join and no embedding can compute it. Composed with an ownership traversal in the SAME query.
 
@@ -258,7 +258,7 @@ RETURN p.key                        AS stepped_back_bridge,
 ORDER BY bridge DESC
 LIMIT $limit
 ```
-`query_sha` = `09250c925dc8` — stamped on every answer this query produces.
+`query_sha` = `55dbf28e5314` — stamped on every answer this query produces.
 
 ### `successor_for` — Who already co-owns the areas a departed person left behind?
 
