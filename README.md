@@ -298,7 +298,9 @@ The brief asks for three things: that the agent acts on connected data, **rememb
 and shows how it reached each answer. The third is the path view above. This is the second.
 
 Every answered question is written back as an `(:Answer)` node that **`CITED`s the exact graph nodes
-it was built from** — not stored as text. Two consequences:
+it was built from** — not stored as text. Every answered question, including the ones you reach by
+clicking a button: for a while that was false, and only free text was recorded, which made the
+whole feature invisible to anyone using the demo the obvious way. Two consequences:
 
 - **Recall is a traversal, not a cache.** A remembered answer can be re-checked against the live
   graph instead of trusted. If a cited node is gone, the memory can say so.

@@ -8,12 +8,15 @@ const $ = (id) => document.getElementById(id);
 // contrast the brief asks for: shallow finds silence, deep finds the reason for the silence.
 const CHIPS = [
   { label: "Who owns the apiserver metrics endpoint? (shallow)", step: 1,
+    question: "who owns the apiserver metrics endpoint",
     tool: "who_owns", args: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", depth: 1 },
     graph: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS" } },
   { label: "…now ask the graph properly (4 hops)", step: 2,
+    question: "who really owns the apiserver metrics endpoint",
     tool: "who_owns", args: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", depth: 4 },
     graph: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS" } },
   { label: "Draft the fix \u2014 don't just report it", step: 3,
+    question: "draft the fix for the ownership records that contradict themselves",
     tool: "draft_owners_patch", args: { min_stepped_back: 3 } },
   { label: "Has anyone tried moving this into the kubelet?",
     tool: "has_this_been_tried",
@@ -27,6 +30,7 @@ const CHIPS = [
   { label: "Which cited decisions no longer exist?",
     tool: "broken_lineage", args: { min_cites: 2 } },
   { label: "Ask something it cannot know",
+    question: "has anyone proposed rewriting the control plane in COBOL",
     tool: "has_this_been_tried",
     args: { idea_text: "rewrite the control plane in COBOL on a mainframe", max_dist: 0.15 } },
   { label: "Which contributor group is hollowing out?",
@@ -38,8 +42,12 @@ const CHIPS = [
     args: { handles: ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"] } },
   { label: "What knowledge here is going stale?",
     tool: "stale_knowledge", args: { min_years: 3 } },
+  // Deliberately a REWORDING of chip 1, not a new subject. The point of this chip is that recall
+  // is semantic and survives different phrasing -- and on a freshly deployed instance, memory
+  // only contains what this visitor has just clicked. Asking about an unrelated area returned
+  // "never asked", correctly, which made the one beat about memory show nothing.
   { label: "Has this graph been asked this before?",
-    tool: "recall", args: { question: "who currently owns the podgc controller" } },
+    tool: "recall", args: { question: "who actually owns the apiserver metrics endpoint" } },
 ];
 
 // Resolve the palette ONCE, to plain hex strings. Cytoscape style values must be concrete:
@@ -221,6 +229,10 @@ function show(data, graphArgs) {
   }
 }
 
+// A chip's label is written for the eye; what memory stores has to be a QUESTION, because recall
+// searches it by meaning. "…now ask the graph properly (4 hops)" is a good button and a useless
+// memory key -- it shares no words and no meaning with "who owns this area", so a later recall
+// could never find it. Chips whose label is not already a question carry an explicit one.
 async function runTool(c, btn) {
   $("answer").textContent = "running the Cypher…";
   $("headline").classList.add("hidden");
@@ -231,7 +243,7 @@ async function runTool(c, btn) {
     const r = await fetch("/api/tool", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tool: c.tool, args: c.args }),
+      body: JSON.stringify({ tool: c.tool, args: c.args, question: c.question || c.label }),
     });
     show(await r.json(), c.graph);
   } catch (e) {

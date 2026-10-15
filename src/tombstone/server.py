@@ -45,6 +45,10 @@ class Ask(BaseModel):
 class ToolCall(BaseModel):
     tool: str
     args: dict = {}
+    # The human-readable question this call represents. Memory is keyed by question text, so a
+    # chip sends its own label -- "Which areas have exactly one approver?" is recallable later,
+    # "sole_approver_risk {}" is not.
+    question: str | None = None
 
 
 @app.get("/api/health")
@@ -82,11 +86,29 @@ def tools():
     return {"catalogue": CATALOGUE}
 
 
+def _label(c) -> str:
+    """The question a chip is asking, in the words a person would use.
+
+    A tool name and an args dict are not a question, and memory is keyed by question text, so
+    recording "sole_approver_risk {}" would make recall useless -- nobody asks that. The UI sends
+    its chip label; this is the fallback for anything that does not.
+    """
+    args = " ".join(str(v) for v in (c.args or {}).values() if isinstance(v, (str, int)))
+    return f"{c.tool.replace('_', ' ')} {args}".strip()
+
+
 @app.post("/api/tool")
 def call_tool(c: ToolCall):
-    """Direct tool call -- no LLM, no key needed. The Cypher still runs for real."""
+    """Direct tool call -- no LLM, no key needed. The Cypher still runs for real.
+
+    The answer is remembered, exactly as a typed question is. It was not, and the omission was
+    invisible: every chip in the UI comes through here, so clicking around the demo wrote NOTHING
+    to memory while the README said "every answered question is written back as an (:Answer)
+    node". Only free text was. A judge clicking through the buttons and then asking whether the
+    graph had been asked this before would have been told no, correctly and damningly.
+    """
     a = agent()
-    ans = a.dispatch(c.tool, c.args)
+    ans = a._remember(c.question or _label(c), c.tool, a.dispatch(c.tool, c.args))
     from tombstone.agent import query_sha
     return {
         "tool": ans.tool,

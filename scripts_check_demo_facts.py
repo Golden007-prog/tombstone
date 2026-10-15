@@ -70,6 +70,24 @@ em = agent.g.ro_query(
 check("beat 6 says 'emeritus in twenty files'", "twenty files" in script and em == 20,
       f"actually {em}")
 
+# Beat 7 — the memory beat. This is the one that broke silently: on a FRESH instance a judge has
+# an empty memory, and the recall chip used to ask about an area no earlier beat touched, so the
+# beat about remembering showed "nothing like this has been asked". Worse, chip clicks were not
+# recorded at all -- only typed questions were -- so even a matching question would have missed.
+# This replays the demo on a cleared memory and requires the recall beat to find something.
+agent.g.query("MATCH (a:Answer) DETACH DELETE a")
+OWNERS_PATH = OWNERS
+for tool, args, question in (
+    ("who_owns", {"path": OWNERS_PATH, "depth": 4}, "who really owns the apiserver metrics endpoint"),
+    ("draft_owners_patch", {}, "draft the fix for the ownership records that contradict themselves"),
+):
+    agent._remember(question, tool, agent.dispatch(tool, args))
+
+recalled = agent.dispatch("recall", {"question": "who actually owns the apiserver metrics endpoint"})
+check("beat 7: recall finds the earlier question after the demo's own beats",
+      recalled.shape == "ANSWERED_WITH_PATH" and bool(recalled.rows),
+      f"{recalled.shape}, {len(recalled.rows)} row(s)")
+
 print(f"\n{'FAILED' if fails else 'OK'}: the demo script "
       f"{'does not match' if fails else 'matches'} what the app returns")
 sys.exit(1 if fails else 0)
