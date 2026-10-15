@@ -72,6 +72,18 @@ is roughly a tie), a multi-tenancy latency curve that did not reproduce on a sec
 project's own opening premise. A page that documents what it got wrong is worth more than one that
 never checked.
 
+## Against the organisers' own published principles
+
+There are no judging criteria, but WeMakeDevs published *How to build an agent that reasons over
+a graph*. The README maps every principle in it to where that piece lives here — the fixed tool
+catalogue, names resolved before any query runs, the four answer shapes (named the same way),
+"not in the graph" kept distinct from "nothing breaks", the path returned with the answer rather
+than an explanation written afterwards, memory as nodes with a date, tenants isolated by separate
+graphs, and a demo that asks the same question at two depths.
+
+Worth saying in the submission because it was not designed to match: I found the article in the
+Resources page after building this.
+
 ## Links
 
 | | |
@@ -133,6 +145,12 @@ See the AI assistance disclosure section of the README.
 - [ ] Once inside the panel, **check what it asks for** against this document. If it wants
       something not written here — a tagline, a category, a screenshot, a specific video host —
       add it here while it is cheap.
+
+- [ ] **Submit something early.** The schedule page says the event opened and *"submissions open
+      with it"* on 15 October, so the form has been accepting entries for two days. If it allows
+      edits, a provisional submission now removes the single largest risk in this plan — a panel
+      that is slow, or a required field discovered at 23:30 — and everything after it becomes an
+      update rather than a race. Check whether edits are allowed the moment you are inside.
 
 **Then, in order:**
 

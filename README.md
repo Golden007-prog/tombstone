@@ -68,7 +68,7 @@ fully public. Every number below is checkable with one `git clone`.
 
 ## Every submission requirement, and exactly where it is
 
-No judging criteria are published for this hackathon — I checked both the
+No judging criteria are published as criteria — I checked both the
 [event page](https://www.wemakedevs.org/hackathons/falkordb) and the
 [rules](https://www.wemakedevs.org/hackathons/falkordb/rules). Rule 10's six-item submission
 checklist is therefore the only published standard that exists, so rather than guess at a rubric,
@@ -159,6 +159,33 @@ and key order are not preserved — and the full proposed file is appended under
 minimal diff can reuse an identical line and read misleadingly.
 
 `PYTHONPATH=src python verify_action.py` re-checks every number in this section against a live run.
+
+## The organisers published what they are looking for. Here is where each piece is.
+
+There are no judging criteria on the event page or the rules — I checked both. But WeMakeDevs
+published [**How to build an agent that reasons over a graph**](https://www.wemakedevs.org/blogs/how-to-build-an-agent-that-reasons-over-a-graph),
+which is the closest thing that exists to a specification. I found it late, in the Resources page,
+after building this. The overlap is not a coincidence so much as evidence that the same problems
+force the same answers.
+
+| what the article asks for | where it is here |
+|---|---|
+| *"The agent never writes a query."* A fixed tool catalogue, arguments validated | 13 tools, every query a hand-written constant in [`tools.py`](src/tombstone/tools.py). The model picks a **tool name**; no model output is concatenated into Cypher. On the hosted demo there is no model at all — [routing is local](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it). |
+| *"Resolve names against the database"* before reasoning | An unrecognised handle returns `UNKNOWN_ENTITY` **with no query run** — verified: `cypher` is empty on that path. |
+| *"Every answer returns one of four shapes"*: answered with a path, answered from memory, not in the graph, unknown | The same four, named the same way, plus `DEGRADED` and `UNSURE_WHICH_TOOL`. [The table is here](#the-agent). |
+| *"'Not in the graph' is deliberately not the same thing as 'nothing breaks'"* | A real area with an empty traversal gives `NOT_IN_GRAPH` **with a coverage statement**; a name the graph does not know gives `UNKNOWN_ENTITY`. Different shapes, on purpose. |
+| *"Return the path with the answer"*, not an explanation written afterwards | The SVG path is generated from the rows the query returned. Every answer carries the Cypher and its hash, and [a line beside it](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it) saying no model wrote the prose. |
+| *"a plausible service name is worse than no answer"* | The README has said *"a plausible wrong name here would be worse than no answer"* since before I read theirs. |
+| *"Write it as a node, connect it to what it is about, and read it before you reason"* | `(:Answer)` nodes that `CITED` the records they came from — [and memory only answers while those citations resolve](#it-remembers-what-it-learns). |
+| *"Return the date with each remembered finding"* | Recall prints *"asked 1x, last 15 Oct 23:32"* beside every hit. |
+| *"Isolate tenants by using separate graphs, not filters"* | [Measured to 1000 graphs](#why-falkordb-measured-honestly--including-where-it-loses): isolation is physical, a second tenant running the identical Cypher gets `[]`, and `db.labels()` does not list the label. |
+| *"Use built-in algorithms"* rather than reimplementing | `algo.betweenness` (seeded), `algo.labelPropagation`, `GRAPH.COPY`, a vector index — all called, none reimplemented. |
+| *"Whether the graph is doing work the agent could not do without it"* | [Turn FalkorDB off](#turn-falkordb-off-and-here-is-exactly-what-stops-working) — and the one place I overclaimed that, I withdrew. |
+| *"Demos that compare the same question at different depths"* | Chips **1** and **2**, and beats 1 and 2 of the video: the same question, shallow then four hops. |
+
+The failure modes it says to avoid — guessing names, writing its own queries, summarising reports
+it was not given, producing *"a confident sentence nobody can check"* — are the four this product
+is built to refuse, and there is a test for each.
 
 ## Which *group* is hollowing out?
 
