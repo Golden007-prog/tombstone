@@ -1,0 +1,21 @@
+# FalkorDB for Graph Hacks. Host 6379 is often taken by a local redis-server,
+# so we publish on 6380 to avoid a silent "unknown command 'GRAPH.QUERY'" failure.
+services:
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: falkordb
+    ports:
+      - "6380:6379"   # Cypher / RESP
+      - "3100:3000"   # FalkorDB Browser UI
+    volumes:
+      - falkordb-data:/data
+    environment:
+      # default RESULTSET_SIZE=10000 silently truncates large returns
+      FALKORDB_ARGS: "RESULTSET_SIZE 100000 TIMEOUT 0"
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  falkordb-data:
