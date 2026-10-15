@@ -44,8 +44,18 @@ PYTHONPATH=src python -m pytest tests/ -q     # 18 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 
+```bash
+PYTHONPATH=src python eval_retrieval.py       # 12 paraphrases + 3 negative controls
+```
+
 `verify_claims.py` exists so you can falsify any factual claim here in one command. It queries the
 live graph and compares against the number printed in this file.
+
+`eval_retrieval.py` scores the headline tool on twelve paraphrases a contributor might plausibly
+type, written without looking at the corpus first: **12/12 return a real titled rejected option with
+a substantive recorded rationale.** It also runs three negative controls — ideas this corpus should
+not know about — and **3/3 correctly return nothing**. A retrieval layer that never returns nothing
+is not telling you anything.
 
 ## Turn FalkorDB off and here is exactly what stops working
 
