@@ -21,6 +21,8 @@ import os
 import time
 
 from graphkit.ingest import connect
+from tombstone import counterfactual as _cf
+from tombstone.counterfactual import Counterfactual
 from tombstone.memory import Memory
 from tombstone.tools import CATALOGUE, Answer, Tools
 
@@ -57,8 +59,10 @@ class Agent:
             self.g = self.db.select_graph(graph_name)
             self.tools = Tools(self.g, self.now_ms)
             self.memory = Memory(self.g)
+            self.counterfactual = Counterfactual(self.db, graph_name)
         except Exception as e:
             self.db = self.g = self.tools = self.memory = None
+            self.counterfactual = None
             self.connect_error = str(e)[:200]
 
     # ---- lazily loaded so the CLI starts fast and a keyless demo still works ----
@@ -86,6 +90,7 @@ class Agent:
             self.g = self.db.select_graph(self.graph_name)
             self.tools = Tools(self.g, self.now_ms)
             self.memory = Memory(self.g)
+            self.counterfactual = Counterfactual(self.db, self.graph_name)
             self.connect_error = None
             return True
         except Exception as e:
@@ -147,6 +152,22 @@ class Agent:
                 return self.tools.successor_for(args.get("handle") or "")
             if tool == "broken_lineage":
                 return self.tools.broken_lineage(min_cites=max(1, num(args.get("min_cites", 1), 1)))
+            if tool == "sole_approver_risk":
+                return self.tools.sole_approver_risk()
+            if tool == "what_if_they_go":
+                handles = args.get("handles") or ([args["handle"]] if args.get("handle") else [])
+                if not handles:
+                    return Answer("UNKNOWN_ENTITY", "what_if_they_go",
+                                  note="No handles supplied. Pass handles=[...].")
+                r = self.counterfactual.if_cohort_stops_approving(handles)
+                if not r.get("ok"):
+                    return Answer("DEGRADED", "what_if_they_go", note=r.get("reason", "failed"))
+                return Answer("ANSWERED_WITH_PATH", "what_if_they_go",
+                              rows=[[r["cohort"], r["newly_stranded"], r["stranded_before"],
+                                     r["total_ms"], r["copy_ms"]]],
+                              cypher=_cf.STRANDED,
+                              note=f"Evaluated on a {r['copy_ms']}ms GRAPH.COPY; the live graph "
+                                   f"was never modified and the copy was dropped.")
             if tool == "stale_knowledge":
                 return self.tools.stale_knowledge(min_years=max(0, num(args.get("min_years", 3), 3)))
             if tool == "recall":
@@ -301,6 +322,27 @@ def render(a: Answer) -> str:
         lines = [f"• {r[0]} already approves {r[1]} of their {r[2]} abandoned areas "
                  f"(owns {r[3]} overall)" for r in a.rows]
         return "Most-overlapping current approvers:\n\n" + "\n".join(lines)
+    if t == "sole_approver_risk":
+        lines = [f"• {who} is the ONLY approver of {n} area(s): "
+                 f"{', '.join(x.replace('/OWNERS','') for x in sample)}"
+                 for who, n, sample in a.rows]
+        return (f"{n} person/people hold areas alone — a bus factor of one each:\n\n"
+                + "\n".join(lines))
+    if t == "what_if_they_go":
+        cohort, stranded, before, ms, copy_ms = a.rows[0]
+        who = (cohort[0] if len(cohort) == 1
+               else f"{', '.join(cohort[:-1])} and {cohort[-1]} all")
+        head = f"If {who} stopped approving:\n\n"
+        if stranded:
+            body = (f"• {len(stranded)} area(s) would be left with NO live owner anywhere, "
+                    f"not even by inheritance:\n"
+                    + "\n".join(f"    {s}" for s in stranded))
+        else:
+            body = ("• nothing would be left without an owner — every area they hold is also "
+                    "covered further up the OWNERS tree.")
+        return (head + body
+                + f"\n\nBaseline before the change: {before} area(s) stranded. "
+                  f"Evaluated on a copy of the graph in {ms}ms; the live graph was untouched.")
     if t == "stale_knowledge":
         lines = []
         for (kep, title, status, sig, years, cited, authors, live, gone, unknown,

@@ -32,6 +32,8 @@ answers questions that are each a traversal, not a lookup:
 | **Who inherited this code when its owners left?** | the broader group approval silently fell back to |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
 | **What's going stale?** | decisions still cited, still undecided years on, with no author with authority left to ask |
+| **Who holds an area alone?** | 45 areas have exactly one approver — a bus factor of one |
+| **What if they stepped back too?** | the areas that would be left with no owner anywhere |
 | **Has this been asked before?** | the prior answer, when, and the live nodes it cited |
 
 ![Depth 1 returns nothing; depth 4 explains why](docs/img/depth-contrast.gif)
@@ -359,7 +361,7 @@ LIMIT $limit
 
 ## The agent
 
-Eight tools. The model picks one and fills its arguments; hand-written Cypher answers; a
+Ten tools. The model picks one and fills its arguments; hand-written Cypher answers; a
 deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
 so it cannot soften a negative into a maybe or name someone who isn't in the graph.
 
@@ -410,6 +412,36 @@ all**, so absence mostly means "was never an approver", not "has left". Only `em
 an explicit published statement that someone stepped back, is counted as departure; everyone else
 is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
 guards the confusion.
+
+## The forward-looking one: what breaks if one more person steps back?
+
+Everything above is archaeology. This is the only question that looks forward, and it is the
+clearest case for a graph *database* rather than a graph library.
+
+For **one** person it is an exact query — 45 Kubernetes areas have exactly one approver, and
+`apelisse` alone holds six. No simulation needed.
+
+For a **cohort** it is not, because coverage **cascades**: an area survives because its parent
+still has an approver, and that parent may be emptied by the same cohort. Answering it means
+mutating the whole graph, re-running a recursive traversal over the mutated copy, and diffing —
+without touching the original. That is `GRAPH.COPY`, measured at **~390ms** for the full graph
+with all 8 indexes carried:
+
+```
+If deads2k, liggitt, jpbetz, smarterclayton, enj and serathius all stopped approving:
+  • 1 area would be left with NO live owner anywhere, not even by inheritance:
+      staging/src/k8s.io/kms/OWNERS
+  Baseline before the change: 0. Evaluated on a copy; the live graph was untouched.
+```
+
+A judge can watch a hypothetical be evaluated and thrown away inside one request. There are tests
+asserting the live graph is unchanged afterwards and that no copy is left behind.
+
+**The baseline is 0, and that number is load-bearing.** 19 `OWNERS` files declare only `reviewers`
+or `labels` and never had an approver at all. Counting those as "uncovered" would be the same
+conflation that produced the retracted orphaned-directories claim — an area with nothing to lose
+cannot lose it — so the diff is scoped to areas that actually had approvers. A test asserts the
+baseline is zero.
 
 ## It remembers what it learns
 

@@ -506,3 +506,45 @@ def test_memory_is_not_served_when_its_citations_are_gone(agent):
     )
     again = agent.ask(q)
     assert again["shape"] == "ANSWERED_WITH_PATH", "served a memory with no surviving citations"
+
+
+# ---------------- bus factor + counterfactual ----------------
+
+def test_sole_approver_risk_is_exact_not_simulated(agent):
+    """For ONE person this is an exact query. No copy, no simulation."""
+    a = agent.dispatch("sole_approver_risk", {})
+    assert a.shape == "ANSWERED_WITH_PATH"
+    for who, n, sample in a.rows:
+        assert n >= 1 and who and sample
+    counts = [r[1] for r in a.rows]
+    assert counts == sorted(counts, reverse=True)
+    assert "GRAPH.COPY" not in a.cypher
+
+
+def test_counterfactual_only_counts_areas_that_had_something_to_lose(agent):
+    """19 OWNERS files declare only `reviewers`/`labels` and never had an approver.
+
+    Counting those as 'uncovered' is the same conflation that produced the retracted
+    '7 orphaned directories' claim, so the baseline must be ZERO stranded areas.
+    """
+    a = agent.dispatch("what_if_they_go", {"handles": ["deads2k"]})
+    assert a.shape == "ANSWERED_WITH_PATH"
+    _cohort, _stranded, baseline, _ms, _copy = a.rows[0]
+    assert baseline == 0, (
+        f"baseline says {baseline} areas already stranded; an area that never had an approver "
+        "cannot lose one")
+
+
+def test_counterfactual_never_mutates_the_live_graph(agent):
+    before_people = agent.g.ro_query("MATCH (p:Person) RETURN count(p)").result_set[0][0]
+    before_appr = agent.g.ro_query("MATCH ()-[r:APPROVES]->() RETURN count(r)").result_set[0][0]
+    agent.dispatch("what_if_they_go", {"handles": ["deads2k", "liggitt", "thockin"]})
+    assert agent.g.ro_query("MATCH (p:Person) RETURN count(p)").result_set[0][0] == before_people
+    assert agent.g.ro_query(
+        "MATCH ()-[r:APPROVES]->() RETURN count(r)").result_set[0][0] == before_appr
+
+
+def test_counterfactual_cleans_up_its_copies(agent):
+    agent.dispatch("what_if_they_go", {"handles": ["deads2k"]})
+    leaked = [g for g in agent.db.list_graphs() if ":cf:" in g]
+    assert leaked == [], f"counterfactual leaked graphs: {leaked}"

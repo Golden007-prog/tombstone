@@ -272,7 +272,32 @@ LIMIT $limit
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "broken_lineage", rows=rows, ms=ms, cypher=self.BROKEN_LINEAGE)
 
-    # ---------- TOOL 6: keeping knowledge current ----------
+    # ---------- TOOL 6: bus factor ----------
+    SOLE_APPROVER = """
+MATCH (p:Person)-[:APPROVES]->(o:OwnersFile)
+WITH o, collect(DISTINCT p.key) AS approvers
+WHERE size(approvers) = 1
+WITH approvers[0] AS sole, collect(o.path) AS areas
+RETURN sole                AS only_approver,
+       size(areas)         AS areas_held_alone,
+       areas[0..5]         AS sample_areas
+ORDER BY areas_held_alone DESC, only_approver
+LIMIT $limit
+"""
+
+    def sole_approver_risk(self, limit: int = 12) -> Answer:
+        """Which areas have exactly ONE approver, and who is it?
+
+        No simulation needed: for a single person this is exact. 45 areas in Kubernetes have a
+        bus factor of one. The counterfactual engine exists for the COMPOUND case, where coverage
+        cascades up the inheritance tree and an exact query stops being a one-liner.
+        """
+        rows, ms = self._run("sole_approver_risk", self.SOLE_APPROVER, {"limit": limit})
+        shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
+        return Answer(shape, "sole_approver_risk", rows=rows, ms=ms,
+                      cypher=self.SOLE_APPROVER, coverage=self._coverage())
+
+    # ---------- TOOL 7: keeping knowledge current ----------
     # NOTE: an earlier version of this query inferred "no living author" from the ABSENCE of an
     # APPROVES edge. That was wrong. 72% of KEP authors appear in no OWNERS file at all, so
     # absence of an approver role mostly means "was never an OWNERS approver", not "has left".
@@ -333,7 +358,7 @@ LIMIT $limit
         return Answer("ANSWERED_WITH_PATH", "stale_knowledge", rows=rows, ms=ms,
                       cypher=self.STALE_KNOWLEDGE, params={"min_years": min_years})
 
-    # ---------- TOOL 7: the depth contrast the rubric asks for ----------
+    # ---------- TOOL 8: the depth contrast the rubric asks for ----------
     WHO_OWNS_DEPTH1 = """
 MATCH (p:Person)-[:APPROVES]->(o:OwnersFile {path: $path})
 RETURN p.key AS approver, o.path AS area, o.url AS source_url
@@ -397,6 +422,8 @@ CATALOGUE = {
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",
     "who_owns": "Who owns an area. depth=1 gives the approver list; depth=4 adds what the departed owner decided elsewhere. Args: path, depth.",
+    "sole_approver_risk": "Which areas have exactly ONE approver — a bus factor of one — and who is it? Args: none.",
+    "what_if_they_go": "Simulate a group stepping back from approving all at once, and report which areas would be left with no live owner anywhere. Args: handles (list).",
     "stale_knowledge": "What does this graph know that is going stale? Decisions still cited by others, still undecided years later, whose authors have stepped back. Args: min_years.",
     "recall": "Has this graph been asked something like this before, and what did that answer cite? Args: question.",
 }
