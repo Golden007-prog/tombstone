@@ -46,12 +46,18 @@ jobs:
             if printf '%s' "$body" | grep -q '"up"'; then
               echo "awake: $body"
               # Serving is not the same as working. One real traversal, every time.
-              shape="$(curl -sf -m 90 -X POST "$url/api/tool" \
-                        -H 'content-type: application/json' \
-                        -d '{"tool":"sole_approver_risk","args":{}}' \
-                      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("shape"))')"
-              echo "answered: $shape"
-              [ "$shape" = "ANSWERED_WITH_PATH" ] || { echo "the Space is up but not answering"; exit 1; }
+              #
+              # The shape is NOT asserted to be ANSWERED_WITH_PATH. This job asks the same
+              # question every six hours, /api/tool records what it answers, and a repeat of a
+              # question whose citations still resolve comes back ANSWERED_FROM_MEMORY. Demanding
+              # the first shape would have passed on the first ping after deployment and failed on
+              # every one after it -- a red cross on the repository every six hours, starting
+              # exactly when people are looking at it. The invariant that matters is that it
+              # ANSWERED, with rows, from the graph.
+              curl -sf -m 90 -X POST "$url/api/tool" \
+                -H 'content-type: application/json' \
+                -d '{"tool":"sole_approver_risk","args":{}}' \
+              | python3 -c 'import json,sys; d=json.load(sys.stdin); s=d.get("shape"); r=d.get("rows") or []; print(f"answered: {s} with {len(r)} rows"); sys.exit(0 if s in ("ANSWERED_WITH_PATH","ANSWERED_FROM_MEMORY") and r else f"not a real answer: {s}, {len(r)} rows")'
               exit 0
             fi
             echo "attempt $attempt: still waking…"

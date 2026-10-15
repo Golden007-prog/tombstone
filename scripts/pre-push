@@ -14,6 +14,16 @@
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
+# A python that actually has pyyaml. The workflow check used to run under whatever `python3` is
+# on PATH and exit 0 on ImportError, "so CI parses it anyway" -- and the system python3 here has
+# no pyyaml, so that check printed "ok" on every push for its entire life while parsing nothing.
+# A check that cannot run must say so, never pass.
+YAML_PY=""
+for _c in "${PY:-}" ".venv/bin/python" "$(command -v python3 || true)"; do
+  [ -n "$_c" ] && [ -x "${_c%% *}" ] || continue
+  if "$_c" -c "import yaml" >/dev/null 2>&1; then YAML_PY="$_c"; break; fi
+done
+
 fail=0
 run() {
   local label="$1"; shift
@@ -28,13 +38,25 @@ run() {
 
 echo "pre-push: the checks that need no database"
 run "the demo script is speakable"  python3 scripts_check_demo_timing.py
-run "the workflow still parses"     python3 -c "
-import sys
-try:
-    import yaml
-except ImportError:
-    sys.exit(0)          # not installed here; CI parses it anyway
-yaml.safe_load(open('.github/workflows/verify.yml'))"
+if [ -n "$YAML_PY" ]; then
+  # EVERY workflow, not just verify.yml. This checked one file and I broke a different one --
+  # keepwarm.yml, with a heredoc whose body sat at column 0 and silently ended the YAML block
+  # scalar. A scheduled workflow fails on its own schedule, so that would have surfaced as a red
+  # cross on the repository hours later, with nothing connecting it to the push that caused it.
+  run "every workflow still parses"   "$YAML_PY" -c "
+import pathlib, sys, yaml
+bad = []
+for f in sorted(pathlib.Path('.github/workflows').glob('*.yml')):
+    try:
+        yaml.safe_load(f.read_text())
+    except Exception as e:
+        bad.append(f'{f}: {str(e).splitlines()[0]}')
+if bad:
+    sys.exit(chr(10).join(bad))"
+else
+  printf '  SKIP  the workflows were NOT parsed: no python here has pyyaml\n'
+  printf '        (pip install pyyaml, or set PY to an interpreter that has it)\n'
+fi
 
 if [ "$fail" -ne 0 ]; then
   cat >&2 <<'MSG'
