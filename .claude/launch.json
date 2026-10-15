@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tombstone",
+      "runtimeExecutable": "/private/tmp/claude-501/-Users-aviralgarg-graph-hack/fc30c4d5-48b3-421d-a907-6b8c81f1ecb3/scratchpad/.venv/bin/python",
+      "runtimeArgs": ["-m","uvicorn","tombstone.server:app","--app-dir","src","--host","127.0.0.1","--port","8099"],
+      "port": 8099
+    }
+  ]
+}

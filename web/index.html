@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tombstone</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="wrap head">
+    <div>
+      <h1>Tombstone</h1>
+      <p class="tag">The decisions your org already made and forgot. Asked as a graph.</p>
+    </div>
+    <div id="health" class="health" title="Live FalkorDB status">checking…</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="intro">
+    <p>
+      Large engineering orgs keep re-proposing things they already rejected, because the rejection
+      was never a thing you could look up. This is <strong>Kubernetes' own governance record</strong>
+      — every enhancement proposal, every rejected alternative inside it, every ownership file, and
+      the project's own record of who has left.
+    </p>
+  </section>
+
+  <section class="askbox">
+    <div class="row">
+      <input id="q" type="text" placeholder="Ask about a decision, an owner, or an idea…" autocomplete="off">
+      <button id="go" class="primary">Ask</button>
+    </div>
+    <p class="hint" id="hint"></p>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section id="result" class="result hidden">
+    <div class="shapebar">
+      <span id="shape" class="shape"></span>
+      <span id="meta" class="meta"></span>
+    </div>
+    <pre id="answer" class="answer"></pre>
+
+    <div id="graphwrap" class="graphwrap hidden">
+      <div class="panelhead">
+        <span>The path behind this answer</span>
+        <span class="legend">
+          <i class="sw gone"></i>departed
+          <i class="sw live"></i>current
+          <i class="sw area"></i>area
+          <i class="sw dec"></i>decision
+          <i class="sw rej"></i>rejected idea
+        </span>
+      </div>
+      <div id="cy"></div>
+      <p class="note">Only the nodes and edges on this answer's path are drawn. The full graph is
+        never rendered — the path is the evidence, the cloud is not.</p>
+    </div>
+
+    <details id="covwrap" class="disclose hidden">
+      <summary>What was searched</summary>
+      <pre id="coverage"></pre>
+    </details>
+
+    <details class="disclose">
+      <summary>The Cypher that produced this <code id="sha"></code></summary>
+      <pre id="cypher"></pre>
+      <p class="note">Hand-written and parameterised. The model picks a tool and fills arguments;
+        it never composes a query, and no model output is concatenated into Cypher.</p>
+    </details>
+  </section>
+
+  <section class="removal">
+    <h2>Turn FalkorDB off and here is exactly what stops working</h2>
+    <p>
+      “Has this been tried?” becomes <code>grep</code> over 688 markdown files — which is what
+      contributors already have, and why the problem exists. The rejected alternative has no
+      identity, so you cannot count how often an idea was refused, and you cannot return
+      <em>nothing</em>: a vector index always hands back its k nearest rows, which is how a
+      plausible wrong answer gets made. “No living owner” is the <em>absence</em> of an edge, and
+      absence is not something a similarity score can express. And the ranking of whose departure
+      hurt most is betweenness centrality — a whole-graph property no traversal, join or embedding
+      can compute. There is no in-memory mirror and no cached fallback in this repo. With the
+      database off, it fails loudly.
+    </p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>
+    Data: <a href="https://github.com/kubernetes/enhancements">kubernetes/enhancements</a> and
+    <a href="https://github.com/kubernetes/kubernetes">kubernetes/kubernetes</a> OWNERS, both
+    Apache-2.0 and fully public. No email addresses are ingested. Graph Hacks 2026 — Track 3.
+  </p>
+</footer>
+<script src="/app.js"></script>
+</body>
+</html>
