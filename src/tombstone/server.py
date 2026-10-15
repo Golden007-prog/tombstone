@@ -71,6 +71,9 @@ def health():
         os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY")
         or os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")
     )
+    # Free text always works. Without a key it is routed locally by embedding similarity over a
+    # fixed catalogue, which is why the ask box is never disabled.
+    h["routing"] = "llm" if h["llm_configured"] else "local-embedding"
     return h
 
 
@@ -103,20 +106,11 @@ def call_tool(c: ToolCall):
 def ask(q: Ask):
     """Full loop with the model routing. Needs a key."""
     if not health().get("llm_configured"):
-        return JSONResponse(
-            status_code=503,
-            content={
-                # NOT one of the four answer shapes. Those describe what the GRAPH said; this is
-                # a routing capability that is switched off, with the graph perfectly healthy.
-                # Reusing DEGRADED here would give a documented term a fifth meaning.
-                "shape": "ROUTING_UNAVAILABLE",
-                "graph": "healthy",
-                "answer": "No LLM key is configured on this instance, so free-text routing is "
-                          "off — the graph itself is fine. The buttons below call the same tools "
-                          "directly and run the same Cypher against the same graph.",
-                "catalogue": CATALOGUE,
-            },
-        )
+        # No key is not the same as no routing. The embedding model is already in this image, so
+        # the question is routed locally against a fixed catalogue instead. The contract is
+        # unchanged: something picks a TOOL NAME, hand-written Cypher answers, and nothing
+        # generated is ever concatenated into a query.
+        return agent().ask_locally(q.question)
     return agent().ask(q.question)
 
 

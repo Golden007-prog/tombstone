@@ -92,8 +92,9 @@ python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
 ./run.sh          # FalkorDB up, graph seeded from the committed snapshot in ~1.1s
 ```
 
-Then open <http://localhost:8099>. **No API key and no account** — the demo's buttons call the
-tools directly and run the same Cypher. Verified from a clean clone in an empty directory.
+Then open <http://localhost:8099>. **No API key and no account.** The buttons call the tools
+directly, and typed questions work too — routed locally by embedding similarity over the fixed
+catalogue, which refuses rather than guess. Verified from a clean clone in an empty directory.
 
 ## AI assistance disclosure (Rule 11)
 

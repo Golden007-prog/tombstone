@@ -73,8 +73,8 @@ async function health() {
     }
     $("hint").textContent = h.llm_configured
       ? "Free-text routing is on: a model picks one tool, then hand-written Cypher answers."
-      : "No LLM key on this instance, so free-text routing is off. The buttons below call the same tools directly and run the same Cypher.";
-    if (!h.llm_configured) { $("q").disabled = true; $("go").disabled = true; }
+      : "No API key on this instance, so your question is routed locally by meaning against a fixed catalogue — then the same hand-written Cypher answers it. It refuses rather than guess.";
+    $("q").disabled = false; $("go").disabled = false;
   } catch (e) {
     el.className = "health down";
     el.textContent = "server unreachable";

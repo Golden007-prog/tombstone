@@ -81,6 +81,54 @@ class Agent:
             self._corpus = load()
         return self._corpus
 
+    def router(self):
+        """The keyless router. Built once, from people who actually exist in the graph."""
+        if getattr(self, "_router", None) is None:
+            from tombstone.route import LocalRouter
+            try:
+                people = {r[0] for r in
+                          self.g.ro_query("MATCH (p:Person) RETURN p.key").result_set}
+            except Exception:
+                people = set()
+            self._router = LocalRouter(self.embedder, people)
+        return self._router
+
+    def ask_locally(self, question: str) -> dict:
+        """Answer a typed question with NO API key.
+
+        Same contract as the model path: something picks a tool name, hand-written Cypher answers,
+        and the renderer phrases it. The only difference is who picks, so a keyless instance is
+        not a degraded instance -- it is the same product with a deterministic router.
+        """
+        h = self.health()
+        if h.get("falkordb") != "up":
+            return {"shape": "DEGRADED", "question": question,
+                    "answer": "FalkorDB is unreachable, so this agent has nothing to reason over. "
+                              "There is no fallback by design.", "health": h}
+        choice = self.router().route(question)
+        if not choice.get("tool"):
+            return {"shape": "UNSURE_WHICH_TOOL", "question": question,
+                    "answer": f"I am not going to guess. {choice['why'].capitalize()}."
+                              + (f" Name the {choice['needs']} and ask again."
+                                 if choice.get("needs") else
+                                 " The buttons below are the questions this graph does answer."),
+                    "routed_by": "local-embedding", "near": choice.get("near", []),
+                    "catalogue": CATALOGUE}
+        ans = self.dispatch(choice["tool"], choice["args"])
+        out = {"shape": ans.shape, "question": question, "tool": ans.tool,
+               "routed_to": choice["tool"], "routed_by": "local-embedding",
+               "routing": {"score": choice["score"], "runner_up": choice["runner_up"],
+                           "args": choice["args"]},
+               "answer": render(ans), "headline": headline(ans), "rows": ans.rows,
+               "coverage": ans.coverage, "note": ans.note, "ms": round(ans.ms, 2),
+               "cypher": ans.cypher.strip(), "query_sha": query_sha(ans.cypher)}
+        if self.memory and ans.shape == "ANSWERED_WITH_PATH":
+            try:
+                self.memory.remember(question, ans)
+            except Exception:
+                pass
+        return out
+
     def provider(self):
         if self._provider is None:
             from tombstone.llm import Provider

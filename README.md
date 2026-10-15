@@ -13,7 +13,8 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   metrics endpoints. Nobody wrote that down — it is only true as a consequence of the structure.
 > - **It acts, not just answers:** it drafts a real OWNERS patch for the inconsistency it
 >   finds — and refuses to patch the strongest-looking case, because that file is vendored.
-> - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account.**
+> - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
+>   free-text questions work anyway, routed locally.
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
@@ -227,6 +228,50 @@ an explicit published statement that someone stepped back, is counted as departu
 is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
 guards the confusion.
 
+## Free text without an API key, and the bug that made me build it
+
+The hosted demo has no API key — a personal key cannot safely power a public site. The consequence
+was a line I had written myself:
+
+```js
+if (!h.llm_configured) { $("q").disabled = true; $("go").disabled = true; }
+```
+
+A judge lands on the page and **the most prominent control on it is dead.** That makes an agent
+look like a button panel. So free text now works with no key at all, routed locally by the
+embedding model already baked into the image.
+
+The contract is deliberately unchanged. Something picks a **tool name**; hand-written Cypher
+answers; the renderer phrases it. Turning the key off changes *who picks*, not what runs — and
+nothing generated ever reaches a query either way.
+
+| | |
+|---|---|
+| in-domain questions routed to the right tool | **10/10** |
+| out-of-domain questions refused | **5/5** |
+| deterministic across runs | yes — same question, same tool, same score |
+
+**It is allowed to refuse, and that took a second attempt.** Routing is an *open* set; the
+catalogue is not. A bare similarity threshold cannot tell "unlike anything here" from "a bit like
+everything" — *"write me a poem about kubernetes"* scored **0.631** against `draft_owners_patch`
+and was accepted, routing a creative-writing request into the tool that **drafts patches**. The
+fix was not a higher cutoff but giving the router somewhere correct to land: out-of-domain
+examples are modelled as their own bucket, so "none of these" is a thing it can conclude.
+
+```
+$ "which areas have exactly one approver?"   -> sole_approver_risk   (0.990)
+$ "draft the fix for the ownership problem"  -> draft_owners_patch   (0.874)
+$ "write me a poem about kubernetes"         -> I am not going to guess.
+                                                That is not a question this graph answers.
+$ "who owns this?"                           -> that reads like `successor_for`,
+                                                but it needs a handle and you gave none.
+```
+
+Arguments are extracted by **rule, never generated**: a path-shaped token, and handles matched
+against people who actually exist in the graph — because an invented handle is a fabricated
+person. A tool that needs an argument the question never supplied is refused by name rather than
+run into a useless "no path supplied".
+
 ## It remembers what it learns
 
 The brief asks for three things: that the agent acts on connected data, **remembers what it learns**,
@@ -375,15 +420,15 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 `run.sh` prefers `./.venv` if it exists, so there is nothing to activate. It needs Docker running,
 and it tells you plainly if Docker or a dependency is missing rather than failing halfway.
 
-Then open <http://localhost:8099>. No API key needed: the scripted questions call the tools
-directly and run the same Cypher. `run.sh` starts FalkorDB, seeds it from the committed snapshot in
-**~1.1s**, and serves the app.
+Then open <http://localhost:8099>. **No API key needed, and the ask box still works** — see
+[routing without a key](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it).
+`run.sh` starts FalkorDB, seeds it from the committed snapshot in **~1.1s**, and serves the app.
 
-To enable free-text questions, copy `.env.example` to `.env` and add one key (Anthropic, OpenAI,
-Gemini or Groq — it auto-detects).
+Adding a key (copy `.env.example` to `.env` — Anthropic, OpenAI, Gemini or Groq, auto-detected)
+swaps the router for a model. It changes *who picks the tool*. It does not change what runs.
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q     # 57 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 76 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 

@@ -796,3 +796,88 @@ def test_the_action_sends_nothing_anywhere():
         elif isinstance(node, ast.ImportFrom) and node.module:
             inner.add(node.module.split(".")[0])
     assert not (inner & NETWORK), f"the action imports {inner & NETWORK}"
+
+
+# ---------------- keyless routing ----------------
+#
+# The hosted demo has no API key, and the ask box used to be DISABLED there: a judge landed on the
+# page and its most prominent control was dead. These lock in the local router that replaced that.
+
+@pytest.fixture(scope="module")
+def router(agent):
+    return agent.router()
+
+
+ROUTES = [
+    ("who owns staging/src/k8s.io/apiserver/pkg/endpoints/metrics?", "who_owns"),
+    ("which areas have exactly one approver?", "sole_approver_risk"),
+    ("has anyone tried moving this into the kubelet?", "has_this_been_tried"),
+    ("whose departure cost the most knowledge?", "stepped_back_bridges"),
+    ("which contributor group is hollowing out?", "hollowing_communities"),
+    ("what knowledge here is going stale?", "stale_knowledge"),
+    ("which cited decisions no longer exist?", "broken_lineage"),
+    ("draft the fix for the ownership problem", "draft_owners_patch"),
+    ("who should inherit lavalamp's areas?", "successor_for"),
+    ("what if deads2k and liggitt stepped back?", "what_if_they_go"),
+]
+
+REFUSALS = [
+    "write me a poem about kubernetes",   # scored 0.631 against an ACTION tool before the fix
+    "what is the weather in Paris",
+    "tell me a joke",
+    "write python code to parse yaml",
+    "who owns this?",                     # right shape, but names no area to look up
+]
+
+
+@pytest.mark.parametrize("question,expected", ROUTES)
+def test_keyless_router_picks_the_right_tool(router, question, expected):
+    got = router.route(question)
+    assert got["tool"] == expected, f"{question!r} routed to {got['tool']}, expected {expected}"
+
+
+@pytest.mark.parametrize("question", REFUSALS)
+def test_keyless_router_refuses_rather_than_guessing(router, question):
+    """Routing is an OPEN set. The catalogue is not.
+
+    Before the out-of-domain bucket existed this was a bare threshold, and a threshold cannot
+    distinguish "unlike anything here" from "a bit like everything": "write me a poem about
+    kubernetes" scored 0.631 and was routed into the patch-drafting ACTION.
+    """
+    got = router.route(question)
+    assert got["tool"] is None, f"{question!r} should have been refused, got {got['tool']}"
+    assert got.get("why"), "a refusal with no reason is not a refusal"
+
+
+def test_keyless_router_only_ever_names_tools_that_exist(router):
+    """It picks a tool NAME. It cannot invent one, and it cannot write Cypher."""
+    from tombstone.tools import CATALOGUE
+    for question, _ in ROUTES:
+        got = router.route(question)
+        assert got["tool"] in CATALOGUE
+
+
+def test_keyless_router_is_deterministic(router):
+    """Same question, same route, every time -- otherwise none of the above is testable."""
+    for question, _ in ROUTES[:4]:
+        first, second = router.route(question), router.route(question)
+        assert first["tool"] == second["tool"]
+        assert first["score"] == second["score"]
+
+
+def test_keyless_router_never_invents_a_person(router):
+    """Handles are matched against people who exist. A hallucinated handle is a fabricated person."""
+    got = router.route("who should inherit nonexistentpersonxyz's areas?")
+    assert got["tool"] is None or not got.get("args", {}).get("handle")
+
+
+def test_keyless_ask_answers_or_refuses_but_never_guesses(agent):
+    out = agent.ask_locally("which areas have exactly one approver?")
+    assert out["shape"] == "ANSWERED_WITH_PATH"
+    assert out["routed_by"] == "local-embedding"
+    assert out["cypher"].strip(), "an answer with no Cypher behind it is not an answer"
+
+    refused = agent.ask_locally("write me a poem about kubernetes")
+    assert refused["shape"] == "UNSURE_WHICH_TOOL"
+    assert "not going to guess" in refused["answer"]
+    assert not refused.get("cypher")

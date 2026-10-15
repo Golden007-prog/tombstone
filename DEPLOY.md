@@ -42,9 +42,13 @@ that is acceptable.
 
 ## Enabling free-text questions
 
-The deployed demo works with **no key**: the scripted questions call the tools directly and run the
-same Cypher. To turn on free-text routing, set one of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-`GEMINI_API_KEY` or `GROQ_API_KEY` as a secret on the host.
+The deployed demo works with **no key**, and that includes typed questions: without a key they are
+routed locally by embedding similarity over the fixed tool catalogue, using the model already baked
+into the image. Setting one of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` or
+`GROQ_API_KEY` as a secret on the host swaps that router for a model.
+
+Either way the contract is the same: the router picks a **tool name**, hand-written Cypher answers,
+and nothing generated is concatenated into a query. A keyless instance is not a degraded one.
 
 If you do, set a hard spend cap in the provider dashboard as well as in code. A public demo with an
 uncapped key is a bill waiting to happen, and the key must never reach the browser — all model calls

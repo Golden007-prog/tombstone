@@ -64,6 +64,23 @@ shape=$(curl -s -m 90 -X POST "http://localhost:$PORT/api/tool" -H 'content-type
 echo "  what_if_they_go (GRAPH.COPY) -> $shape"
 [ "$shape" = "ANSWERED_WITH_PATH" ] || { echo "FAIL: GRAPH.COPY cannot fork in-container"; exit 1; }
 
+# The hosted Space has NO API key, so free-text routing there is the local one. If that breaks,
+# the ask box on the public demo goes back to being dead, which is what this whole path exists to
+# prevent. Check both halves: it answers what it should, and refuses what it should.
+ask() {
+  curl -s -m 120 -X POST "http://localhost:$PORT/api/ask" -H 'content-type: application/json' \
+    -d "{\"question\":\"$1\"}" \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("shape"), d.get("routed_to"))'
+}
+got="$(ask 'which areas have exactly one approver?')"
+echo "  keyless ask (answerable) -> $got"
+case "$got" in ANSWERED_WITH_PATH*|ANSWERED_FROM_MEMORY*) ;;
+  *) echo "FAIL: keyless free-text routing did not answer in-container"; exit 1;; esac
+got="$(ask 'write me a poem about kubernetes')"
+echo "  keyless ask (refusable)  -> $got"
+case "$got" in UNSURE_WHICH_TOOL*) ;;
+  *) echo "FAIL: keyless routing did not refuse an out-of-domain question"; exit 1;; esac
+
 for path in / /app.js /style.css "/?run=draft_owners_patch&focus=1"; do
   code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' "http://localhost:$PORT$path")
   echo "  $path -> $code"
