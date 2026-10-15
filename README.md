@@ -98,7 +98,7 @@ Two rules beyond the checklist:
   authored on or after 15 October 2026 IST. That is checkable rather than asserted:
 
   ```bash
-  git log --format='%at' | awk '$1 < 1760466660' | wc -l   # commits before the start; prints 0
+  git log --format='%at' | awk '$1 < 1792002660' | wc -l   # commits before the start; prints 0
   ```
 
 ## It does not just report the problem. It drafts the fix.

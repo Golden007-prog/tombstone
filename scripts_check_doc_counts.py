@@ -173,7 +173,34 @@ else:
             problems.append(f"docs/video/README.md: says {_said}s, the build produces {_dur}s")
         else:
             checked += 1
-    print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
+    # Rule 8: the main work must begin after the event starts, and the README offers a command so a
+# judge can check it rather than take my word. That command carried epoch 1760466660, which is
+# 2025-10-15 00:01 IST -- a year early. It printed 0, and 0 meant nothing: every commit in this
+# repository trivially postdates 2025. A verification command that cannot fail is worse than no
+# command, because it invites someone to rely on it.
+import datetime as _dt
+import subprocess as _sp
+
+_IST = _dt.timezone(_dt.timedelta(hours=5, minutes=30))
+_START = int(_dt.datetime(2026, 10, 15, 0, 1, tzinfo=_IST).timestamp())
+_m = re.search(r"awk '\$1 < (\d+)'", open("README.md").read())
+if not _m:
+    problems.append("README no longer carries the Rule 8 verification command")
+elif int(_m.group(1)) != _START:
+    problems.append(
+        f"README's Rule 8 command uses epoch {_m.group(1)} "
+        f"({_dt.datetime.fromtimestamp(int(_m.group(1)), _IST):%Y-%m-%d %H:%M} IST); the window "
+        f"opens at {_START} ({_dt.datetime.fromtimestamp(_START, _IST):%Y-%m-%d %H:%M} IST)")
+else:
+    _early = _sp.run(["git", "log", "--format=%at"], capture_output=True, text=True).stdout.split()
+    _n_early = sum(1 for _t in _early if int(_t) < _START)
+    if _n_early:
+        problems.append(f"{_n_early} commits predate the hackathon window — Rule 8")
+    else:
+        checked += 1
+        print(f"  all {len(_early)} commits fall inside the hackathon window (Rule 8)")
+
+print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
 
 print(f"  the UI check drives {_states} rendered states and every document agrees")
 
