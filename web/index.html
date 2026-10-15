@@ -49,6 +49,10 @@
       <span id="hlabel" class="hlabel"></span>
     </div>
     <pre id="answer" class="answer"></pre>
+    <!-- Shown only when the router declined a near-tie. It names the candidates it could not
+         choose between and their scores; these buttons let a human make that choice. The router
+         still does not guess, and the arguments are still read out of the question by rule. -->
+    <div id="choices" class="choices hidden"></div>
     <p id="provenance" class="provenance hidden">Every line above is formatted from rows this
       query returned. <strong>No model wrote any of it</strong> — the model's only decision is
       which tool to call, and on this instance there is no model at all.</p>

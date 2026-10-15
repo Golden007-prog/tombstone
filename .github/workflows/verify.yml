@@ -133,6 +133,9 @@ jobs:
       - name: The README's printed output blocks match a live run
         run: python scripts_check_readme_examples.py
 
+      - name: The keyless router, on language it was not tuned against
+        run: python eval_router.py
+
       - name: The principles table describes this build, not a build like it
         run: python scripts_check_principles.py
 

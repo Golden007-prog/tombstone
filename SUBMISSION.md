@@ -61,7 +61,7 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Nothing here is asserted. **28 CI steps on every push** re-check it: 107 tests, 26 graph claims
+Nothing here is asserted. **29 CI steps on every push** re-check it: 111 tests, 26 graph claims
 re-queried against the live database, 17 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, both benchmarks re-run, and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
@@ -167,7 +167,7 @@ weakest things — stated first, because every one of them is already written do
 
 - [ ] `git config core.hooksPath scripts` — once, so a push cannot carry a state the checks
       already know is broken (it happened twice; resolve is not a mechanism)
-- [ ] `./preflight.sh` — one command, seventeen checks: every number against the live graph,
+- [ ] `./preflight.sh` — one command, eighteen checks: every number against the live graph,
       every rendered answer state, the README's printed output, the demo script's facts and
       timing, both benchmarks, and whether the page still renders on GitHub
 - [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a

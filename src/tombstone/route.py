@@ -37,71 +37,108 @@ PHRASES: dict[str, list[str]] = {
         "was this idea already proposed and rejected",
         "did someone already consider doing this",
         "has this approach been refused before and why",
+    
+        "was this option considered and turned down",
+        "did a proposal already evaluate this approach",
     ],
     "who_owns": [
         "who owns this area of the codebase",
         "who approves changes to this directory",
         "who is responsible for this file",
         "who maintains this path",
+    
+        "which people can merge changes here",
+        "who are the current approvers of this directory",
     ],
     "ownership_dilution": [
         "which areas lost every dedicated owner",
         "which directories have no owners of their own any more",
         "what code fell back to a broader group for approval",
         "which areas are now owned only by inheritance",
+    
+        "where has ownership emptied out entirely",
+        "which code now relies on a parent group for review",
     ],
     "stepped_back_bridges": [
         "whose departure cost the most knowledge",
         "who was the biggest bridge between teams",
         "whose stepping back cost the most connective authority",
         "which departure hurt the structure most",
+    
+        "whose leaving removed the most connection between groups",
+        "which person's exit mattered most structurally",
+        "who was the greatest loss when they stopped reviewing things",
     ],
     "successor_for": [
         "who should inherit this person's areas",
         "who can take over from someone who left",
         "who already co-owns what this person owned",
         "who is the natural successor",
+    
+        "who would naturally pick up this person's areas",
+        "who shares ownership with this person already",
     ],
     "broken_lineage": [
         "which cited decisions do not exist",
         "what references point at missing records",
         "which proposals cite something that is not there",
         "find broken links between decisions",
+    
+        "do we reference records that were never created",
+        "which citations point at nothing",
     ],
     "hollowing_communities": [
         "which contributor group is hollowing out",
         "which community is losing its people fastest",
         "which team is shrinking",
         "where is attrition concentrated",
+    
+        "which group of contributors is shrinking fastest",
+        "is any cluster of people disappearing",
     ],
     "sole_approver_risk": [
         "which areas have exactly one approver",
         "where is the bus factor one",
         "who holds an area alone",
         "what has a single point of failure in approval",
+    
+        "where does review depend on a single person",
+        "which paths have only one person who can approve",
     ],
     "what_if_they_go": [
         "what if these people stepped back",
         "what breaks if this group leaves",
         "simulate these people no longer approving",
         "which areas would be left with no owner if they go",
+    
+        "what would be stranded if these people stopped approving",
+        "model the impact of losing these reviewers",
     ],
     "stale_knowledge": [
         "what knowledge here is going stale",
         "which decisions are still undecided years later",
         "what is rotting in this record",
         "which old proposals are still cited but never resolved",
+    
+        "which records have gone out of date",
+        "what is still referenced but no longer current",
     ],
     "stepped_back_but_still_listed": [
         "whose ownership record contradicts itself",
         "who stepped back but is still listed as an approver",
         "which records are inconsistent about who approves",
+    
+        "whose entries disagree with each other",
+        "which ownership records are inconsistent",
     ],
     "draft_owners_patch": [
         "draft the fix",
         "write the patch for the ownership problem",
         "fix the owners file",
         "propose a change rather than just reporting it",
+    
+        "produce the OWNERS edit that corrects this",
+        "write the change that fixes the ownership records",
     ],
     "recall": [
         "has this graph been asked this before",
@@ -117,6 +154,12 @@ PHRASES: dict[str, list[str]] = {
 # somewhere correct to land fixes that far more reliably than nudging the cutoff upward.
 NONE = "__out_of_domain__"
 PHRASES[NONE] = [
+    "help me fix this error",
+    "why is my build failing",
+    "debug this stack trace for me",
+    "review my pull request for style",
+    "how do i install this on my laptop",
+    "what should i name this variable",
     "write me a poem",
     "tell me a joke",
     "what is the weather today",

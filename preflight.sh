@@ -86,6 +86,7 @@ run "every README number, against the graph" "$PY" verify_claims.py
 run "the drafting action's own claims"     "$PY" verify_action.py
 run "the memory claims"                    "$PY" verify_memory.py
 run "retrieval, with negative controls"    "$PY" eval_retrieval.py
+run "the keyless router, on held-out language" "$PY" eval_router.py
 run "graph against a text baseline"        "$PY" eval_graph_vs_text.py
 run "every rendered answer state"          "$PY" scripts_check_ui.py
 run "the README's printed output"          "$PY" scripts_check_readme_examples.py

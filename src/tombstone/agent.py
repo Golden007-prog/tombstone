@@ -27,6 +27,20 @@ from tombstone.counterfactual import Counterfactual
 from tombstone.memory import Memory
 from tombstone.tools import CATALOGUE, Answer, Tools
 
+def _route_required() -> dict:
+    """Which tools cannot run without an argument, read from the router so it cannot drift."""
+    from tombstone.route import REQUIRED
+    return REQUIRED
+
+
+class _LazyRequired(dict):
+    def get(self, key, default=None):          # noqa: D102
+        return _route_required().get(key, default)
+
+
+_ROUTE_REQUIRED = _LazyRequired()
+
+
 def _n(count, singular: str, plural: str | None = None) -> str:
     """"1 area", "2 areas" -- written out, because "1 area(s)" reads as unfinished.
 
@@ -199,7 +213,7 @@ class Agent:
             self._router = LocalRouter(self.embedder, people)
         return self._router
 
-    def ask_locally(self, question: str) -> dict:
+    def ask_locally(self, question: str, force: str | None = None) -> dict:
         """Answer a typed question with NO API key.
 
         Same contract as the model path: something picks a tool name, hand-written Cypher answers,
@@ -211,7 +225,26 @@ class Agent:
             return {"shape": "DEGRADED", "question": question,
                     "answer": "FalkorDB is unreachable, so this agent has nothing to reason over. "
                               "There is no fallback by design.", "health": h}
-        choice = self.router().route(question)
+        router = self.router()
+        if force:
+            # The user picked one of the tools the router said it could not choose between. This
+            # is not the router guessing after all -- it declined, showed its two candidates and
+            # their scores, and a human chose. The arguments are still extracted BY RULE from the
+            # original question, so nothing the user clicked becomes part of a query.
+            if force not in CATALOGUE:
+                return {"shape": "UNKNOWN_ENTITY", "question": question,
+                        "answer": f"`{force}` is not one of the tools this agent has."}
+            args = router.args_for(force, question)
+            needed = _ROUTE_REQUIRED.get(force)
+            if needed and not args.get(needed):
+                return {"shape": "UNSURE_WHICH_TOOL", "question": question,
+                        "answer": f"`{force}` needs a {needed} and this question does not name "
+                                  f"one. Add it and ask again.",
+                        "routed_by": "chosen-by-user", "catalogue": CATALOGUE}
+            ans = self._remember(question, force, self.dispatch(force, args))
+            return self._payload(question, force, args, ans, "chosen-by-user",
+                                 extra={"routing": {"chosen_by": "user", "args": args}})
+        choice = router.route(question)
         if not choice.get("tool"):
             return {"shape": "UNSURE_WHICH_TOOL", "question": question,
                     "answer": f"I am not going to guess. {choice['why'].capitalize()}."

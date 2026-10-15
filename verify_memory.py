@@ -38,11 +38,27 @@ a = Agent(graph_name=GRAPH)
 # runs, which is the whole point of it -- and the check reported a failure for the feature
 # working correctly. The invariant is the fresh -> remembered transition, so the probe has to be
 # fresh.
+#
+# The probe also has to be unique WITHOUT depending on noisy text routing correctly. Prefixing a
+# real question with "verify_memory:" and a bracketed nanosecond count perturbs the embedding
+# enough to move it: the clean sentence routes to sole_approver_risk outright, the decorated one
+# landed 0.014 from who_owns and was declined as a near-tie. That is the router behaving
+# correctly on a string no human would type, failing a check about something else entirely. So
+# the probe names its tool, and the routing of the UNDECORATED question is asserted separately
+# just below -- each check measuring the one thing it is about.
 q = f"verify_memory: which areas are held alone by one approver? [{time.time_ns()}]"
-first, second = a.ask_locally(q), a.ask_locally(q)
+first = a.ask_locally(q, force="sole_approver_risk")
+second = a.ask_locally(q, force="sole_approver_risk")
 ok = first["shape"] == "ANSWERED_WITH_PATH" and second["shape"] == "ANSWERED_FROM_MEMORY"
 fails += not ok
 print(f"  {'PASS' if ok else 'FAIL'}  keyless repeat    {first['shape']} -> {second['shape']}")
+
+# ...and the question itself, undecorated, still routes where it should with no help.
+routed = a.router().route("which areas are held alone by one approver?")
+ok_route = routed.get("tool") == "sole_approver_risk"
+fails += not ok_route
+print(f"  {'PASS' if ok_route else 'FAIL'}  keyless routing   "
+      f"{routed.get('tool')} (expected sole_approver_risk)")
 
 # 2. the citation counts the README prints
 for (tool, args), want in CITATIONS.items():

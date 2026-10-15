@@ -1161,3 +1161,43 @@ def test_asking_the_same_thing_twice_does_not_grow_the_graph(agent):
     assert remembered and int(remembered[2]) == 12, (
         f"the repeat counter says {remembered[2] if remembered else None}, not 12 — repeats are "
         f"not being counted onto the same memory")
+
+
+# ---------------- a declined near-tie is a choice, not a dead end ----------------
+#
+# The router declines when its top two tools are within MIN_MARGIN. A held-out eval showed that is
+# most of its misses -- and that in most of them the RIGHT tool is the one it ranked first and
+# declined to commit to. Rather than lower the bar until it guesses, the refusal now carries the
+# candidates and the UI offers them. These lock that in: a user's pick is not the router guessing
+# after all, and it must not become a way to smuggle a tool name past the catalogue.
+
+def test_a_near_tie_offers_the_candidates_it_declined_between(agent):
+    out = agent.ask_locally("show me the areas that depend on one person")
+    assert out["shape"] == "UNSURE_WHICH_TOOL"
+    assert out.get("near"), "a declined tie must say what it was torn between"
+    assert all("tool" in n and "score" in n for n in out["near"])
+
+
+def test_choosing_one_of_the_offered_tools_answers(agent):
+    q = "show me the areas that depend on one person"
+    offered = [n["tool"] for n in agent.ask_locally(q)["near"]]
+    assert "sole_approver_risk" in offered
+    out = agent.ask_locally(q, force="sole_approver_risk")
+    assert out["shape"] == "ANSWERED_WITH_PATH"
+    assert out["tool"] == "sole_approver_risk"
+    assert out["cypher"], "a chosen tool still answers with its hand-written query"
+
+
+def test_a_chosen_tool_still_extracts_its_arguments_by_rule(agent):
+    """Choosing the tool does not let the user supply arguments -- the question still does."""
+    out = agent.ask_locally("who should i ping about pkg/scheduler", force="who_owns")
+    assert out["shape"] in ("ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY", "NOT_IN_GRAPH")
+    out2 = agent.ask_locally("who owns it", force="who_owns")
+    assert out2["shape"] == "UNSURE_WHICH_TOOL", "no path in the question means it still declines"
+
+
+def test_a_chosen_tool_must_be_in_the_catalogue(agent):
+    """Otherwise 'force' is a hole straight through the fixed tool catalogue."""
+    out = agent.ask_locally("anything at all", force="rm -rf /")
+    assert out["shape"] == "UNKNOWN_ENTITY"
+    assert "not one of the tools" in out["answer"]

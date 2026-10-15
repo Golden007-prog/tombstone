@@ -18,8 +18,8 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
-> - **Nothing here is asserted.** 107 tests, 26 graph claims, 17 rendered UI states and every
->   benchmark re-run by **28 CI steps on each push** — including the claims I had to withdraw,
+> - **Nothing here is asserted.** 111 tests, 26 graph claims, 17 rendered UI states and every
+>   benchmark re-run by **29 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
@@ -341,6 +341,46 @@ Arguments are extracted by **rule, never generated**: a path-shaped token, and h
 against people who actually exist in the graph — because an invented handle is a fabricated
 person. A tool that needs an argument the question never supplied is refused by name rather than
 run into a useless "no path supplied".
+
+## I measured that router on language it had never seen
+
+The ten routing cases in the test suite are the cases the router was *built* against. Passing them
+says it has not regressed — not that it works on a phrasing nobody wrote for it. So I wrote
+[`eval_router.py`](eval_router.py): twenty-six questions phrased the way a contributor would
+actually type them, written from what each tool is *for* and deliberately without reading the
+router's phrase table first, plus ten things that are not questions about this graph at all.
+
+The first run was worse than the tests implied. **16 of 26**, two routed to the wrong tool, and —
+the one that mattered — *"fix my failing unit test"* scored into `draft_owners_patch`, an **action**
+tool. The out-of-domain bucket had phrases for poems and weather and none for somebody asking for
+coding help, and `draft_owners_patch` is full of the words *fix* and *patch*.
+
+After widening the catalogue's phrasings (none of them copied from the eval, or the eval would
+only be measuring itself):
+
+| | |
+|---|---|
+| answered, correct tool | **18 of 26** |
+| routed to a *different* tool | **0 of 26** |
+| declined | 8 of 26 |
+| of those, the right tool was among the candidates offered | **6 of 8** |
+| reachable — answered, or one click away | **24 of 26** |
+| not a question about this graph, correctly refused | **10 of 10** |
+
+The zero is the number I care about. It never answers a different question than the one asked; it
+either answers, or it says which tools it could not choose between.
+
+**And that refusal stopped being a dead end.** Seven of the eight declines are *margin* failures —
+the top two tools within 0.015 — and in five of them the right tool is the one it ranked first and
+declined to commit to. The fix was not to lower the bar until it guesses. The refusal now carries
+its candidates and their scores, and [the UI offers them as buttons](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it).
+Clicking one is not the router guessing after all: it declined, showed its work, and a human chose
+— and the arguments are still extracted from the original question **by rule**, so nothing anyone
+clicks becomes part of a query. `force` is validated against the same fixed catalogue, because
+otherwise it would be a hole straight through it.
+
+The two it still cannot reach are in the table above, by name, in
+[`eval_router.py`](eval_router.py).
 
 ## It remembers what it learns
 

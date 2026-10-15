@@ -40,6 +40,9 @@ def agent() -> Agent:
 
 class Ask(BaseModel):
     question: str
+    # Set only when the router declined a near-tie and the user picked one of the candidates it
+    # showed them. Arguments are still extracted by rule from the question itself.
+    force: str | None = None
 
 
 class ToolCall(BaseModel):
@@ -132,7 +135,12 @@ def ask(q: Ask):
         # the question is routed locally against a fixed catalogue instead. The contract is
         # unchanged: something picks a TOOL NAME, hand-written Cypher answers, and nothing
         # generated is ever concatenated into a query.
-        return agent().ask_locally(q.question)
+        return agent().ask_locally(q.question, force=q.force)
+    if q.force:
+        # A forced tool is a user's choice between candidates the ROUTER offered, so it belongs to
+        # the local path even on a keyed instance. Handing it to the model would discard the
+        # choice.
+        return agent().ask_locally(q.question, force=q.force)
     return agent().ask(q.question)
 
 

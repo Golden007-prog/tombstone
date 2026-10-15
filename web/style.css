@@ -145,3 +145,12 @@ pre.diff{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
    when an answer's citations verify; this product's claim is stronger and was harder to find. */
 .provenance{font-size:12px;color:var(--dim);margin:10px 0 0;line-height:1.55;
   border-left:2px solid var(--line);padding-left:10px}
+
+/* The candidates behind a declined near-tie. A refusal that names two tools and offers neither is
+   honest and useless; this is the same refusal with somewhere to go. */
+.choices{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+.choices .pick{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.choices .pick:hover{border-color:var(--area)}
+.choices .pick .sc{color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:11px;
+  margin-left:6px}

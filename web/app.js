@@ -232,6 +232,25 @@ function show(data, graphArgs) {
   // other meant the headline chip stopped showing its four-hop picture the second time anyone
   // clicked it -- which is what a judge does, and what the video capture does on a warm instance.
   const drawable = data.shape === "ANSWERED_WITH_PATH" || data.shape === "ANSWERED_FROM_MEMORY";
+  // A declined near-tie names two tools it could not choose between. Offering them as buttons is
+  // not the router guessing after all: it declined, showed both scores, and a person chose. The
+  // arguments are still extracted from the question by rule, so nothing clicked enters a query.
+  const picks = $("choices");
+  picks.textContent = "";
+  const near = (data.shape === "UNSURE_WHICH_TOOL" && Array.isArray(data.near)) ? data.near : [];
+  picks.classList.toggle("hidden", !near.length);
+  near.forEach((n) => {
+    const b = document.createElement("button");
+    b.className = "pick";
+    b.appendChild(document.createTextNode(n.tool));
+    const sc = document.createElement("span");
+    sc.className = "sc";
+    sc.textContent = String(n.score);
+    b.appendChild(sc);
+    b.addEventListener("click", () => ask(data.question || $("q").value, n.tool));
+    picks.appendChild(b);
+  });
+
   let drawing = Promise.resolve();
   if (graphArgs && drawable) drawing = drawGraph(graphArgs);
   else $("graphwrap").classList.add("hidden");
@@ -268,8 +287,8 @@ async function runTool(c, btn) {
   }
 }
 
-async function ask() {
-  const q = $("q").value.trim();
+async function ask(forcedQuestion, forcedTool) {
+  const q = (forcedQuestion || $("q").value).trim();
   if (!q) return;
   $("answer").textContent = "routing…";
   $("headline").classList.add("hidden");
@@ -278,7 +297,7 @@ async function ask() {
     const r = await fetch("/api/ask", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question: q }),
+      body: JSON.stringify(forcedTool ? { question: q, force: forcedTool } : { question: q }),
     });
     const d = await r.json();
     // Both ask paths now return the chosen arguments under `routed_args` (they used to disagree,
