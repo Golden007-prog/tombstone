@@ -53,6 +53,9 @@ BEATS = [
     ("ask=write+me+a+poem+about+kubernetes", 7, [
         "Ask it something outside the graph and it declines, by name.",
         "A router that always picks something is confidently wrong on everything else."]),
+    ("ask=show+me+the+areas+that+depend+on+one+person", 9, [
+        "A real question it cannot place: two tools score too close to call, so it declines -",
+        "and offers the candidates it was torn between, with their scores. You choose."]),
     ("run=what_if_they_go", 10, [
         "Forward-looking: if this whole cohort stops approving, one area loses its last approver.",
         "The others survive by inheriting coverage upward - which is why a forked copy is needed."]),

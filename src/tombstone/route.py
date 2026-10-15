@@ -217,10 +217,21 @@ class LocalRouter:
 
         near = [{"tool": t, "score": round(sc, 3)} for t, sc in ranked[:3] if t != NONE]
         if top == NONE:
-            return {"tool": None, "near": near,
+            # `near` is kept for the response because it is useful to see what it scored against,
+            # but `offer` is false: these must NOT be presented as choices. Offering the runners-up
+            # for a question that is not about this graph at all would hand somebody asking for a
+            # poem a button that drafts OWNERS patches -- which is the precise bug the
+            # out-of-domain bucket was added to fix, rebuilt one layer higher up.
+            return {"tool": None, "near": near, "offer": False,
                     "why": "that is not a question this graph answers"}
         if top_score < MIN_SCORE or (top_score - second_score) < MIN_MARGIN:
-            return {"tool": None, "near": near,
+            # Offer the candidates ONLY for a genuine near-tie: two tools that both clear the
+            # score bar and are within a hair of each other, where the question plainly IS about
+            # this graph and the only open point is which of two readings was meant. When nothing
+            # clears the bar, the top match is a weak guess, and dressing a weak guess as a
+            # choice makes the user commit to it on the product's behalf.
+            tie = top_score >= MIN_SCORE
+            return {"tool": None, "near": near, "offer": tie,
                     "why": ("nothing in the catalogue is a clear match for that"
                             if top_score < MIN_SCORE
                             else f"'{top}' and '{second}' score too close to call")}
@@ -230,7 +241,9 @@ class LocalRouter:
         if needed and not args.get(needed):
             # Running the tool anyway would return "no path supplied", which is honest and
             # useless. Naming what is missing is the same honesty with somewhere to go.
-            return {"tool": None, "near": near, "needs": needed, "intended": top,
+            # Not offered either: forcing the same tool would decline again for the same missing
+            # argument, so a button here is a loop. The sentence names what to add instead.
+            return {"tool": None, "near": near, "offer": False, "needs": needed, "intended": top,
                     "why": f"that reads like `{top}`, but it needs a {needed} and the question "
                            f"does not contain one"}
         return {"tool": top, "args": args, "score": round(top_score, 3),

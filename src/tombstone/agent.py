@@ -247,11 +247,23 @@ class Agent:
         choice = router.route(question)
         if not choice.get("tool"):
             return {"shape": "UNSURE_WHICH_TOOL", "question": question,
+                    # The wording has to know whether anything is being offered. When the
+                    # candidates render as buttons directly beneath this sentence, telling the
+                    # reader to use "the buttons on this page" points them past the two choices
+                    # sitting right there.
                     "answer": f"I am not going to guess. {choice['why'].capitalize()}."
                               + (f" Name the {choice['needs']} and ask again."
-                                 if choice.get("needs") else
-                                 " The buttons on this page are the questions it does answer."),
-                    "routed_by": "local-embedding", "near": choice.get("near", []),
+                                 if choice.get("needs")
+                                 else (" The closest candidates are below with their scores — "
+                                       "pick the one you meant."
+                                       if choice.get("offer")
+                                       else " The buttons on this page are the questions it "
+                                            "does answer.")),
+                    "routed_by": "local-embedding",
+                    # Only a near-tie hands its candidates to the page as choices. Everything else
+                    # keeps them in the response for inspection without offering them.
+                    "near": choice.get("near", []) if choice.get("offer") else [],
+                    "scored_against": choice.get("near", []),
                     "catalogue": CATALOGUE}
         ans = self._remember(question, choice["tool"], self.dispatch(choice["tool"], choice["args"]))
         return self._payload(

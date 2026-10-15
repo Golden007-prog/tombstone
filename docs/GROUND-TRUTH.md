@@ -346,6 +346,17 @@ braces, so it failed six innocent constants, including both `WHO_OWNS` depths. T
 the claim directly rather than by proxy: the query text the tool reports back must appear verbatim
 in the source, which a templated or assembled query cannot.
 
+**Fixing a refusal by rebuilding the bug it was protecting against.** The router declines a
+near-tie and now offers the candidates it could not choose between. The list it offers from is the
+top three tools by score with the out-of-domain bucket filtered out — so for *"write me a poem
+about kubernetes"* that list contains `draft_owners_patch`, and the first version offered it as a
+button. Somebody asks for a poem, the product declines to guess, and then hands them a button that
+drafts OWNERS patches: the exact failure the out-of-domain bucket was added to fix, rebuilt one
+layer higher where the bucket could not see it. Candidates are now offered only for a genuine
+near-tie — both tools above `MIN_SCORE` and within `MIN_MARGIN` — and there are tests that a poem,
+a request to fix a unit test, and a question with no argument are each offered nothing. Caught by
+pulling a frame out of the walkthrough and reading the sentence under the buttons.
+
 **A DOM parser that lost any element containing another element.** The rendered-state check
 tracks a handful of ids and counts nesting depth to know when each one closes. It incremented the
 depth of only the innermost open frame, so when a tracked element contained another tracked

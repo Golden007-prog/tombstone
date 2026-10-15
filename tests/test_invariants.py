@@ -1212,3 +1212,42 @@ def test_a_chosen_tool_must_be_in_the_catalogue(agent):
     out = agent.ask_locally("anything at all", force="rm -rf /")
     assert out["shape"] == "UNKNOWN_ENTITY"
     assert "not one of the tools" in out["answer"]
+
+
+# ---------------- what may be OFFERED, which is not the same as what was scored ----------------
+#
+# Adding candidate buttons to a refusal nearly rebuilt the original bug one layer up. `near` is the
+# top three tools by score with the out-of-domain bucket filtered out, so for "write me a poem
+# about kubernetes" it contains draft_owners_patch -- and the first version offered it. A user asks
+# for a poem, the product declines, and then hands them a button that drafts OWNERS patches.
+#
+# Candidates are offered only for a genuine near-tie: both tools clear MIN_SCORE and sit within
+# MIN_MARGIN, so the question IS about this graph and the only open point is which of two readings
+# was meant.
+
+@pytest.mark.parametrize("question", [
+    "write me a poem about kubernetes",
+    "fix my failing unit test",
+    "what is the capital of France",
+])
+def test_an_out_of_domain_question_is_offered_nothing(agent, question):
+    out = agent.ask_locally(question)
+    assert out["shape"] == "UNSURE_WHICH_TOOL"
+    assert out.get("near") == [], (
+        f"{question!r} was offered {[n['tool'] for n in out['near']]} -- a question this graph "
+        f"does not answer must not come with buttons that run tools on it")
+    assert "candidates are below" not in out["answer"]
+
+
+def test_a_missing_argument_is_offered_nothing_because_a_button_would_loop(agent):
+    out = agent.ask_locally("who owns this?")
+    assert out["shape"] == "UNSURE_WHICH_TOOL"
+    assert out.get("near") == []
+    assert "needs a" in out["answer"]
+
+
+def test_a_near_tie_is_the_one_case_that_offers(agent):
+    out = agent.ask_locally("show me the areas that depend on one person")
+    assert out["shape"] == "UNSURE_WHICH_TOOL"
+    assert len(out.get("near", [])) >= 2
+    assert "too close to call" in out["answer"]
