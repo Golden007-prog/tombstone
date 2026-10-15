@@ -200,24 +200,19 @@ else:
         checked += 1
         print(f"  all {len(_early)} commits fall inside the hackathon window (Rule 8)")
 
-# CI's quickstart job is titled "exactly as the README writes it", and it was not: CI ran
-# `python3 -m venv` while the README said `python3.13 -m venv`. A step that claims to run the
-# documented command must run the documented command, or the one thing it proves is that some
-# OTHER command works.
-_readme_cmd = re.search(r"^(python3[\d.]* -m venv \.venv [^\n#]*)", open("README.md").read(), re.M)
-_ci = open(".github/workflows/verify.yml").read()
-_ci_cmd = re.search(r"^\s*(python3[\d.]* -m venv \.venv [^\n]*)", _ci, re.M)
-if not _readme_cmd or not _ci_cmd:
-    problems.append("could not find the quickstart venv command in the README or the workflow")
+# CI's quickstart job is titled "exactly as the README writes it", and it was not: CI created a
+# venv first while the README told you to, and neither tested what run.sh does from a bare clone.
+# Both are two lines now, and the commands must match -- a step that claims to run the documented
+# path and runs something easier proves only that the easier thing works.
+_qs = re.search(r"```bash\n(git clone[^\n]*\n\./run\.sh[^\n]*)\n```", open("README.md").read())
+_ci_q = open(".github/workflows/verify.yml").read()
+if not _qs:
+    problems.append("the README's quickstart is no longer 'git clone ...' then './run.sh'")
+elif re.search(r"^\s*python3[\d.]* -m venv \.venv", _ci_q, re.M):
+    problems.append("CI's quickstart still builds a venv by hand; the README says ./run.sh does it")
 else:
-    _r = _readme_cmd.group(1).split("#")[0].strip()
-    _c = _ci_cmd.group(1).replace(" -q", "").strip()
-    if _r.split()[0] != _c.split()[0]:
-        problems.append(f"CI runs {_c.split()[0]!r} but the README documents "
-                        f"{_r.split()[0]!r} — the quickstart job does not test the quickstart")
-    else:
-        checked += 1
-        print(f"  CI runs the interpreter the README documents ({_r.split()[0]})")
+    checked += 1
+    print("  CI runs the quickstart the README documents (clone, then ./run.sh)")
 
 print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
 

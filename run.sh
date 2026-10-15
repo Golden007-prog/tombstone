@@ -17,6 +17,43 @@ else
   echo "No Python found. Install Python 3.10+ and re-run." >&2
   exit 1
 fi
+# If there is no venv yet and the interpreter we found cannot run this, BUILD the venv rather
+# than printing the command that would. The quickstart used to name python3.13, which fails with
+# `command not found` on a machine that does not have exactly that; naming `python3` instead moves
+# the failure to a ResolutionImpossible wall from pip on a machine whose python3 is 3.15. Both
+# stop a stranger at the first line, before anything here can explain itself. Measured on this
+# machine, which has python3 -> 3.15 and python3.13 installed: the documented command failed, and
+# the help that would have fixed it lives further down this file than the reader ever got.
+if [ ! -x ".venv/bin/python" ]; then
+  _v="$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo 0.0)"
+  _usable=no
+  case "$_v" in
+    3.11|3.12|3.13|3.14)
+      # In range, but that is only half the question: a bare clone has no dependencies either.
+      if "$PY" -c "import falkordb, fastembed, fastapi" 2>/dev/null; then
+        _usable=yes
+      else
+        echo "No .venv and no dependencies yet. Building .venv with $PY."
+        "$PY" -m venv .venv || exit 1
+        ./.venv/bin/pip install -q -r requirements.txt || {
+          echo "  pip failed inside the new .venv; the output above says why" >&2; exit 1; }
+        PY=".venv/bin/python"
+        _usable=yes
+      fi ;;
+  esac
+  if [ "$_usable" = no ]; then
+      for _cand in python3.13 python3.12 python3.14 python3.11; do
+        command -v "$_cand" >/dev/null || continue
+        echo "$PY is $_v, which cannot install this. Building .venv with $_cand instead."
+        "$_cand" -m venv .venv || exit 1
+        ./.venv/bin/pip install -q -r requirements.txt || {
+          echo "  pip failed inside the new .venv; the output above says why" >&2; exit 1; }
+        PY=".venv/bin/python"
+        break
+      done
+  fi
+fi
+
 echo "using $PY ($("$PY" --version 2>&1))"
 
 # Python 3.15 cannot run this. fastembed needs onnxruntime, and onnxruntime publishes wheels for

@@ -217,7 +217,8 @@ jobs:
 
       - name: The quickstart, exactly as the README writes it
         run: |
-          python3 -m venv .venv && ./.venv/bin/pip install -q -r requirements.txt
+          # Two lines in the README, two lines here. No venv is created first: run.sh builds one,
+          # which is the whole point of the documented path and therefore the thing to test.
           nohup ./run.sh > /tmp/run.log 2>&1 &
           for _ in $(seq 1 60); do
             curl -sf -m 3 http://localhost:8099/api/health >/dev/null && break

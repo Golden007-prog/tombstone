@@ -125,8 +125,7 @@ fallback anywhere in the repo, and a test asserts it.
 
 ```bash
 git clone https://github.com/aviralgarg05/tombstone tombstone && cd tombstone
-python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # needs Python 3.11-3.14
-./run.sh          # FalkorDB up, graph seeded from the committed snapshot in ~1.1s
+./run.sh          # builds .venv if needed, starts FalkorDB, seeds, serves
 ```
 
 Then open <http://localhost:8099>. **No API key and no account.** The buttons call the tools
