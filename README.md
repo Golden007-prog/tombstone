@@ -19,7 +19,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **19/20 vs 4/20**.
 > - **The graph loses one of those twenty on purpose,** and ties the baseline on the
 >   control category. See why below.
-> - **Nothing here is asserted.** 119 tests, 26 graph claims, 18 rendered UI states and every
+> - **Nothing here is asserted.** 119 tests, 31 graph claims, 18 rendered UI states and every
 >   benchmark re-run by **30 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 

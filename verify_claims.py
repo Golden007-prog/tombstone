@@ -22,6 +22,24 @@ def one(q, p=None):
 
 CLAIMS = [
     ("decisions (:Kep)", "MATCH (k:Kep) RETURN count(k)", 681),
+    # Named-person claims the README makes in PROSE. Every number inside a fenced block was
+    # already checked; these were not, and that is where the one factual error about a person
+    # lived -- the README had lavalamp top of the betweenness ranking when he is third.
+    ("pkg/controller live approvers (podgc falls back to these)",
+     "MATCH (:OwnersFile {path:'pkg/controller/OWNERS'})<-[:APPROVES]-(p:Person) "
+     "RETURN count(DISTINCT p)", 10),
+    ("podgc's own current approvers — the point is that it is zero",
+     "MATCH (:OwnersFile {path:'pkg/controller/podgc/OWNERS'})<-[:APPROVES]-(p:Person) "
+     "RETURN count(DISTINCT p)", 0),
+    ("podgc owners who stepped back",
+     "MATCH (:OwnersFile {path:'pkg/controller/podgc/OWNERS'})<-[:EMERITUS_OF]-(p:Person) "
+     "RETURN count(DISTINCT p)", 2),
+    ("vishh: areas left behind",
+     "MATCH (p:Person {key:'vishh'})-[:EMERITUS_OF]->(o) RETURN count(o)", 14),
+    ("apelisse: areas held alone",
+     "MATCH (o:OwnersFile)<-[:APPROVES]-(p:Person) "
+     "WITH o, collect(DISTINCT p.key) AS ap WHERE size(ap) = 1 AND ap[0] = 'apelisse' "
+     "RETURN count(o)", 6),
     ("rejected alternatives", "MATCH (a:Alternative) RETURN count(a)", 958),
     ("titled named options", "MATCH (a:NamedOption) RETURN count(a)", 752),
     ("missing decision records", "MATCH (m:MissingRecord) RETURN count(m)", 47),
