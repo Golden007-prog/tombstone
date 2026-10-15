@@ -54,6 +54,12 @@ def chip_args() -> dict[str, dict]:
             else:
                 args[k] = float(v) if "." in v else int(v)
         out.setdefault(tool, args)
+    # Counted against `label:`, which every chip has, rather than against another copy of the
+    # same `tool:` pattern -- two runs of one regex agree with each other even when the regex has
+    # stopped matching the file.
+    if len(re.findall(r'tool:\s*"(\w+)"', block)) != len(re.findall(r"\blabel:", block)):
+        raise SystemExit("chip_args(): app.js has chips whose tool this parser cannot read -- "
+                         "every check below would be measuring a smaller set than the UI ships")
     return out
 
 

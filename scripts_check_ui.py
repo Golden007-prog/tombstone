@@ -193,6 +193,18 @@ def chip_calls() -> list[tuple[str, dict]]:
                 else:
                     args[k] = float(v) if "." in v else int(v)
         out.append((m.group(1), args))
+    # A structured parse that quietly finds nothing is the worst kind of check: the sweep below
+    # would loop over an empty list and pass. Cross-checked against a naive count of the same
+    # file, so a change to how chips are written fails here instead of silently disabling it.
+    # Anchored on `label:`, NOT on another copy of the `tool:` regex. A guard that re-runs the
+    # same pattern agrees with itself when the pattern stops matching: I changed one chip to
+    # single quotes as a test and both counts dropped to 13 together, the sweep quietly tested one
+    # chip fewer, and everything still said ok. Every chip has a label, so counting those is a
+    # genuinely independent answer to "how many chips are there".
+    labelled = len(re.findall(r"\blabel:", block))
+    if len(out) != labelled:
+        raise SystemExit(f"chip_calls() parsed {len(out)} chips but app.js has {labelled} chip "
+                         f"labels -- the parser has drifted and would test the wrong set")
     return out
 
 
@@ -216,6 +228,14 @@ def chips_that_draw() -> set[str]:
         seen[tool] = n + 1
         if re.search(r"\bgraph:\s*\{", chunk):
             draws.add(f"{tool}#{n}")
+    if len(re.findall(r'tool:\s*"[a-z_]+"', block)) != len(re.findall(r"\blabel:", block)):
+        raise SystemExit("chips_that_draw(): some chip has a label but no tool the parser can "
+                         "read -- counts must agree before any of this means anything")
+    naive = len(re.findall(r"\bgraph:\s*\{", block))
+    if len(draws) != naive:
+        raise SystemExit(f"chips_that_draw() found {len(draws)} path-drawing chips but app.js has "
+                         f"{naive} -- the parser has drifted and the strongest UI rule would stop "
+                         f"applying without failing")
     return draws
 
 
