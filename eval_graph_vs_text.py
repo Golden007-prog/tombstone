@@ -118,38 +118,99 @@ def load_documents(g) -> list[tuple[str, str]]:
 QUESTIONS = [
     dict(q="has anyone proposed using a feature gate to make this opt-in?",
          tool="has_this_been_tried", args={"idea_text": "make it opt-in with a feature gate"},
-         check=lambda t: "feature gate" in t.lower(),
+         check=lambda t: "feature gate" in t.lower(), cat="lookup (control)",
          why="lookup — text should do fine"),
     dict(q="find the KEP about coscheduling",
          tool="has_this_been_tried", args={"idea_text": "coscheduling gang scheduling"},
-         check=lambda t: "coscheduling" in t.lower(),
+         check=lambda t: "coscheduling" in t.lower(), cat="lookup (control)",
          why="title lookup — text SHOULD win this"),
     dict(q="which areas lost every approver with dedicated authority?",
          tool="ownership_dilution", args={},
-         check=lambda t: "endpoints/metrics" in t and "falls back" in t.lower(),
+         check=lambda t: "endpoints/metrics" in t and "falls back" in t.lower(), cat="inheritance",
          why="needs a tree walk to the nearest live ancestor"),
     dict(q="who should inherit lavalamp's areas?",
          tool="successor_for", args={"handle": "lavalamp"},
-         check=lambda t: "deads2k" in t and re.search(r"\b2[0-9] of", t) is not None,
+         check=lambda t: "deads2k" in t and re.search(r"\b2[0-9] of", t) is not None, cat="expertise",
          why="needs co-ownership overlap counted across two edge types"),
     dict(q="who held the most connective authority before stepping back?",
          tool="stepped_back_bridges", args={"min_areas": 3},
-         check=lambda t: "lavalamp" in t and "betweenness" in t.lower(),
+         check=lambda t: "lavalamp" in t and "betweenness" in t.lower(), cat="whole-graph",
          why="needs betweenness centrality — a whole-graph property"),
     dict(q="which cited decision records do not exist?",
          tool="broken_lineage", args={"min_cites": 2},
-         check=lambda t: "0006-apply" in t,
+         check=lambda t: "0006-apply" in t, cat="absence",
          why="needs inbound edges to a node that is ABSENT"),
     dict(q="what knowledge here is going stale?",
          tool="stale_knowledge", args={"min_years": 3},
-         check=lambda t: "KEP-583" in t and "still cited by" in t,
+         check=lambda t: "KEP-583" in t and "still cited by" in t, cat="currency",
          why="needs age + inbound citations + author authority, joined"),
     dict(q="who owns the apiserver metrics endpoint, really?",
          tool="who_owns",
          args={"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", "depth": 4},
          check=lambda t: "no one named here still holds approval authority" in t.lower()
-                         or "still holds approval" in t.lower(),
+                         or "still holds approval" in t.lower(), cat="inheritance",
          why="needs inheritance resolved, not just the file read"),
+    # --- added after reading a competing entry whose eval ran 60 questions against this one's
+    # eight. Eight is enough to show a direction and too few to be evidence. These are written the
+    # same way as the originals: a real question, a programmatic check over what the mode actually
+    # returned, and a category so the result can be read per kind rather than as one average. The
+    # control category is deliberately GROWN too -- a baseline that is only asked questions it
+    # must lose is a strawman, and its score rising is the point of including them.
+    dict(q="which KEP discusses self-assembling inventories?",
+         tool="has_this_been_tried", args={"idea_text": "self-assembling inventories"},
+         check=lambda t: "4322" in t or "self-assembling" in t.lower(), cat="lookup (control)",
+         why="title lookup — text should find this"),
+    dict(q="was a generic annotation considered for the class name?",
+         tool="has_this_been_tried", args={"idea_text": "use an annotation instead of a field"},
+         check=lambda t: "annotation" in t.lower(), cat="lookup (control)",
+         why="phrase lookup — text should find this"),
+    dict(q="has storing cluster state in a relational database been proposed?",
+         tool="has_this_been_tried",
+         args={"idea_text": "store cluster state in a relational database"},
+         check=lambda t: "rejected in kep" in t.lower(), cat="lookup (control)",
+         why="idea lookup, loosely worded — text has the words"),
+    dict(q="who really owns pkg/scheduler?",
+         tool="who_owns", args={"path": "pkg/scheduler/OWNERS", "depth": 4},
+         check=lambda t: "sanposhiho" in t and "actively owned" in t.lower(), cat="inheritance",
+         why="an area that IS owned — the control for the inheritance category"),
+    dict(q="does anyone named on the apiserver metrics file still approve there?",
+         tool="who_owns",
+         args={"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", "depth": 4},
+         check=lambda t: "logicalhan" in t, cat="inheritance",
+         why="needs the departed owner named, not just the file's contents"),
+    dict(q="who already co-owns the areas spiffxp abandoned?",
+         tool="successor_for", args={"handle": "spiffxp"},
+         check=lambda t: "bentheelder" in t and re.search(r"\b8 of their 9\b", t) is not None,
+         cat="expertise",
+         why="needs overlap counted between two people across areas"),
+    dict(q="which areas are held by exactly one approver?",
+         tool="sole_approver_risk", args={},
+         check=lambda t: "apelisse" in t and "only approver" in t.lower(), cat="absence",
+         why="counting approvers per area — no document states this"),
+    dict(q="whose ownership record contradicts itself?",
+         tool="stepped_back_but_still_listed", args={"min_stepped_back": 3},
+         check=lambda t: "spiffxp" in t and "hack/jenkins" in t, cat="absence",
+         why="needs two edge types compared for the same person"),
+    dict(q="which contributor community is losing its people fastest?",
+         tool="hollowing_communities", args={},
+         check=lambda t: "community" in t.lower() and "stepped back" in t.lower(),
+         cat="whole-graph",
+         why="needs community detection — the groups are declared nowhere"),
+    dict(q="which decision has been provisional the longest while still being cited?",
+         tool="stale_knowledge", args={"min_years": 3},
+         check=lambda t: "provisional for" in t.lower() and "still cited by" in t.lower(),
+         cat="currency",
+         why="needs status, age and inbound citations joined"),
+    dict(q="what would be left with no owner if the apiserver reviewers all stepped back?",
+         tool="what_if_they_go",
+         args={"handles": ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"]},
+         check=lambda t: "kms" in t.lower(), cat="counterfactual",
+         why="needs the graph re-evaluated after a deletion that never happened"),
+    dict(q="how many areas are stranded today, before anyone else leaves?",
+         tool="what_if_they_go",
+         args={"handles": ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"]},
+         check=lambda t: "baseline before the change: 0 areas" in t.lower(), cat="counterfactual",
+         why="needs a baseline the corpus never states"),
 ]
 
 
@@ -166,6 +227,7 @@ def main() -> int:
     print(f"{'question':<52}{'graph':>8}{'text':>8}   what it needs")
     print("-" * 118)
     gw = tw = 0
+    by_cat: dict[int, tuple[int, int]] = {}
     for item in QUESTIONS:
         a = agent.dispatch(item["tool"], item["args"])
         g_text = render(a)
@@ -177,12 +239,23 @@ def main() -> int:
 
         gw += g_ok
         tw += t_ok
+        by_cat[id(item)] = (int(g_ok), int(t_ok))
         print(f"  {item['q'][:50]:<50}{'PASS' if g_ok else ' -- ':>8}"
               f"{'PASS' if t_ok else ' -- ':>8}   {item['why']}")
 
     n = len(QUESTIONS)
     print("-" * 118)
     print(f"  {'':<50}{gw}/{n:<7}{tw}/{n}")
+
+    # Per category, because one average hides the only thing this eval is for. The control row
+    # existing -- and the baseline scoring on it -- is what makes the other rows mean anything.
+    print()
+    print(f"  {'category':<28}{'n':>3}{'graph':>8}{'text':>7}")
+    for cat in dict.fromkeys(i.get("cat", "uncategorised") for i in QUESTIONS):
+        rows = [i for i in QUESTIONS if i.get("cat", "uncategorised") == cat]
+        g_c = sum(by_cat[id(i)][0] for i in rows)
+        t_c = sum(by_cat[id(i)][1] for i in rows)
+        print(f"  {cat:<28}{len(rows):>3}{g_c:>8}{t_c:>7}")
     print()
     print(f"Graph answers {gw}/{n}. A TF-IDF index over the same documents answers {tw}/{n}.")
     print("The text baseline sees every word the graph does. Where a question is a lookup it")
@@ -195,8 +268,13 @@ def main() -> int:
     # them within a day, so this one is asserted where it is produced.
     import re as _re
     drift = []
-    for doc, pattern in (("README.md", r"\*\*(\d+)/(\d+) vs (\d+)/(\d+)\*\*"),
-                         ("SUBMISSION.md", r"\*\*(\d+)/(\d+) versus (\d+)/(\d+)\*\*")):
+    for doc, pattern in (
+            ("README.md", r"\*\*(\d+)/(\d+) vs (\d+)/(\d+)\*\*"),
+            ("SUBMISSION.md", r"\*\*(\d+)/(\d+) versus (\d+)/(\d+)\*\*"),
+            # The explainer states it in words, and it was the one document left stating 7/8 after
+            # the eval grew -- found by grep, not by a check, which is the whole problem.
+            ("docs/EXPLAIN-IT.md",
+             r"\*\*(\d+) of (\d+) versus (\d+) of (\d+)\*\*")):
         m = _re.search(pattern, open(doc).read())
         if not m:
             drift.append(f"{doc} no longer states this score in the form the check looks for")
@@ -205,6 +283,20 @@ def main() -> int:
         if (said_g, said_gn, said_t, said_tn) != (gw, n, tw, n):
             drift.append(f"{doc} says {said_g}/{said_gn} vs {said_t}/{said_tn}; "
                          f"this run measured {gw}/{n} vs {tw}/{n}")
+    # ...and the per-category table the README prints, row by row. Writing that table by hand is
+    # how the totals got stale in the first place.
+    readme = open("README.md").read()
+    for cat in dict.fromkeys(i.get("cat", "uncategorised") for i in QUESTIONS):
+        rows = [i for i in QUESTIONS if i.get("cat", "uncategorised") == cat]
+        g_c = sum(by_cat[id(i)][0] for i in rows)
+        t_c = sum(by_cat[id(i)][1] for i in rows)
+        m = _re.search(rf"^{_re.escape(cat)}\s+(\d+)\s+(\d+)\s+(\d+)", readme, _re.M)
+        if not m:
+            drift.append(f"README has no category row for {cat!r}")
+        elif (int(m.group(1)), int(m.group(2)), int(m.group(3))) != (len(rows), g_c, t_c):
+            drift.append(f"README's {cat!r} row says {m.groups()}; "
+                         f"this run measured ({len(rows)}, {g_c}, {t_c})")
+
     if drift:
         print()
         for d in drift:

@@ -16,8 +16,9 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
 >   free-text questions work anyway, routed locally.
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
->   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
-> - **The graph loses one of those eight on purpose.** See why below.
+>   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **19/20 vs 4/20**.
+> - **The graph loses one of those twenty on purpose,** and ties the baseline on the
+>   control category. See why below.
 > - **Nothing here is asserted.** 119 tests, 26 graph claims, 18 rendered UI states and every
 >   benchmark re-run by **29 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
@@ -465,20 +466,22 @@ statuses, the alternatives prose, OWNERS paths and the handles in them). The bas
 word the graph does.
 
 ```
-question                                          graph   text   what it needs
-has anyone proposed a feature gate to opt in?      PASS   PASS   lookup — text should do fine
-find the KEP about coscheduling                     --    PASS   title lookup — text SHOULD win
-which areas lost every dedicated approver?         PASS    --    a tree walk to the nearest live ancestor
-who should inherit lavalamp's areas?               PASS    --    co-ownership counted across two edge types
-who held the most connective authority?            PASS    --    betweenness — a whole-graph property
-which cited decision records do not exist?         PASS    --    inbound edges to a node that is ABSENT
-what knowledge here is going stale?                PASS    --    age + citations + authority, joined
-who owns the apiserver metrics endpoint, really?   PASS    --    inheritance resolved, not just read
-                                                   7/8    2/8
+category                      n   graph   text
+lookup (control)              5       4      4     a text index ties the graph on its own ground
+inheritance                   4       4      0     tree walks to the nearest live ancestor
+expertise                     2       2      0     co-ownership counted across two edge types
+whole-graph                   2       2      0     betweenness, community detection
+absence                       3       3      0     inbound edges to a node that is ABSENT
+currency                      2       2      0     age + citations + authority, joined
+counterfactual                2       2      0     the graph re-evaluated after a deletion
+                                              
+                             20      19      4
 ```
 
-**The graph loses one, and that is the point.** Where a question is a lookup, a text index
-competes or wins, and pretending otherwise would make the other seven worthless. Where the answer
+**The graph loses one, and that is the point.** It loses the title lookup — "find the KEP about
+coscheduling" — and on the control category as a whole the text index *ties it, 4 to 4*. Where a
+question is a lookup, a text index competes or wins, and pretending otherwise would make the other
+fifteen worthless. Where the answer
 is a path, an absence, or a whole-graph property, there is no document to find — **because the
 answer was never written down anywhere.** Nobody ever wrote "one person is the entire review
 capacity for the apiserver metrics endpoints". It is only true as a consequence of the structure.
