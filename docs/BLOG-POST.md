@@ -1,6 +1,6 @@
 # Kubernetes writes down who left. Nothing reads it.
 
-*Building a company brain on a graph, and six things FalkorDB taught me the hard way.*
+*Building a company brain on a graph, and eight things FalkorDB taught me the hard way.*
 
 ---
 
@@ -56,14 +56,20 @@ says "we tried that, here is why not" diluted into noise.
 
 So I made it a node.
 
-**753 titled rejected options**, extracted deterministically from sub-headings — no LLM, because the
+**752 titled rejected options**, extracted deterministically from sub-headings — no LLM, because the
 template produces them and a regex is reproducible where an extraction pass is not. Each one links
 to the decision that recorded it, which links to the people who approved it, which links to whether
 those people still approve anything.
 
 The second latent node is stranger. KEPs cite each other through `replaces`, `superseded-by` and
-`see-also`. I resolved all of them and **63 of 363 internal pointers (17.4%) go nowhere**. So I made
-the *absent* record a node too. Now you can ask which missing documents are load-bearing:
+`see-also`. I resolved all of them and **55 of 358 internal pointers (15.4%) go nowhere**. So I made
+the *absent* record a node too.
+
+(My first number here was **63 of 363, 17.4%**, and it was inflated. Two of those references point
+at legacy flat-layout `.md` records that do exist, and one used `/kep/` where it meant `/keps/` —
+a typo whose target is unambiguous. Resolving those honestly costs me eight broken pointers and
+two percentage points. I am including the worse-for-me number because a statistic about decay that
+is itself partly a parsing bug is exactly the kind of claim this post is about.) Now you can ask which missing documents are load-bearing:
 `/keps/sig-api-machinery/0006-apply.md` does not exist, and **four separate decisions claim descent
 from it.**
 
@@ -282,10 +288,16 @@ RETURN p.key AS stepped_back_bridge, round(bridge*100)/100 AS betweenness, aband
 ORDER BY bridge DESC
 ```
 
-Twelve milliseconds. Not "who owned the most files" — *who was the structural bridge between groups
-that otherwise did not talk*. The top result left 31 areas behind. Losing a bridge costs more than
-losing a maintainer, and that distinction is a whole-graph property. No join and no embedding
-produces it.
+Twelve milliseconds, median of five runs. Not "who owned the most files" — *who was the structural
+bridge between groups that otherwise did not talk*, among people who now hold no approval authority
+anywhere. Top result on this corpus: `logicalhan`, betweenness 156.5, five areas left behind.
+
+Losing a bridge costs more than losing a maintainer, and that distinction is a whole-graph
+property — not a traversal, not a join, not anything an embedding expresses. A graph *library* can
+compute it; I measured that above and it is no slower. What a library cannot do is **compose the
+score with the ownership traversal in the same query**, which is the whole of what that Cypher
+does: rank by centrality, then walk from each person to the areas they left, against live data,
+in one statement.
 
 ---
 
