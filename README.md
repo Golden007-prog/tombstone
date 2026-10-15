@@ -52,6 +52,224 @@ It runs on **Kubernetes' own governance record** — a real organisation of thou
 publishes its decision history, its ownership map, and, unusually, its own attrition. Apache-2.0,
 fully public. Every number below is checkable with one `git clone`.
 
+**Jump to:** [what it found](#which-group-is-hollowing-out) · [why a graph](#turn-falkordb-off-and-here-is-exactly-what-stops-working) · [measured vs text search](#does-the-graph-actually-do-work-a-text-search-cannot-measured) · [run it](#quickstart) · [the data model](#the-graph-data-model) · [the Cypher](#the-cypher-this-product-depends-on) · [what I got wrong](#a-correction-i-made-and-why-it-is-in-the-readme)
+
+## Which *group* is hollowing out?
+
+Individual attrition is a traversal. "Which group is losing its people" is not — because **the
+groups are not declared anywhere.** No SIG membership file produces them. They are discovered by
+running label propagation over who has actually worked on decisions together, and only then can
+you ask what fraction of each discovered partition still holds authority.
+
+```
+community #1709 — 25 people, 24% have stepped back
+    6 no longer hold approval authority, 5 still do
+    e.g. timothysc, ereslibre, ksubrmnn, roberthbailey, rosti
+```
+
+A working group where more people have stepped back than still hold authority. Nobody wrote that
+group down; it only exists as a property of the collaboration graph.
+
+**Honest limit:** FalkorDB has no Louvain or Leiden, so label propagation is the available
+algorithm. It is non-deterministic and has no resolution parameter — run it twice and the
+boundaries may shift. The answer says so, and the test asserts structural invariants rather than
+exact community ids, because a test pinning those would fail randomly.
+
+## The forward-looking one: what breaks if one more person steps back?
+
+Everything above is archaeology. This is the only question that looks forward, and it is the
+clearest case for a graph *database* rather than a graph library.
+
+For **one** person it is an exact query — 45 Kubernetes areas have exactly one approver, and
+`apelisse` alone holds six. No simulation needed.
+
+For a **cohort** it is not, because coverage **cascades**: an area survives because its parent
+still has an approver, and that parent may be emptied by the same cohort. Answering it means
+mutating the whole graph, re-running a recursive traversal over the mutated copy, and diffing —
+without touching the original. That is `GRAPH.COPY`, measured at **~390ms** for the full graph
+with all 8 indexes carried:
+
+```
+If deads2k, liggitt, jpbetz, smarterclayton, enj and serathius all stopped approving:
+  • 1 area would be left with NO live owner anywhere, not even by inheritance:
+      staging/src/k8s.io/kms/OWNERS
+  Baseline before the change: 0. Evaluated on a copy; the live graph was untouched.
+```
+
+A judge can watch a hypothetical be evaluated and thrown away inside one request. There are tests
+asserting the live graph is unchanged afterwards and that no copy is left behind.
+
+**The baseline is 0, and that number is load-bearing.** 19 `OWNERS` files declare only `reviewers`
+or `labels` and never had an approver at all. Counting those as "uncovered" would be the same
+conflation that produced the retracted orphaned-directories claim — an area with nothing to lose
+cannot lose it — so the diff is scoped to areas that actually had approvers. A test asserts the
+baseline is zero.
+
+## Keeping knowledge current
+
+Track 3 names this explicitly, and the honest version on a real corpus is not a freshness
+timestamp. A decision being old is not interesting. A decision being *still cited by other
+decisions*, *still formally undecided years later*, **and** having *no author left who could say
+why* — that is knowledge decaying in place. Each signal alone is noise; the conjunction is the
+finding, and it needs three different traversals to compute.
+
+```
+KEP-583  "Coscheduling"
+  provisional for 7 years, still cited by 2 other decisions, sig-scheduling
+  1 author no longer holds approval authority; 1 whose status this corpus does not record
+
+KEP-2149 "ClusterID for ClusterSet Identification"
+  implementable for 4 years, still cited by 1 other decision, sig-multicluster
+  1 author no longer holds approval authority; 2 whose status this corpus does not record
+```
+
+**43 decisions are stale-and-still-cited; 2 have an author who no longer hold approval authority and none
+who still holds an approver role.**
+
+The wording matters, and my first version got it wrong. I inferred "no living author" from the
+*absence* of an approver role — but **428 of 595 KEP authors (72%) appear in no OWNERS file at
+all**, so absence mostly means "was never an approver", not "has left". Only `emeritus_approvers`,
+an explicit published statement that someone stepped back, is counted as departure; everyone else
+is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
+guards the confusion.
+
+## It remembers what it learns
+
+The brief asks for three things: that the agent acts on connected data, **remembers what it learns**,
+and shows how it reached each answer. The third is the path view above. This is the second.
+
+Every answered question is written back as an `(:Answer)` node that **`CITED`s the exact graph nodes
+it was built from** — not stored as text. Two consequences:
+
+- **Recall is a traversal, not a cache.** A remembered answer can be re-checked against the live
+  graph instead of trusted. If a cited node is gone, the memory can say so.
+- **Memory lives in the same graph as the facts**, so one query can cross from one to the other:
+
+```cypher
+MATCH (a:Answer)-[:CITED]->(p:Person)-[:EMERITUS_OF]->(f:OwnersFile)
+RETURN a.question, p.key, count(DISTINCT f) AS areas_they_left
+```
+```
+"whose departure hurt most?"    -> lavalamp    left 31 areas
+"which areas have nobody left?" -> vishh       left 14 areas
+```
+
+That query **starts in memory and ends in facts**. A separate memory store — a vector DB, a Redis
+cache — structurally cannot answer it, and would also quietly make the "works without FalkorDB"
+test pass, which is precisely the failure the rules describe.
+
+Recall is semantic, so it survives rewording: ask a fresh session *"who currently owns the podgc
+controller"* and it finds the earlier *"who owns pkg/controller/podgc?"*, with its citations intact.
+There is a test for each of these.
+
+## Turn FalkorDB off and here is exactly what stops working
+
+Rule 3 says a product that still works without the graph is decoration, so here is the honest answer.
+
+- **“Has this been tried?” becomes `grep` over 688 markdown files** — which is what contributors
+  already have, and precisely why the problem exists.
+- **The rejected alternative loses its identity.** You cannot count how many times an idea was
+  refused, because there is nothing to count.
+- **You lose the ability to answer *nothing*.** A vector index always returns its k nearest rows no
+  matter how far away they are. "Nobody named here still holds approval authority" is the *absence*
+  of an edge, and absence is not
+  something a similarity score can express.
+- **The ranking of whose departure hurt most disappears entirely.** That is betweenness centrality —
+  a whole-graph property that no traversal, no SQL join and no embedding can compute.
+
+There is **no in-memory mirror and no cached fallback** anywhere in this repo. With the database
+unreachable, every endpoint returns `DEGRADED` and says so. There is a test for it
+(`test_agent_fails_loudly_without_the_database`).
+
+## Does the graph actually do work a text search cannot? Measured.
+
+The hackathon's one published judging lens is whether the graph does work the agent could not do
+without it. Asserting that is cheap, so here it is measured — same corpus, same questions, against
+a TF-IDF index built over **every document the graph was built from** (2,224 of them: KEP titles,
+statuses, the alternatives prose, OWNERS paths and the handles in them). The baseline sees every
+word the graph does.
+
+```
+question                                          graph   text   what it needs
+has anyone proposed a feature gate to opt in?      PASS   PASS   lookup — text should do fine
+find the KEP about coscheduling                     --    PASS   title lookup — text SHOULD win
+which areas lost every dedicated approver?         PASS    --    a tree walk to the nearest live ancestor
+who should inherit lavalamp's areas?               PASS    --    co-ownership counted across two edge types
+who held the most connective authority?            PASS    --    betweenness — a whole-graph property
+which cited decision records do not exist?         PASS    --    inbound edges to a node that is ABSENT
+what knowledge here is going stale?                PASS    --    age + citations + authority, joined
+who owns the apiserver metrics endpoint, really?   PASS    --    inheritance resolved, not just read
+                                                   7/8    2/8
+```
+
+**The graph loses one, and that is the point.** Where a question is a lookup, a text index
+competes or wins, and pretending otherwise would make the other seven worthless. Where the answer
+is a path, an absence, or a whole-graph property, there is no document to find — **because the
+answer was never written down anywhere.** Nobody ever wrote "one person is the entire review
+capacity for the apiserver metrics endpoints". It is only true as a consequence of the structure.
+
+```bash
+PYTHONPATH=src python eval_graph_vs_text.py     # re-run it
+```
+
+## Why not just use Graphiti, Cognee or GraphRAG-SDK?
+
+Fair question, and the honest answer is that for most agent-memory problems **you should** — all
+three are mature, and two of them have ~32k stars to this project's zero. They solve a different
+problem.
+
+| | Graphiti (31.8k★) | Cognee (32.3k★) | GraphRAG-SDK (1.0k★) | Tombstone |
+|---|---|---|---|---|
+| what it is | real-time temporal KG for agent memory | general AI memory platform | ontology-driven KG builder (FalkorDB's own) | one corpus, one question shape |
+| builds the graph by | **LLM extraction** | **LLM extraction** | **LLM-inferred ontology** | **deterministic parsing** — no LLM touches the extraction path |
+| schema | inferred per-episode | inferred | inferred, then fixed | hand-written, 8 node labels |
+| re-runs give | different graphs | different graphs | different ontologies | byte-identical graphs |
+| cost to rebuild | LLM calls per document | LLM calls per document | LLM calls per corpus | **zero, 1.1s** |
+| best at | conversational memory that accumulates | heterogeneous sources | bootstrapping a KG from prose | a corpus whose structure is already machine-readable |
+
+**The distinction that matters here.** Kubernetes already publishes its governance as structured
+data: `kep.yaml` has `replaces`/`superseded-by`, `OWNERS` has `approvers` and `emeritus_approvers`,
+and the KEP template *mandates* an `Alternatives` section. An LLM extraction pass over that would
+be strictly worse — it would cost money, vary between runs, and hallucinate relationships that the
+YAML states exactly. **752 of the 958 rejected alternatives are extracted by a regex over
+sub-headings, not a model.**
+
+So the LLM in this project does exactly one job: picking which of eleven tools to call. It never
+writes Cypher, never extracts an entity, and never phrases a finding. Swap it out and the graph is
+unchanged.
+
+Where those three would beat this: anything whose source is prose with no structure — meeting
+notes, Slack, support tickets. Tombstone would have nothing to parse.
+
+## Why FalkorDB, measured honestly
+
+An adversarial reviewer argued the real incumbent at this scale isn't Postgres, it's `networkx`.
+Fair, so I measured it — 3,300 nodes / 39,987 edges, same machine:
+
+| operation | networkx | FalkorDB v4.22.1 | winner |
+|---|---|---|---|
+| build graph | 21.0 ms | 189.7 ms | **networkx, 9x** |
+| 2-hop neighbourhood (p50) | 0.017 ms | 0.368 ms | **networkx, 22x** |
+| **betweenness (k=32)** — *used by `stepped_back_bridges`* | 351.6 ms | **19.8 ms** | **FalkorDB, 18x** |
+| PageRank — *benchmarked, not used by any tool* | 1,529.1 ms | **10.0 ms** | FalkorDB, 153x |
+
+networkx wins in-process pointer chasing. Of course it does — it's an in-memory adjacency dict, and
+any claim otherwise is checkable in five minutes. The row that matters is betweenness, because
+that is the one a tool actually calls: **352ms is an offline batch job; 19.8ms is a tool an agent
+can call inside a single conversational turn**, on a graph that just changed. PageRank is in the
+table for completeness and is honestly labelled — no tool in the catalogue uses it.
+That's a difference in kind. Plus the things networkx structurally cannot do: a vector index
+composed with traversal in one query, physically isolated per-tenant graphs, concurrent access to
+live shared state, durable persistence, and a path object returned by the query that found the answer.
+
+Multi-tenancy, measured 1 → 1000 graphs: read p50 stays **flat** (0.42 → 0.38 ms), p99 *improves*
+(2.34 → 0.82 ms), `select_graph` is ~1µs regardless of count, memory is linear at ~491 KB/tenant.
+Isolation is physical — a second tenant running the identical Cypher gets `[]`, and `db.labels()`
+doesn't even list the label. Honest caveat: 10,000 tenants × 491 KB ≈ 4.8 GB, so FalkorDB's "10K+
+graphs" headline is memory-bound, not architecture-bound.
+
+Full methodology and six engine gotchas I hit: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
+
 ## Quickstart
 
 ```bash
@@ -103,25 +321,6 @@ type, written without looking at the corpus first: **12/12 return a real titled 
 a substantive recorded rationale.** It also runs three negative controls — ideas this corpus should
 not know about — and **3/3 correctly return nothing**. A retrieval layer that never returns nothing
 is not telling you anything.
-
-## Turn FalkorDB off and here is exactly what stops working
-
-Rule 3 says a product that still works without the graph is decoration, so here is the honest answer.
-
-- **“Has this been tried?” becomes `grep` over 688 markdown files** — which is what contributors
-  already have, and precisely why the problem exists.
-- **The rejected alternative loses its identity.** You cannot count how many times an idea was
-  refused, because there is nothing to count.
-- **You lose the ability to answer *nothing*.** A vector index always returns its k nearest rows no
-  matter how far away they are. "Nobody named here still holds approval authority" is the *absence*
-  of an edge, and absence is not
-  something a similarity score can express.
-- **The ranking of whose departure hurt most disappears entirely.** That is betweenness centrality —
-  a whole-graph property that no traversal, no SQL join and no embedding can compute.
-
-There is **no in-memory mirror and no cached fallback** anywhere in this repo. With the database
-unreachable, every endpoint returns `DEGRADED` and says so. There is a test for it
-(`test_agent_fails_loudly_without_the_database`).
 
 ## The graph data model
 
@@ -193,6 +392,32 @@ Findings that fall straight out of it, each checkable:
 - **7 areas lost every *dedicated* approver** — see the correction below; they are not unowned.
 - `lavalamp` is emeritus in **31** ownership files and has the highest betweenness of any departed
   contributor (196.1, sampled, seed pinned).
+
+## The agent
+
+Eleven tools. The model picks one and fills its arguments; hand-written Cypher answers; a
+deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
+so it cannot soften a negative into a maybe or name someone who isn't in the graph.
+
+Every answer is one of four shapes:
+
+| shape | meaning |
+|---|---|
+| `ANSWERED_WITH_PATH` | found it, and here is the traversal |
+| `ANSWERED_FROM_MEMORY` | asked before — and the nodes that answer cited **still resolve** |
+| `NOT_IN_GRAPH` | the traversal ran and returned nothing — **always** with a coverage statement |
+| `UNKNOWN_ENTITY` | the name didn't resolve, so nothing else ran |
+| `DEGRADED` | the graph is unreachable. No fallback. |
+
+`ANSWERED_FROM_MEMORY` is **earned, not cached.** It is only returned when the prior answer's
+citations still resolve *and* re-running the tool returns the same rows — so what you read is the
+live result, with the memory noted. If the cited nodes have gone, the memory is discarded and the
+tool re-runs, because a remembered answer whose evidence has vanished is a stale claim rather than
+a memory. There is a test that deletes the citations and asserts the agent stops calling it one.
+
+Entity names are resolved against the graph *before* any traversal, because a plausible wrong name
+is worse than no answer. And a negative never stands alone — an empty traversal only means this
+corpus doesn't record it, which the UI says in those words every time.
 
 ## The Cypher this product depends on
 
@@ -360,32 +585,6 @@ LIMIT $limit
 `query_sha` = `1174754e3277` — stamped on every answer this query produces.
 
 
-## The agent
-
-Eleven tools. The model picks one and fills its arguments; hand-written Cypher answers; a
-deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
-so it cannot soften a negative into a maybe or name someone who isn't in the graph.
-
-Every answer is one of four shapes:
-
-| shape | meaning |
-|---|---|
-| `ANSWERED_WITH_PATH` | found it, and here is the traversal |
-| `ANSWERED_FROM_MEMORY` | asked before — and the nodes that answer cited **still resolve** |
-| `NOT_IN_GRAPH` | the traversal ran and returned nothing — **always** with a coverage statement |
-| `UNKNOWN_ENTITY` | the name didn't resolve, so nothing else ran |
-| `DEGRADED` | the graph is unreachable. No fallback. |
-
-`ANSWERED_FROM_MEMORY` is **earned, not cached.** It is only returned when the prior answer's
-citations still resolve *and* re-running the tool returns the same rows — so what you read is the
-live result, with the memory noted. If the cited nodes have gone, the memory is discarded and the
-tool re-runs, because a remembered answer whose evidence has vanished is a stale claim rather than
-a memory. There is a test that deletes the citations and asserts the agent stops calling it one.
-
-Entity names are resolved against the graph *before* any traversal, because a plausible wrong name
-is worse than no answer. And a negative never stands alone — an empty traversal only means this
-corpus doesn't record it, which the UI says in those words every time.
-
 ## Where the data comes from
 
 | source | licence | what is used | how it is extracted |
@@ -401,203 +600,6 @@ itself publishes as its governance record are in, addresses are out.
 
 Modifications to the redistributed material are listed in [`NOTICE`](NOTICE), as Apache-2.0 §4
 requires — the snapshot contains verbatim KEP prose.
-
-## Keeping knowledge current
-
-Track 3 names this explicitly, and the honest version on a real corpus is not a freshness
-timestamp. A decision being old is not interesting. A decision being *still cited by other
-decisions*, *still formally undecided years later*, **and** having *no author left who could say
-why* — that is knowledge decaying in place. Each signal alone is noise; the conjunction is the
-finding, and it needs three different traversals to compute.
-
-```
-KEP-583  "Coscheduling"
-  provisional for 7 years, still cited by 2 other decisions, sig-scheduling
-  1 author no longer holds approval authority; 1 whose status this corpus does not record
-
-KEP-2149 "ClusterID for ClusterSet Identification"
-  implementable for 4 years, still cited by 1 other decision, sig-multicluster
-  1 author no longer holds approval authority; 2 whose status this corpus does not record
-```
-
-**43 decisions are stale-and-still-cited; 2 have an author who no longer hold approval authority and none
-who still holds an approver role.**
-
-The wording matters, and my first version got it wrong. I inferred "no living author" from the
-*absence* of an approver role — but **428 of 595 KEP authors (72%) appear in no OWNERS file at
-all**, so absence mostly means "was never an approver", not "has left". Only `emeritus_approvers`,
-an explicit published statement that someone stepped back, is counted as departure; everyone else
-is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
-guards the confusion.
-
-## Which *group* is hollowing out?
-
-Individual attrition is a traversal. "Which group is losing its people" is not — because **the
-groups are not declared anywhere.** No SIG membership file produces them. They are discovered by
-running label propagation over who has actually worked on decisions together, and only then can
-you ask what fraction of each discovered partition still holds authority.
-
-```
-community #1709 — 25 people, 24% have stepped back
-    6 no longer hold approval authority, 5 still do
-    e.g. timothysc, ereslibre, ksubrmnn, roberthbailey, rosti
-```
-
-A working group where more people have stepped back than still hold authority. Nobody wrote that
-group down; it only exists as a property of the collaboration graph.
-
-**Honest limit:** FalkorDB has no Louvain or Leiden, so label propagation is the available
-algorithm. It is non-deterministic and has no resolution parameter — run it twice and the
-boundaries may shift. The answer says so, and the test asserts structural invariants rather than
-exact community ids, because a test pinning those would fail randomly.
-
-## The forward-looking one: what breaks if one more person steps back?
-
-Everything above is archaeology. This is the only question that looks forward, and it is the
-clearest case for a graph *database* rather than a graph library.
-
-For **one** person it is an exact query — 45 Kubernetes areas have exactly one approver, and
-`apelisse` alone holds six. No simulation needed.
-
-For a **cohort** it is not, because coverage **cascades**: an area survives because its parent
-still has an approver, and that parent may be emptied by the same cohort. Answering it means
-mutating the whole graph, re-running a recursive traversal over the mutated copy, and diffing —
-without touching the original. That is `GRAPH.COPY`, measured at **~390ms** for the full graph
-with all 8 indexes carried:
-
-```
-If deads2k, liggitt, jpbetz, smarterclayton, enj and serathius all stopped approving:
-  • 1 area would be left with NO live owner anywhere, not even by inheritance:
-      staging/src/k8s.io/kms/OWNERS
-  Baseline before the change: 0. Evaluated on a copy; the live graph was untouched.
-```
-
-A judge can watch a hypothetical be evaluated and thrown away inside one request. There are tests
-asserting the live graph is unchanged afterwards and that no copy is left behind.
-
-**The baseline is 0, and that number is load-bearing.** 19 `OWNERS` files declare only `reviewers`
-or `labels` and never had an approver at all. Counting those as "uncovered" would be the same
-conflation that produced the retracted orphaned-directories claim — an area with nothing to lose
-cannot lose it — so the diff is scoped to areas that actually had approvers. A test asserts the
-baseline is zero.
-
-## It remembers what it learns
-
-The brief asks for three things: that the agent acts on connected data, **remembers what it learns**,
-and shows how it reached each answer. The third is the path view above. This is the second.
-
-Every answered question is written back as an `(:Answer)` node that **`CITED`s the exact graph nodes
-it was built from** — not stored as text. Two consequences:
-
-- **Recall is a traversal, not a cache.** A remembered answer can be re-checked against the live
-  graph instead of trusted. If a cited node is gone, the memory can say so.
-- **Memory lives in the same graph as the facts**, so one query can cross from one to the other:
-
-```cypher
-MATCH (a:Answer)-[:CITED]->(p:Person)-[:EMERITUS_OF]->(f:OwnersFile)
-RETURN a.question, p.key, count(DISTINCT f) AS areas_they_left
-```
-```
-"whose departure hurt most?"    -> lavalamp    left 31 areas
-"which areas have nobody left?" -> vishh       left 14 areas
-```
-
-That query **starts in memory and ends in facts**. A separate memory store — a vector DB, a Redis
-cache — structurally cannot answer it, and would also quietly make the "works without FalkorDB"
-test pass, which is precisely the failure the rules describe.
-
-Recall is semantic, so it survives rewording: ask a fresh session *"who currently owns the podgc
-controller"* and it finds the earlier *"who owns pkg/controller/podgc?"*, with its citations intact.
-There is a test for each of these.
-
-## Does the graph actually do work a text search cannot? Measured.
-
-The hackathon's one published judging lens is whether the graph does work the agent could not do
-without it. Asserting that is cheap, so here it is measured — same corpus, same questions, against
-a TF-IDF index built over **every document the graph was built from** (2,224 of them: KEP titles,
-statuses, the alternatives prose, OWNERS paths and the handles in them). The baseline sees every
-word the graph does.
-
-```
-question                                          graph   text   what it needs
-has anyone proposed a feature gate to opt in?      PASS   PASS   lookup — text should do fine
-find the KEP about coscheduling                     --    PASS   title lookup — text SHOULD win
-which areas lost every dedicated approver?         PASS    --    a tree walk to the nearest live ancestor
-who should inherit lavalamp's areas?               PASS    --    co-ownership counted across two edge types
-who held the most connective authority?            PASS    --    betweenness — a whole-graph property
-which cited decision records do not exist?         PASS    --    inbound edges to a node that is ABSENT
-what knowledge here is going stale?                PASS    --    age + citations + authority, joined
-who owns the apiserver metrics endpoint, really?   PASS    --    inheritance resolved, not just read
-                                                   7/8    2/8
-```
-
-**The graph loses one, and that is the point.** Where a question is a lookup, a text index
-competes or wins, and pretending otherwise would make the other seven worthless. Where the answer
-is a path, an absence, or a whole-graph property, there is no document to find — **because the
-answer was never written down anywhere.** Nobody ever wrote "one person is the entire review
-capacity for the apiserver metrics endpoints". It is only true as a consequence of the structure.
-
-```bash
-PYTHONPATH=src python eval_graph_vs_text.py     # re-run it
-```
-
-## Why not just use Graphiti, Cognee or GraphRAG-SDK?
-
-Fair question, and the honest answer is that for most agent-memory problems **you should** — all
-three are mature, and two of them have ~32k stars to this project's zero. They solve a different
-problem.
-
-| | Graphiti (31.8k★) | Cognee (32.3k★) | GraphRAG-SDK (1.0k★) | Tombstone |
-|---|---|---|---|---|
-| what it is | real-time temporal KG for agent memory | general AI memory platform | ontology-driven KG builder (FalkorDB's own) | one corpus, one question shape |
-| builds the graph by | **LLM extraction** | **LLM extraction** | **LLM-inferred ontology** | **deterministic parsing** — no LLM touches the extraction path |
-| schema | inferred per-episode | inferred | inferred, then fixed | hand-written, 8 node labels |
-| re-runs give | different graphs | different graphs | different ontologies | byte-identical graphs |
-| cost to rebuild | LLM calls per document | LLM calls per document | LLM calls per corpus | **zero, 1.1s** |
-| best at | conversational memory that accumulates | heterogeneous sources | bootstrapping a KG from prose | a corpus whose structure is already machine-readable |
-
-**The distinction that matters here.** Kubernetes already publishes its governance as structured
-data: `kep.yaml` has `replaces`/`superseded-by`, `OWNERS` has `approvers` and `emeritus_approvers`,
-and the KEP template *mandates* an `Alternatives` section. An LLM extraction pass over that would
-be strictly worse — it would cost money, vary between runs, and hallucinate relationships that the
-YAML states exactly. **752 of the 958 rejected alternatives are extracted by a regex over
-sub-headings, not a model.**
-
-So the LLM in this project does exactly one job: picking which of eleven tools to call. It never
-writes Cypher, never extracts an entity, and never phrases a finding. Swap it out and the graph is
-unchanged.
-
-Where those three would beat this: anything whose source is prose with no structure — meeting
-notes, Slack, support tickets. Tombstone would have nothing to parse.
-
-## Why FalkorDB, measured honestly
-
-An adversarial reviewer argued the real incumbent at this scale isn't Postgres, it's `networkx`.
-Fair, so I measured it — 3,300 nodes / 39,987 edges, same machine:
-
-| operation | networkx | FalkorDB v4.22.1 | winner |
-|---|---|---|---|
-| build graph | 21.0 ms | 189.7 ms | **networkx, 9x** |
-| 2-hop neighbourhood (p50) | 0.017 ms | 0.368 ms | **networkx, 22x** |
-| **betweenness (k=32)** — *used by `stepped_back_bridges`* | 351.6 ms | **19.8 ms** | **FalkorDB, 18x** |
-| PageRank — *benchmarked, not used by any tool* | 1,529.1 ms | **10.0 ms** | FalkorDB, 153x |
-
-networkx wins in-process pointer chasing. Of course it does — it's an in-memory adjacency dict, and
-any claim otherwise is checkable in five minutes. The row that matters is betweenness, because
-that is the one a tool actually calls: **352ms is an offline batch job; 19.8ms is a tool an agent
-can call inside a single conversational turn**, on a graph that just changed. PageRank is in the
-table for completeness and is honestly labelled — no tool in the catalogue uses it.
-That's a difference in kind. Plus the things networkx structurally cannot do: a vector index
-composed with traversal in one query, physically isolated per-tenant graphs, concurrent access to
-live shared state, durable persistence, and a path object returned by the query that found the answer.
-
-Multi-tenancy, measured 1 → 1000 graphs: read p50 stays **flat** (0.42 → 0.38 ms), p99 *improves*
-(2.34 → 0.82 ms), `select_graph` is ~1µs regardless of count, memory is linear at ~491 KB/tenant.
-Isolation is physical — a second tenant running the identical Cypher gets `[]`, and `db.labels()`
-doesn't even list the label. Honest caveat: 10,000 tenants × 491 KB ≈ 4.8 GB, so FalkorDB's "10K+
-graphs" headline is memory-bound, not architecture-bound.
-
-Full methodology and six engine gotchas I hit: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
 
 ## A correction I made, and why it is in the README
 
@@ -624,6 +626,21 @@ cluster/gce/windows               lost yujuhong, yliaog, pjh, mtaufen, ibabou
 `test_no_directory_is_actually_unowned` now fails loudly if the wrong claim ever creeps back.
 Of 585 OWNERS files, 57 set `no_parent_owners`; none of those is left without a live approver.
 
+## Two more claims I stress-tested after finding the first error
+
+Having got the ownership claim wrong, I assumed others were wrong too and went looking.
+
+**"83 of 111 departed owners hold no current approver role" — is that circular?**
+It would be, if `emeritus` automatically meant "gone from everything". It does not: **28 of the
+111 are emeritus in one area and still actively approve elsewhere** — `sttts` is emeritus in 1
+file and still approves 70. So the 83 are people who stepped back from *everything*, which is a
+real signal rather than a restatement of the field's definition. Claim survives.
+
+**"X% of internal decision pointers don't resolve" — decay, or just moved files?**
+Partly the latter, and my first number was inflated. Two references point at legacy flat-layout
+`.md` records that still exist, and one used `/kep/` instead of `/keps/` — a typo whose target is
+unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 55/358 (15.4%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
+snapshot so a snapshot build and a live build cannot disagree.
 ## What "stepped back" means here, precisely
 
 `emeritus_approvers` is Kubernetes' own field, and
@@ -692,18 +709,3 @@ Data: [kubernetes/enhancements](https://github.com/kubernetes/enhancements) and
 [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) OWNERS, both Apache-2.0. No email
 addresses are ingested, even though `sigs.yaml` publishes them — Rule 6 says "personal".
 
-## Two more claims I stress-tested after finding the first error
-
-Having got the ownership claim wrong, I assumed others were wrong too and went looking.
-
-**"83 of 111 departed owners hold no current approver role" — is that circular?**
-It would be, if `emeritus` automatically meant "gone from everything". It does not: **28 of the
-111 are emeritus in one area and still actively approve elsewhere** — `sttts` is emeritus in 1
-file and still approves 70. So the 83 are people who stepped back from *everything*, which is a
-real signal rather than a restatement of the field's definition. Claim survives.
-
-**"X% of internal decision pointers don't resolve" — decay, or just moved files?**
-Partly the latter, and my first number was inflated. Two references point at legacy flat-layout
-`.md` records that still exist, and one used `/kep/` instead of `/keps/` — a typo whose target is
-unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 55/358 (15.4%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
-snapshot so a snapshot build and a live build cannot disagree.

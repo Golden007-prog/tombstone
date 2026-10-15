@@ -90,11 +90,12 @@ jobs:
         run: |
           python scripts_gen_readme_cypher.py > /tmp/generated.md
           python - <<'PY'
-          import sys
+          import re, sys
           readme = open("README.md").read()
           gen = open("/tmp/generated.md").read()
           start = readme.index("## The Cypher this product depends on")
-          end = readme.index("## The agent")
+          m = re.search(r"^## ", readme[start + 10:], flags=re.M)
+          end = start + 10 + m.start() if m else len(readme)
           if gen.strip() not in readme[start:end].strip():
               sys.exit(
                   "README's Cypher catalogue is stale.\n"
