@@ -14,6 +14,7 @@ Usage:  ./run.sh          (in another shell)
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -82,6 +83,29 @@ try:
         require(b'"up"' in r.read(), "the app reports FalkorDB down")
 except Exception as e:
     sys.exit(f"cannot build the walkthrough: {APP} is not serving ({e}). Start it with ./run.sh")
+
+# Capture a FIRST VISIT. This app remembers answers, so a question asked while building the video
+# comes back ANSWERED_FROM_MEMORY the next time -- which is correct behaviour and the wrong frame:
+# a judge opening a freshly deployed Space has an empty memory and sees ANSWERED_WITH_PATH. The
+# first cut of this video shipped a beat about ROUTING whose badge said the answer came from
+# memory, because the question had been asked twenty times that afternoon while testing.
+try:
+    import urllib.request as _u
+    _req = _u.Request(f"{APP}/api/tool", method="POST",
+                      data=json.dumps({"tool": "forget_everything", "args": {}}).encode(),
+                      headers={"content-type": "application/json"})
+    _u.urlopen(_req, timeout=30)
+except Exception:
+    pass  # falls through to the direct clear below
+
+try:
+    sys.path.insert(0, "src")
+    from graphkit.ingest import connect as _connect
+    _g = _connect().select_graph(os.environ.get("GRAPH", "tomb:k8s"))
+    _n = _g.query("MATCH (a:Answer) DETACH DELETE a").relationships_deleted
+    print(f"  cleared remembered answers, so the frames show a first visit")
+except Exception as exc:
+    print(f"  WARNING: could not clear memory ({exc}); frames may show ANSWERED_FROM_MEMORY")
 
 work = os.environ.get("WORKDIR", "build/walkthrough")
 os.makedirs(work, exist_ok=True)
