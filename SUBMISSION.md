@@ -131,6 +131,15 @@ catalogue, which refuses rather than guess. Verified from a clean clone in an em
 
 See the AI assistance disclosure section of the README.
 
+## Being able to explain it (Rules 12 and 13)
+
+`docs/EXPLAIN-IT.md` — read this before any judging call. It is the questions most likely to be
+asked, with the answer short enough to hold in your head: why a graph at all, the data model and
+the one decision inside it worth defending (752 embedded options out of 958 extracted, and why the
+other 206 are deliberately not in the haystack), what each of the thirteen tools asks, which
+FalkorDB feature earns its place in which tool, what the model is allowed to do, and the five
+weakest things — stated first, because every one of them is already written down in the repository.
+
 ---
 
 ## Pre-submit checklist

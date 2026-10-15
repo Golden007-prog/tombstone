@@ -68,11 +68,13 @@ fully public. Every number below is checkable with one `git clone`.
 
 ## Every submission requirement, and exactly where it is
 
-No judging criteria are published as criteria — I checked both the
+No *scored* criteria are published — I checked both the
 [event page](https://www.wemakedevs.org/hackathons/falkordb) and the
-[rules](https://www.wemakedevs.org/hackathons/falkordb/rules). Rule 10's six-item submission
-checklist is therefore the only published standard that exists, so rather than guess at a rubric,
-here is that checklist with the exact location of each item and an honest status.
+[rules](https://www.wemakedevs.org/hackathons/falkordb/rules). The two published standards that do
+exist are Rule 10's six-item submission checklist and the track's own
+["Key focus" bullets, mapped line by line above](#track-03s-own-key-focus-line-by-line) — including
+the one of the five this does not do. Rather than guess at a rubric, here is Rule 10's checklist
+with the exact location of each item and an honest status.
 
 | Rule 10 asks for | where it is in this repo | status |
 |---|---|---|
@@ -86,6 +88,11 @@ here is that checklist with the exact location of each item and an honest status
 Two rules beyond the checklist:
 
 - **Rule 11 — disclose AI coding assistant use.** [AI assistance disclosure](#ai-assistance-disclosure).
+- **Rules 12 and 13 — the participant must understand and be able to explain the model, the
+  queries, the architecture and the decisions.** [`docs/EXPLAIN-IT.md`](docs/EXPLAIN-IT.md) is that
+  brief: the questions a judge is most likely to ask, each answered in a paragraph, including the
+  five things that are weakest. Its data-model table is re-derived from the live graph by
+  `./preflight.sh`, so it cannot quietly describe a different product than the one running.
 - **Rule 8 — the main work must begin after the event starts.** Every commit in this repo was
   authored on or after 15 October 2026 IST. That is checkable rather than asserted:
 

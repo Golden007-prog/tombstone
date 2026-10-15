@@ -57,7 +57,7 @@ SUBSET = re.compile(r"\b(?:of|in|among|and)\s+$|\bonly\s+$|\bjust\s+$")
 # node counts, not stale versions of them. Its own summary table is checked by hand when it moves.
 files = [pathlib.Path("README.md"), pathlib.Path("SUBMISSION.md"),
          pathlib.Path("deploy/README-hf-space.md"), pathlib.Path("docs/DEMO-SCRIPT.md"),
-         pathlib.Path("docs/BLOG-POST.md")]
+         pathlib.Path("docs/BLOG-POST.md"), pathlib.Path("docs/EXPLAIN-IT.md")]
 files = [f for f in files if f.exists()]
 problems = []
 checked = 0
@@ -122,6 +122,55 @@ for _doc in ("README.md", "SUBMISSION.md"):
     else:
         checked += len(_said)
 print(f"  the workflow has {_steps} named steps and both docs say so")
+
+# ---------------------------------------------------------------------------
+# docs/EXPLAIN-IT.md states the data model as a table -- "| `Person` | 794 |" -- so the number and
+# its noun sit in different cells and the prose scanner above cannot see either. That file is the
+# one somebody reads out loud under questioning, which makes it the worst place for a stale number,
+# so its table is parsed on its own terms.
+_brief = pathlib.Path("docs/EXPLAIN-IT.md").read_text()
+_LABELS = {"Person": "MATCH (n:Person) RETURN count(n)",
+           "Kep": "MATCH (n:Kep) RETURN count(n)",
+           "OwnersFile": "MATCH (n:OwnersFile) RETURN count(n)",
+           "Alternative": "MATCH (n:Alternative) RETURN count(n)",
+           "NamedOption": "MATCH (n:NamedOption) RETURN count(n)",
+           "MissingRecord": "MATCH (n:MissingRecord) RETURN count(n)",
+           "Sig": "MATCH (n:Sig) RETURN count(n)"}
+for _lab, _q in _LABELS.items():
+    _m = re.search(rf"\|\s*`{_lab}`\s*\|\s*\**([\d,]+)\**\s*\|", _brief)
+    if not _m:
+        problems.append(f"docs/EXPLAIN-IT.md: no row found for {_lab}")
+        continue
+    _said, _live = int(_m.group(1).replace(",", "")), count(_q)
+    if _said != _live:
+        problems.append(f"docs/EXPLAIN-IT.md: says {_said:,} {_lab}, the graph has {_live:,}")
+    else:
+        checked += 1
+
+# The edge counts, and the derived "206 are not named options", stated in prose there.
+_EDGES = {"APPROVES": "MATCH ()-[r:APPROVES]->() RETURN count(r)",
+          "EMERITUS_OF": "MATCH ()-[r:EMERITUS_OF]->() RETURN count(r)",
+          "INHERITS_FROM": "MATCH ()-[r:INHERITS_FROM]->() RETURN count(r)",
+          "CONSIDERED": "MATCH ()-[r:CONSIDERED]->() RETURN count(r)",
+          "CO_AUTHORED": "MATCH ()-[r:CO_AUTHORED]->() RETURN count(r)"}
+for _rel, _q in _EDGES.items():
+    _m = re.search(rf"`{_rel}`\s*\(([\d,]+)\)", _brief)
+    if not _m:
+        problems.append(f"docs/EXPLAIN-IT.md: no count given for {_rel}")
+        continue
+    _said, _live = int(_m.group(1).replace(",", "")), count(_q)
+    if _said != _live:
+        problems.append(f"docs/EXPLAIN-IT.md: says {_said:,} {_rel} edges, the graph has {_live:,}")
+    else:
+        checked += 1
+
+_m = re.search(r"other (\d+) have titles that are", _brief)
+_gap = count("MATCH (n:Alternative) WHERE NOT n:NamedOption RETURN count(n)")
+if not _m or int(_m.group(1)) != _gap:
+    problems.append(f"docs/EXPLAIN-IT.md: the un-named alternatives figure should be {_gap}")
+else:
+    checked += 1
+print(f"  the explain-it brief's model table matches the graph ({_gap} un-named alternatives)")
 
 print(f"  scanned {len(files)} markdown files, checked {checked} count claims")
 for label, (live, _) in COUNTS.items():
