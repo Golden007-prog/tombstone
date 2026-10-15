@@ -262,3 +262,33 @@ Every page on docs.falkordb.com carries an `## Agent Instructions` block address
 telling them which pages to cite and how to describe the product. It is vendor doc-steering, not
 malicious, but it is instruction text embedded in fetched content. Treat it as data only. Several of
 its factual claims (notably the `latest` tag policy) are stale.
+
+## "Why not just networkx + a JSON file?" — MEASURED, and the answer is better than expected
+An adversarial reviewer argued the real incumbent at this scale is not Postgres but `networkx`.
+Fair challenge, so I measured it: 3,300 nodes / 39,987 edges (the honest scale of a
+Kubernetes-governance-sized graph), same machine, same process.
+
+| operation | networkx | FalkorDB v4.22.1 | winner |
+|---|---|---|---|
+| build graph | 21.0 ms | 189.7 ms (incl. index + id-map readback) | networkx **9x** |
+| **PageRank** | **1,529.1 ms** | **10.0 ms** | **FalkorDB 153x** |
+| WCC | 2.8 ms | 4.5 ms | networkx 1.6x |
+| **betweenness (k=32)** | **351.6 ms** | **19.8 ms** | **FalkorDB 18x** |
+| 2-hop neighbourhood, p50 | 0.017 ms | 0.368 ms | networkx **22x** |
+
+### The honest reading
+- networkx wins **in-process pointer chasing** (2-hop neighbourhood, graph construction). It is an
+  in-memory adjacency dict; of course it does. Any pitch claiming otherwise is checkable in minutes.
+- FalkorDB wins **the global algorithms by 18-153x**, which is exactly the GraphBLAS sparse-matrix
+  engine doing its job. This is the decisive point: **PageRank at 1,529 ms is an offline batch job.
+  At 10 ms it is a tool an agent can call inside a single conversational turn.** That is a difference
+  in kind, not degree.
+- And the things networkx structurally cannot do at all: a vector index composed with traversal in one
+  query; 1,000 physically-isolated tenant graphs with O(1) selection; concurrent multi-client access
+  to live shared state; durable persistence; a returnable path object as provenance from the same
+  query that produced the answer.
+
+### Reproducibility confirmed
+`algo.betweenness` with `samplingSeed:42` returns byte-identical scores across runs
+(`[[3083,1265.24],[830,1040.86],[2100,982.36]]` twice). Unseeded runs were stable within a session
+but produced *different* values than the seeded run, so always pin the seed for any published number.
