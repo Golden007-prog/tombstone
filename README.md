@@ -336,16 +336,22 @@ finding, and it needs three different traversals to compute.
 ```
 KEP-583  "Coscheduling"
   provisional for 7 years, still cited by 2 other decisions, sig-scheduling
-  NO author of it still approves anything
+  1 author verifiably stepped back; 1 whose status this corpus does not record
 
 KEP-2149 "ClusterID for ClusterSet Identification"
   implementable for 4 years, still cited by 1 other decision, sig-multicluster
-  NO author of it still approves anything
+  1 author verifiably stepped back; 2 whose status this corpus does not record
 ```
 
-**37 decisions are stale-and-still-cited; 2 of them have nobody left.** Those two are ordered
-first, because "old and popular" is a worse signal than "old and unanswerable" — a test asserts
-that ordering, since burying them under merely-cited decisions would waste the finding.
+**37 decisions are stale-and-still-cited; 2 have an author who verifiably stepped back and none
+who still holds an approver role.**
+
+The wording matters, and my first version got it wrong. I inferred "no living author" from the
+*absence* of an approver role — but **427 of 593 KEP authors (72%) appear in no OWNERS file at
+all**, so absence mostly means "was never an approver", not "has left". Only `emeritus_approvers`,
+an explicit published statement that someone stepped back, is counted as departure; everyone else
+is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
+guards the confusion.
 
 ## It remembers what it learns
 

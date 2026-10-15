@@ -387,19 +387,43 @@ def test_memory_write_failure_never_breaks_the_answer(agent, monkeypatch):
 
 # ---------------- Track 3's "keeping knowledge current" ----------------
 
-def test_stale_knowledge_surfaces_decisions_with_no_living_author_first(agent):
-    """The urgent case is not 'old' -- it is old, still being cited, AND nobody left to ask.
+def test_stale_knowledge_uses_positive_evidence_of_departure(agent):
+    """Absence of an approver role is NOT evidence of departure.
 
-    Each signal alone is noise. Ordering must put the combination at the top or the finding is
-    buried under merely-popular decisions.
+    An earlier version inferred "no living author" from having no APPROVES edge. 72% of KEP
+    authors appear in no OWNERS file at all, so that mostly meant "was never an approver".
+    Only `emeritus_approvers` -- an explicit, published statement that someone stepped back --
+    counts as departure, and authors of unknown status are reported as unknown.
     """
     a = agent.dispatch("stale_knowledge", {"min_years": 3})
     assert a.shape == "ANSWERED_WITH_PATH"
-    live_roles = [r[7] for r in a.rows]
-    assert live_roles == sorted(live_roles), f"not ordered by living authors: {live_roles}"
-    assert live_roles[0] == 0, "a decision with no living author exists but was not surfaced first"
-    top = a.rows[0]
-    assert top[5] >= 1, "the top stale decision should still be cited by something"
+    for r in a.rows:
+        authors, live, gone, unknown = int(r[6]), int(r[7]), int(r[8]), int(r[9])
+        assert live + gone + unknown == authors, (
+            f"author buckets do not sum: {live}+{gone}+{unknown} != {authors}")
+    # the top row must have positive evidence of departure, not merely an absence
+    assert int(a.rows[0][8]) >= 1, "top stale decision has no verifiably departed author"
+    lives = [int(r[7]) for r in a.rows]
+    assert lives == sorted(lives), f"not ordered by authors holding a current role: {lives}"
+
+
+def test_absence_from_owners_is_not_treated_as_departure(g):
+    """Guards the exact confusion that produced the wrong claim."""
+    total = g.ro_query(
+        "MATCH (p:Person)-[:AUTHORED|APPROVED]->(:Kep) RETURN count(DISTINCT p)"
+    ).result_set[0][0]
+    no_owners = g.ro_query(
+        """
+        MATCH (p:Person)-[:AUTHORED|APPROVED]->(:Kep)
+        OPTIONAL MATCH (p)-[a:APPROVES]->()
+        OPTIONAL MATCH (p)-[e:EMERITUS_OF]->()
+        WITH p, count(a) AS na, count(e) AS ne WHERE na = 0 AND ne = 0
+        RETURN count(DISTINCT p)
+        """
+    ).result_set[0][0]
+    # If this ever drops near zero the proxy would be safe, but it is ~72% -- so it is not.
+    assert no_owners / total > 0.5, (
+        "most KEP authors appear in no OWNERS file; absence must not imply departure")
 
 
 def test_stale_knowledge_admits_when_nothing_qualifies(agent):

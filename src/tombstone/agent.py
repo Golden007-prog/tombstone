@@ -277,14 +277,26 @@ def render(a: Answer) -> str:
         return "Most-overlapping current approvers:\n\n" + "\n".join(lines)
     if t == "stale_knowledge":
         lines = []
-        for kep, title, status, sig, years, cited, authors, live, currency, url in a.rows:
+        for (kep, title, status, sig, years, cited, authors, live, gone, unknown,
+             currency, _url) in a.rows:
+            gone, live, unknown = int(gone or 0), int(live or 0), int(unknown or 0)
+            who = []
+            if gone:
+                who.append(f"{gone} author{'s' if gone > 1 else ''} verifiably stepped back")
+            if live:
+                who.append(f"{live} still hold an approver role")
+            if unknown:
+                who.append(f"{unknown} whose status this corpus does not record")
             lines.append(
-                f"• KEP-{kep} “{str(title)[:62]}”\n"
+                f"• KEP-{kep} “{str(title)[:60]}”\n"
                 f"    {status} for {years} years, still cited by {cited} other decision(s), {sig}\n"
-                f"    {'NO author of it still approves anything' if currency == 'NO_LIVING_AUTHOR' else 'at least one author is still active'}"
+                f"    {'; '.join(who)}"
             )
         return ("Knowledge going stale — still load-bearing, still undecided, and in some cases "
-                "nobody left to ask:\n\n" + "\n".join(lines))
+                "the people who wrote it have stepped back:\n\n" + "\n".join(lines)
+                + "\n\nNote: being absent from OWNERS is not evidence of departure — 72% of KEP "
+                  "authors never held an approver role. Only `emeritus_approvers` is counted as "
+                  "stepping back.")
     if t == "recall":
         import datetime as _dt
         lines = []

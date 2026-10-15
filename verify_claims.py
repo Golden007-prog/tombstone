@@ -48,14 +48,22 @@ CLAIMS = [
      "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
      "AND (1760000000000 - k.created_ms) > 94672800000 "
      "RETURN count(DISTINCT k)", 37),
-    ("...of which none of their authors remain",
+    ("...with an author who verifiably stepped back",
      "MATCH (o:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
      "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
      "AND (1760000000000 - k.created_ms) > 94672800000 "
      "WITH DISTINCT k "
-     "OPTIONAL MATCH (au:Person)-[:AUTHORED|APPROVED]->(k) "
+     "MATCH (au:Person)-[:AUTHORED|APPROVED]->(k) "
      "OPTIONAL MATCH (au)-[lr:APPROVES]->() "
-     "WITH k, count(DISTINCT lr) AS live WHERE live = 0 RETURN count(k)", 2),
+     "OPTIONAL MATCH (au)-[em:EMERITUS_OF]->() "
+     "WITH k, au, count(lr) AS live, count(em) AS gone "
+     "WITH k, sum(live) AS lives, sum(CASE WHEN gone > 0 AND live = 0 THEN 1 ELSE 0 END) AS stepped "
+     "WHERE lives = 0 AND stepped > 0 RETURN count(k)", 2),
+    ("KEP authors appearing in no OWNERS file",
+     "MATCH (p:Person)-[:AUTHORED|APPROVED]->(:Kep) "
+     "OPTIONAL MATCH (p)-[a:APPROVES]->() OPTIONAL MATCH (p)-[e:EMERITUS_OF]->() "
+     "WITH p, count(a) AS na, count(e) AS ne WHERE na = 0 AND ne = 0 "
+     "RETURN count(DISTINCT p)", 427),
 ]
 
 fails = 0

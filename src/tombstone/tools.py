@@ -271,28 +271,44 @@ LIMIT $limit
         return Answer(shape, "broken_lineage", rows=rows, ms=ms, cypher=self.BROKEN_LINEAGE)
 
     # ---------- TOOL 6: keeping knowledge current ----------
+    # NOTE: an earlier version of this query inferred "no living author" from the ABSENCE of an
+    # APPROVES edge. That was wrong. 72% of KEP authors appear in no OWNERS file at all, so
+    # absence of an approver role mostly means "was never an OWNERS approver", not "has left".
+    #
+    # This version uses `EMERITUS_OF` as POSITIVE evidence of stepping back, and reports the
+    # authors whose status this corpus genuinely does not know, rather than counting them as gone.
     STALE_KNOWLEDGE = """
 MATCH (other:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep)
 WHERE k.status IN ['provisional', 'implementable']
   AND k.created_ms > 0
   AND ($now - k.created_ms) > $ageMs
 WITH k, count(DISTINCT other) AS still_cited_by
-OPTIONAL MATCH (author:Person)-[:AUTHORED|APPROVED]->(k)
+
+MATCH (author:Person)-[:AUTHORED|APPROVED]->(k)
 OPTIONAL MATCH (author)-[liveRole:APPROVES]->()
+OPTIONAL MATCH (author)-[gone:EMERITUS_OF]->()
+WITH k, still_cited_by, author, count(liveRole) AS live, count(gone) AS emeritus
 WITH k, still_cited_by,
-     count(DISTINCT author)   AS authors,
-     count(DISTINCT liveRole) AS live_roles
-RETURN k.num                              AS kep,
-       k.title                            AS title,
-       k.status                           AS status,
-       k.sig                              AS sig,
-       ($now - k.created_ms) / $msYear    AS years_undecided,
+     count(DISTINCT author)                                     AS authors,
+     sum(CASE WHEN live > 0 THEN 1 ELSE 0 END)                   AS with_current_role,
+     sum(CASE WHEN emeritus > 0 AND live = 0 THEN 1 ELSE 0 END)  AS verifiably_departed,
+     sum(CASE WHEN emeritus = 0 AND live = 0 THEN 1 ELSE 0 END)  AS status_unknown
+
+RETURN k.num                           AS kep,
+       k.title                         AS title,
+       k.status                        AS status,
+       k.sig                           AS sig,
+       ($now - k.created_ms) / $msYear AS years_undecided,
        still_cited_by,
        authors,
-       live_roles,
-       CASE WHEN live_roles = 0 THEN 'NO_LIVING_AUTHOR' ELSE 'HAS_LIVING_AUTHOR' END AS currency,
-       k.url                              AS source_url
-ORDER BY live_roles ASC, still_cited_by DESC, years_undecided DESC
+       with_current_role,
+       verifiably_departed,
+       status_unknown,
+       CASE WHEN with_current_role = 0 AND verifiably_departed > 0 THEN 'AUTHOR_STEPPED_BACK'
+            WHEN with_current_role = 0 THEN 'NO_AUTHOR_HOLDS_A_ROLE'
+            ELSE 'AUTHOR_STILL_ACTIVE' END AS currency,
+       k.url                           AS source_url
+ORDER BY with_current_role ASC, verifiably_departed DESC, still_cited_by DESC
 LIMIT $limit
 """
 
@@ -379,6 +395,6 @@ CATALOGUE = {
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",
     "who_owns": "Who owns an area. depth=1 gives the approver list; depth=4 adds what the departed owner decided elsewhere. Args: path, depth.",
-    "stale_knowledge": "What does this graph know that is going stale? Decisions still cited by others, still undecided years later, with no living author. Args: min_years.",
+    "stale_knowledge": "What does this graph know that is going stale? Decisions still cited by others, still undecided years later, whose authors have stepped back. Args: min_years.",
     "recall": "Has this graph been asked something like this before, and what did that answer cite? Args: question.",
 }
