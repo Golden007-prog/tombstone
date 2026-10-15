@@ -152,6 +152,9 @@ class Agent:
                 return self.tools.successor_for(args.get("handle") or "")
             if tool == "broken_lineage":
                 return self.tools.broken_lineage(min_cites=max(1, num(args.get("min_cites", 1), 1)))
+            if tool == "hollowing_communities":
+                return self.tools.hollowing_communities(
+                    min_size=max(2, num(args.get("min_size", 5), 5)))
             if tool == "sole_approver_risk":
                 return self.tools.sole_approver_risk()
             if tool == "what_if_they_go":
@@ -322,6 +325,18 @@ def render(a: Answer) -> str:
         lines = [f"• {r[0]} already approves {r[1]} of their {r[2]} abandoned areas "
                  f"(owns {r[3]} overall)" for r in a.rows]
         return "Most-overlapping current approvers:\n\n" + "\n".join(lines)
+    if t == "hollowing_communities":
+        lines = []
+        for cid, size, gone, live, pct, who in a.rows:
+            lines.append(
+                f"• community #{cid} — {int(size)} people, {int(pct)}% have stepped back\n"
+                f"    {int(gone)} no longer hold approval authority, {int(live)} still do\n"
+                f"    e.g. {', '.join(w for w in who if w)}")
+        return ("Contributor communities losing their people fastest. These groups are not "
+                "declared anywhere — no membership file produces them. They are discovered by "
+                "running community detection over who has actually worked on decisions "
+                "together:\n\n" + "\n".join(lines)
+                + "\n\n" + (a.note or ""))
     if t == "sole_approver_risk":
         lines = [f"• {who} is the ONLY approver of {n} area(s): "
                  f"{', '.join(x.replace('/OWNERS','') for x in sample)}"

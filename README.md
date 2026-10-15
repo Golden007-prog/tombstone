@@ -32,6 +32,7 @@ answers questions that are each a traversal, not a lookup:
 | **Who inherited this code when its owners left?** | the broader group approval silently fell back to |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
 | **What's going stale?** | decisions still cited, still undecided years on, with no author with authority left to ask |
+| **Which group is hollowing out?** | communities discovered from co-authorship, ranked by attrition |
 | **Who holds an area alone?** | 45 areas have exactly one approver — a bus factor of one |
 | **What if they stepped back too?** | the areas that would be left with no owner anywhere |
 | **Has this been asked before?** | the prior answer, when, and the live nodes it cited |
@@ -361,7 +362,7 @@ LIMIT $limit
 
 ## The agent
 
-Ten tools. The model picks one and fills its arguments; hand-written Cypher answers; a
+Eleven tools. The model picks one and fills its arguments; hand-written Cypher answers; a
 deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
 so it cannot soften a negative into a maybe or name someone who isn't in the graph.
 
@@ -412,6 +413,27 @@ all**, so absence mostly means "was never an approver", not "has left". Only `em
 an explicit published statement that someone stepped back, is counted as departure; everyone else
 is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
 guards the confusion.
+
+## Which *group* is hollowing out?
+
+Individual attrition is a traversal. "Which group is losing its people" is not — because **the
+groups are not declared anywhere.** No SIG membership file produces them. They are discovered by
+running label propagation over who has actually worked on decisions together, and only then can
+you ask what fraction of each discovered partition still holds authority.
+
+```
+community #1709 — 25 people, 24% have stepped back
+    6 no longer hold approval authority, 5 still do
+    e.g. timothysc, ereslibre, ksubrmnn, roberthbailey, rosti
+```
+
+A working group where more people have stepped back than still hold authority. Nobody wrote that
+group down; it only exists as a property of the collaboration graph.
+
+**Honest limit:** FalkorDB has no Louvain or Leiden, so label propagation is the available
+algorithm. It is non-deterministic and has no resolution parameter — run it twice and the
+boundaries may shift. The answer says so, and the test asserts structural invariants rather than
+exact community ids, because a test pinning those would fail randomly.
 
 ## The forward-looking one: what breaks if one more person steps back?
 

@@ -272,7 +272,55 @@ LIMIT $limit
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "broken_lineage", rows=rows, ms=ms, cypher=self.BROKEN_LINEAGE)
 
-    # ---------- TOOL 6: bus factor ----------
+    # ---------- TOOL 6: which GROUP is hollowing out ----------
+    HOLLOWING_COMMUNITIES = """
+CALL algo.labelPropagation({nodeLabels:['Person'], relationshipTypes:['CO_AUTHORED']})
+YIELD node, communityId
+WITH communityId, collect(node) AS members, count(node) AS size
+WHERE size >= $minSize
+UNWIND members AS m
+OPTIONAL MATCH (m)-[gone:EMERITUS_OF]->()
+OPTIONAL MATCH (m)-[live:APPROVES]->()
+WITH communityId, size, m, count(gone) AS g, count(live) AS l
+WITH communityId, size,
+     sum(CASE WHEN g > 0 AND l = 0 THEN 1 ELSE 0 END) AS stepped_back,
+     sum(CASE WHEN l > 0 THEN 1 ELSE 0 END)           AS still_approving,
+     collect(CASE WHEN g > 0 AND l = 0 THEN m.key ELSE null END) AS gone_names
+WHERE stepped_back > 0
+RETURN communityId                                        AS community,
+       size,
+       stepped_back,
+       still_approving,
+       round(100.0 * stepped_back / size)                 AS pct_stepped_back,
+       [x IN gone_names WHERE x IS NOT NULL][0..5]        AS who_stepped_back
+ORDER BY pct_stepped_back DESC, size DESC
+LIMIT $limit
+"""
+
+    def hollowing_communities(self, min_size: int = 5, limit: int = 8) -> Answer:
+        """Which contributor COMMUNITY is losing its people fastest?
+
+        Individual attrition is a traversal. "Which group is hollowing out" is not: the groups
+        are not declared anywhere — no SIG membership file produces them — they are discovered by
+        running community detection over who has actually worked on decisions together. Label
+        propagation partitions that graph, and only then can you ask what fraction of each
+        partition still holds authority.
+
+        FalkorDB has no Louvain or Leiden, so label propagation is the available algorithm. It is
+        non-deterministic and has no resolution parameter, which is stated in the answer rather
+        than hidden.
+        """
+        params = {"minSize": max(2, min_size), "limit": limit}
+        rows, ms = self._run("hollowing_communities", self.HOLLOWING_COMMUNITIES, params)
+        shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
+        return Answer(shape, "hollowing_communities", rows=rows, ms=ms,
+                      cypher=self.HOLLOWING_COMMUNITIES, params=params,
+                      coverage=self._coverage(),
+                      note="Communities are discovered by label propagation over co-authorship, "
+                           "not declared. The algorithm is non-deterministic and has no "
+                           "resolution parameter — run it twice and boundaries may shift.")
+
+    # ---------- TOOL 7: bus factor ----------
     SOLE_APPROVER = """
 MATCH (p:Person)-[:APPROVES]->(o:OwnersFile)
 WITH o, collect(DISTINCT p.key) AS approvers
@@ -422,6 +470,7 @@ CATALOGUE = {
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",
     "who_owns": "Who owns an area. depth=1 gives the approver list; depth=4 adds what the departed owner decided elsewhere. Args: path, depth.",
+    "hollowing_communities": "Which contributor community is losing its people fastest? Communities are discovered by label propagation over co-authorship, not declared anywhere. Args: min_size.",
     "sole_approver_risk": "Which areas have exactly ONE approver — a bus factor of one — and who is it? Args: none.",
     "what_if_they_go": "Simulate a group stepping back from approving all at once, and report which areas would be left with no live owner anywhere. Args: handles (list).",
     "stale_knowledge": "What does this graph know that is going stale? Decisions still cited by others, still undecided years later, whose authors have stepped back. Args: min_years.",

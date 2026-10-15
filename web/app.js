@@ -27,6 +27,8 @@ const CHIPS = [
   { label: "Ask something it cannot know",
     tool: "has_this_been_tried",
     args: { idea_text: "rewrite the control plane in COBOL on a mainframe", max_dist: 0.15 } },
+  { label: "Which contributor group is hollowing out?",
+    tool: "hollowing_communities", args: { min_size: 5 } },
   { label: "Which areas have exactly one approver?",
     tool: "sole_approver_risk", args: {} },
   { label: "What if the apiserver reviewers all stepped back?",

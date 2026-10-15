@@ -548,3 +548,32 @@ def test_counterfactual_cleans_up_its_copies(agent):
     agent.dispatch("what_if_they_go", {"handles": ["deads2k"]})
     leaked = [g for g in agent.db.list_graphs() if ":cf:" in g]
     assert leaked == [], f"counterfactual leaked graphs: {leaked}"
+
+
+def test_hollowing_communities_is_structurally_sound(agent):
+    """Label propagation is NON-DETERMINISTIC and has no resolution parameter.
+
+    So this asserts invariants that must hold on any partition, never exact community ids or
+    sizes — a test that pinned those would fail randomly and teach us to ignore it.
+    """
+    a = agent.dispatch("hollowing_communities", {"min_size": 5})
+    assert a.shape == "ANSWERED_WITH_PATH"
+    pcts = []
+    for cid, size, gone, live, pct, who in a.rows:
+        size, gone, live, pct = int(size), int(gone), int(live), int(pct)
+        assert size >= 5, f"community {cid} below min_size"
+        assert gone >= 1, "a community with nobody stepped back should not be listed"
+        assert gone + live <= size, f"{gone}+{live} exceeds community size {size}"
+        assert 0 < pct <= 100, f"implausible percentage {pct}"
+        assert len([w for w in who if w]) >= 1, "no names given for who stepped back"
+        pcts.append(pct)
+    assert pcts == sorted(pcts, reverse=True), f"not ordered by attrition: {pcts}"
+    # the non-determinism must be disclosed, not hidden
+    assert "non-deterministic" in (a.note or "").lower()
+
+
+def test_hollowing_communities_discloses_its_algorithm(agent):
+    """FalkorDB has no Louvain/Leiden; the answer must say which algorithm produced it."""
+    a = agent.dispatch("hollowing_communities", {"min_size": 5})
+    assert "labelPropagation" in a.cypher
+    assert "label propagation" in render(a).lower()
