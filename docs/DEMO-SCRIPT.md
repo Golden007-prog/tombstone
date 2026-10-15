@@ -61,7 +61,7 @@ ownership files.*
 >
 > That's the path the answer came from — the nodes the query walked, not a summary written after."
 
-### 0:56–1:24 — The question you cannot ask a search box · 80 words
+### 0:56–1:14 — The question you cannot ask a search box · 52 words
 
 > *[Type the question into the box and press Ask. This instance has no API key.]*
 >
@@ -70,12 +70,17 @@ ownership files.*
 > No API key here - that was routed locally, by meaning, against a fixed list of tools.
 >
 > Yes. KEP-6061 considered pulling profile artifacts into the kubelet, and rejected it. Here's the
-> recorded reason, in the author's own words.
->
-> It also tells me whether anyone who made that call still approves anything here - a rationale
-> whose authors hold no authority is a different kind of risk."
+> recorded reason, in the author's own words."
 
-### 1:24–1:42 — The answer no search engine can give · 52 words
+### 1:14–1:25 — Fork the graph and ask what breaks · 25 words
+
+> *[Click the what-if-they-all-stepped-back chip. Let the picture draw.]*
+>
+> "Now the forward-looking one. Fork the graph, delete their approvals, re-run, drop the copy.
+>
+> One area loses its last approver. The others inherit coverage upward."
+
+### 1:25–1:43 — The answer no search engine can give · 52 words
 
 > *[Click the whose-departure-cost-most chip.]*
 >
@@ -87,7 +92,7 @@ ownership files.*
 >
 > A whole-graph property. Under twenty milliseconds, inside the request."
 
-### 1:42–2:16 — It drafts the fix, and refuses two of them · 100 words
+### 1:43–2:17 — It drafts the fix, and refuses two of them · 100 words
 
 > *[Click the draft-the-fix chip.]*
 >
@@ -108,7 +113,7 @@ ownership files.*
 *On screen: `2 OWNERS patches drafted from the graph, 1 candidate refused with a reason`. Both
 drafts are committed under `docs/patches/`, so a judge can read them without running anything.*
 
-### 2:16–2:30 — It remembers, and the memory is in the graph · 39 words
+### 2:17–2:31 — It remembers, and the memory is in the graph · 39 words
 
 > *[Click the asked-before chip.]*
 >
@@ -117,7 +122,7 @@ drafts are committed under `docs/patches/`, so a judge can read them without run
 >
 > One query can start in memory and end in facts."
 
-### 2:30–2:46 — Remove the database · 37 words
+### 2:31–2:47 — Remove the database · 37 words
 
 > *[Terminal beside the browser: stop the falkordb container, then refresh the page.]*
 >
@@ -128,7 +133,7 @@ drafts are committed under `docs/patches/`, so a judge can read them without run
 
 *The header goes red and the next question returns `DEGRADED`.*
 
-### 2:46–3:00 — Close · 33 words
+### 2:47–3:00 — Close · 33 words
 
 > "Seven hundred real decisions, from Kubernetes' own public record. Every number in the README has
 > a script that re-checks it against the live graph.
@@ -154,6 +159,11 @@ drafts are committed under `docs/patches/`, so a judge can read them without run
 - No stack list. It is in the README.
 - No multi-tenancy benchmark. It is a strong result but it is not what Track 3 asks for, and it
   would cost 20 seconds this script does not have.
+- **No "who decided this is still here" line on the rejected-option beat.** It was the third
+  paragraph of that beat and it cost ten seconds, which bought the GRAPH.COPY beat instead. The
+  trade is deliberate: that line restates a point the four-hop beat already makes, while forking
+  the graph to ask what breaks is the one thing on screen that no other database in this field
+  does, and it is now the clearest picture in the product.
 - **No standalone "honest negative" beat.** It used to sit at 1:58 and it was cut to make room for
   the drafting action. Nothing was lost: the 0:16 beat already shows `NOT_IN_GRAPH` with the
   coverage line, and the two refusals in the drafting beat make the same argument on a harder
