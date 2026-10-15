@@ -320,8 +320,14 @@ Rule 3 says a product that still works without the graph is decoration, so here 
   matter how far away they are. "Nobody named here still holds approval authority" is the *absence*
   of an edge, and absence is not
   something a similarity score can express.
-- **The ranking of whose departure hurt most disappears entirely.** That is betweenness centrality —
-  a whole-graph property that no traversal, no SQL join and no embedding can compute.
+- **The ranking of whose departure hurt most disappears entirely.** That is betweenness
+  centrality: not a traversal, not a join, and not anything an embedding can express. A graph
+  *library* can compute it — networkx does, in roughly the same time, and
+  [I measured that rather than claim otherwise](#why-falkordb-measured-honestly--including-where-it-loses).
+  The difference is that in the library it is a separate process over a separate copy of the
+  graph, and the score cannot be **composed with the ownership traversal in the same query** —
+  which is exactly what `stepped_back_bridges` does: rank by centrality, then walk from each
+  person to the areas they left, in one Cypher statement against live data.
 
 There is **no in-memory mirror and no cached fallback** anywhere in this repo. With the database
 unreachable, every endpoint returns `DEGRADED` and says so. There is a test for it

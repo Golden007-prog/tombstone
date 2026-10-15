@@ -86,9 +86,12 @@
       plausible wrong answer gets made. “Nobody named here still holds approval authority” is the
       <em>absence</em> of an edge, and absence is not something a similarity score can express.
       And the ranking of who held the most connective authority before stepping back is
-      betweenness centrality — a whole-graph property no traversal, join or embedding can
-      compute. There is no in-memory mirror and no cached fallback in this repo. With the
-      database off, it fails loudly.
+      betweenness centrality — not a traversal, not a join, not anything an embedding expresses.
+      A graph <em>library</em> can compute it (networkx does, in about the same time — measured,
+      not asserted); what it cannot do is <em>compose</em> that score with the ownership traversal
+      in the same query against live data, which is what this tool does in one statement. There is
+      no in-memory mirror and no cached fallback in this repo. With the database off, it fails
+      loudly.
     </p>
   </section>
 </main>
