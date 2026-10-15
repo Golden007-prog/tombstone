@@ -306,6 +306,10 @@ class Agent:
                 return Answer("ANSWERED_WITH_PATH", "what_if_they_go",
                               rows=[[r["cohort"], r["newly_stranded"], r["stranded_before"],
                                      r["total_ms"], r["copy_ms"]]],
+                              # Without this the UI printed "0ms" beside a counterfactual whose
+                              # own text said it took 404ms on a forked copy -- the one number on
+                              # screen that made the most expensive operation look like a no-op.
+                              ms=r["total_ms"],
                               cypher=_cf.STRANDED,
                               note=f"Evaluated on a {r['copy_ms']}ms GRAPH.COPY; the live graph "
                                    f"was never modified and the copy was dropped.")
@@ -487,7 +491,11 @@ def headline(a: Answer) -> dict | None:
             return {"stat": f"{int(a.rows[0][4])}%", "label": f"of a {int(a.rows[0][1])}-person group has stepped back"}
         if t == "what_if_they_go":
             stranded = a.rows[0][1]
-            return ({"stat": str(len(stranded)), "label": "areas would be left with no owner anywhere"}
+            # "1 areas" under a headline number is the kind of thing a reader notices before
+            # anything else on the screen.
+            return ({"stat": str(len(stranded)),
+                     "label": ("area would be left with no owner anywhere" if len(stranded) == 1
+                               else "areas would be left with no owner anywhere")}
                     if stranded else {"stat": "0", "label": "nothing would be left unowned"})
         if t == "who_owns(depth=4)":
             live = a.rows[0][1] or []

@@ -1,6 +1,6 @@
 # walkthrough-silent.mp4
 
-A 67-second captioned walkthrough: a title card, seven beats, and a closing card, every frame a real headless screenshot of the
+A 77-second captioned walkthrough: a title card, eight beats, and a closing card, every frame a real headless screenshot of the
 running app — no mockups and no reconstruction.
 
 **It is not the submission video.** That needs narration, per [`../DEMO-SCRIPT.md`](../DEMO-SCRIPT.md),
@@ -34,7 +34,8 @@ that added this file", and that commit contained only the .mp4.
 | 4 | **the action**: a real OWNERS patch drafted from the graph and written to disk |
 | 5 | **the refusals** — the handle that is not in the file at all, because an alias expands to it |
 | 6 | **asked for a poem, it declines by name** rather than route into the patch-drafting tool |
-| 7 | betweenness centrality: whose stepping back cost the most connective authority |
+| 7 | **the counterfactual**: one area loses its last approver, two others survive by inheriting coverage upward — the cascade a forked copy exists to compute |
+| 8 | betweenness centrality: whose stepping back cost the most connective authority |
 
 Beats 3 and 6 are captured through `?ask=<question>&focus=1`, which deep-links a free-text
 question — so a question and its answer can be shared as a URL, and so the walkthrough can show
