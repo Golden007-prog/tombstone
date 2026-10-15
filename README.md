@@ -104,6 +104,11 @@ $ open http://localhost:8099  ->  "Draft the fix — don't just report it"
 2 OWNERS patches drafted from the graph, 1 candidate refused with a reason
 ```
 
+![Two OWNERS patches drafted from the graph, and one candidate refused](docs/img/drafted-patch.png)
+
+*The live app, captured by `scripts_gen_readme_shots.py` through the same deep link you can open
+yourself: two patches drafted, one candidate refused mid-list with the reason on its face.*
+
 The drafted patch is a real one:
 
 ```diff
@@ -261,6 +266,11 @@ everything" — *"write me a poem about kubernetes"* scored **0.631** against `d
 and was accepted, routing a creative-writing request into the tool that **drafts patches**. The
 fix was not a higher cutoff but giving the router somewhere correct to land: out-of-domain
 examples are modelled as their own bucket, so "none of these" is a thing it can conclude.
+
+![Asked for a poem, the agent declines by name instead of routing into the patch tool](docs/img/keyless-refusal.png)
+
+*No API key on that instance. It routed the question, decided none of its tools answer it, and
+said so.*
 
 ```
 $ "which areas have exactly one approver?"   -> sole_approver_risk   (0.990)
