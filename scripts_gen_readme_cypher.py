@@ -9,10 +9,11 @@ ORDER = [
      "Vector KNN seeds the search, then the graph supplies what no embedding holds: which decision "
      "recorded it, who decided, and whether any of them still approve anything. A vector store alone "
      "returns the k nearest rows and can never return *nothing*."),
-    ("orphaned_ownership", "ORPHANED_OWNERSHIP",
-     "Which areas have NO current approver at all, only departed ones?",
-     "This is the ABSENCE of an edge. A similarity score cannot express absence; it always returns "
-     "its nearest neighbours however far away they are."),
+    ("ownership_dilution", "OWNERSHIP_DILUTION",
+     "Which areas lost every DEDICATED approver, and which broader group inherits them now?",
+     "Kubernetes OWNERS inherit, so finding who actually covers a directory means walking UP the "
+     "tree until you hit live approvers — a variable-length traversal. One area falls back two "
+     "levels because the directory in between is also dead."),
     ("departed_bridges", "DEPARTED_BRIDGES",
      "Whose departure cost the most CONNECTIVE knowledge — not just the most files?",
      "Betweenness centrality is a whole-graph property. No traversal, no SQL join and no embedding "

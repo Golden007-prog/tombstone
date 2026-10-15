@@ -321,9 +321,10 @@ def render(a: Answer) -> str:
         area = a.rows[0][0] if a.rows else "?"
         live = a.rows[0][1] if a.rows else []
         status = a.rows[0][7] if a.rows else "?"
-        head = (f"{area} is {status}."
+        head = (f"{area}: {'every dedicated owner has left' if status == 'NO_DEDICATED_OWNER' else 'actively owned'}."
                 + (f" Current approvers: {', '.join(live)}." if live
-                   else " There are no current approvers at all."))
+                   else " Approval falls back to the parent OWNERS — Kubernetes OWNERS inherit, "
+                        "so this is not unowned, but nobody named here still owns it."))
         lines = []
         for r in a.rows:
             _, _, departed, ndec, decisions, ideas, sigs, _ = r

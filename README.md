@@ -16,7 +16,7 @@ answers four questions that are each a traversal:
 | question | what comes back |
 |---|---|
 | **Has this been tried?** | the rejected option, its recorded reason, and whether any decider still works here |
-| **Who owns this?** | at depth 1, silence. At depth 4, that it's **orphaned** — and what its departed owners decided elsewhere |
+| **Who owns this?** | at depth 1, silence. At depth 4, that every dedicated owner left — and who inherited it |
 | **Who inherited this code when its owners left?** | the broader group approval silently fell back to |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
 | **What's going stale?** | decisions still cited, still undecided years on, with no author left to ask |
@@ -25,8 +25,8 @@ answers four questions that are each a traversal:
 ![The reasoning path behind one answer](docs/img/path.svg)
 
 *Asked "who owns `pkg/controller/podgc`?", Tombstone returns silence at depth 1 and this at depth 4:
-the area is orphaned, both recorded owners have left, and one of them personally rejected six
-alternatives in KEP-383. Generated from the live API by `scripts_gen_readme_figure.py`.*
+every owner this directory specifically named has left, and one of them personally rejected six
+alternatives in KEP-383. It is not unowned — approval fell back to the parent group. Generated from the live API by `scripts_gen_readme_figure.py`.*
 
 It runs on **Kubernetes' own governance record** — a real organisation of thousands of people that
 publishes its decision history, its ownership map, and, unusually, its own attrition. Apache-2.0,
@@ -141,7 +141,7 @@ MERGE (a)-[e:CO_AUTHORED]->(b) SET e.w = shared
 | | count |
 |---|---|
 | decisions (`:Kep`) | 679 |
-| rejected alternatives (`:Alternative`) | 959 — of which **753 are titled, named options** |
+| rejected alternatives (`:Alternative`) | 944 — of which **738 are titled, named options** |
 | missing decision records (`:MissingRecord`) | 49 (cited 60 times) |
 | people | 794 |
 | ownership files | 585 |
@@ -153,7 +153,7 @@ Findings that fall straight out of it, each checkable:
 - **60 of 363 internal decision pointers (16.5%) don't resolve.** One missing record,
   `/keps/sig-api-machinery/0006-apply.md`, is cited by **four** separate decisions.
 - **83 of 111 departed owners hold no current approver role anywhere.**
-- **7 areas have no current approver at all**, including `pkg/controller/podgc` (gmarek, foxish).
+- **7 areas lost every *dedicated* approver** — see the correction below; they are not unowned.
 - `lavalamp` is emeritus in **31** ownership files and has the highest betweenness of any departed
   contributor (196.1, sampled, seed pinned).
 
@@ -197,20 +197,36 @@ LIMIT $limit
 ```
 `query_sha` = `52f160988857` — stamped on every answer this query produces.
 
-### `orphaned_ownership` — Which areas have NO current approver at all, only departed ones?
+### `ownership_dilution` — Which areas lost every DEDICATED approver, and which broader group inherits them now?
 
-*Why a graph:* This is the ABSENCE of an edge. A similarity score cannot express absence; it always returns its nearest neighbours however far away they are.
+*Why a graph:* Kubernetes OWNERS inherit, so finding who actually covers a directory means walking UP the tree until you hit live approvers — a variable-length traversal. One area falls back two levels because the directory in between is also dead.
 
 ```cypher
-MATCH (dep:Person)-[:EMERITUS_OF]->(f:OwnersFile)
-OPTIONAL MATCH (cur:Person)-[:APPROVES]->(f)
-WITH f, collect(DISTINCT dep.key) AS departed, count(DISTINCT cur) AS live_approvers
-WHERE live_approvers = 0
-RETURN f.path AS orphaned_area, departed, f.url AS source_url
-ORDER BY f.path
+// 1. areas where every dedicated approver has departed
+MATCH (departed:Person)-[:EMERITUS_OF]->(area:OwnersFile)
+OPTIONAL MATCH (own:Person)-[:APPROVES]->(area)
+WITH area, collect(DISTINCT departed.key) AS departed_owners, count(DISTINCT own) AS own_live
+WHERE own_live = 0
+
+// 2. walk UP the OWNERS tree to the nearest ancestor that still has live approvers
+MATCH path = (area)-[:INHERITS_FROM*1..8]->(anc:OwnersFile)
+MATCH (fb:Person)-[:APPROVES]->(anc)
+WITH area, departed_owners, anc, length(path) AS up, count(DISTINCT fb) AS n_fb
+ORDER BY up ASC
+WITH area, departed_owners,
+     collect({path: anc.path, up: up, n: n_fb})[0] AS nearest
+
+RETURN area.path             AS area,
+       departed_owners,
+       size(departed_owners) AS n_departed,
+       nearest.path          AS approval_falls_back_to,
+       nearest.up            AS levels_up,
+       nearest.n             AS fallback_approvers,
+       area.url              AS source_url
+ORDER BY fallback_approvers ASC, n_departed DESC
 LIMIT $limit
 ```
-`query_sha` = `77d26d485483` — stamped on every answer this query produces.
+`query_sha` = `b0145239cfc7` — stamped on every answer this query produces.
 
 ### `departed_bridges` — Whose departure cost the most CONNECTIVE knowledge — not just the most files?
 
@@ -301,10 +317,11 @@ RETURN o.path                    AS area,
        decisions_they_shaped[0..5] AS sample_decisions,
        ideas_they_rejected[0..4]   AS sample_rejected_ideas,
        sigs_touched,
-       CASE WHEN size(live_approvers) = 0 THEN 'ORPHANED' ELSE 'COVERED' END AS status
+       CASE WHEN size(live_approvers) = 0 THEN 'NO_DEDICATED_OWNER' ELSE 'OWNED' END AS status
 LIMIT $limit
 ```
-`query_sha` = `e45ae59740b7` — stamped on every answer this query produces.
+`query_sha` = `1174754e3277` — stamped on every answer this query produces.
+
 
 ## The agent
 
@@ -433,6 +450,26 @@ cluster/gce/windows               lost yujuhong, yliaog, pjh, mtaufen, ibabou
 
 `test_no_directory_is_actually_unowned` now fails loudly if the wrong claim ever creeps back.
 Of 585 OWNERS files, 57 set `no_parent_owners`; none of those is left without a live approver.
+
+## On sourcing
+
+Four claims in this project turned out to be wrong, all the same shape: **a strong conclusion
+inferred from missing or second-hand evidence.**
+
+| claim | what was wrong |
+|---|---|
+| "7 directories are orphaned" | ignored that Kubernetes OWNERS **inherit** — none is unowned |
+| "63 of 363 pointers broken" | some targets had **moved**, not vanished — it is 60 |
+| "2 decisions have no living author" | 72% of KEP authors were **never** approvers; absence ≠ departure |
+| "organizer guidance, verbatim: 3 minutes" | **not on any official page** — a research agent misattributed it |
+
+The last one is the one I mind most: it put an unverifiable quote in a public repo whose whole
+pitch is checkable claims. Every organizer attribution has been removed or marked unverified, and
+every number here is re-checked by `verify_claims.py` against the live graph.
+
+The irony is not lost on me. This is a product about honest negatives, and I committed the exact
+failure its design warns about — *"an empty traversal means your graph does not know"* — four
+times. Each fix made the claim narrower and more defensible.
 
 ## Honest limits
 

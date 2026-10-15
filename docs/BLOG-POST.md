@@ -15,8 +15,14 @@ anywhere in the repository?
 
 **83 of 111. Seventy-five percent.**
 
-And seven directories have *no current approver at all* — every recorded owner has left.
-`pkg/controller/podgc` is owned, on paper, by two people who are both gone.
+And seven directories have lost *every owner they specifically named*. `pkg/controller/podgc` is
+owned, on paper, by two people who are both gone.
+
+They are not unowned — I got that wrong first time, and it is worth saying why. Kubernetes OWNERS
+files **inherit**: a directory is covered by its ancestors' approvers unless it sets
+`no_parent_owners`. So `podgc` is still approvable, by the ten people who own `pkg/controller`.
+What actually happened is subtler and more interesting: approval **silently widened** to a group
+that never signed up for that code. Finding who inherited it means walking up the tree.
 
 That is not a Kubernetes problem. Kubernetes is unusual because it writes its attrition down in a
 machine-readable field. Every large engineering organisation has this; most just cannot see it.

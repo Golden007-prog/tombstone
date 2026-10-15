@@ -166,7 +166,7 @@ def test_depth_contrast_is_real(agent):
     d4 = agent.dispatch("who_owns", {"path": path, "depth": 4})
     assert d1.shape == "NOT_IN_GRAPH"
     assert d4.shape == "ANSWERED_WITH_PATH"
-    assert "ORPHANED" in render(d4)
+    assert "every dedicated owner has left" in render(d4)
 
 
 def test_unknown_entity_runs_nothing(agent):
@@ -209,7 +209,7 @@ def test_any_depth_clamps_to_the_two_that_exist(agent):
     for d in (2, 9999, 7):
         a = agent.dispatch("who_owns", {"path": path, "depth": d})
         assert a.tool == "who_owns(depth=4)", f"depth={d} produced {a.tool}"
-        assert "ORPHANED" in render(a)
+        assert "every dedicated owner has left" in render(a)
     assert agent.dispatch("who_owns", {"path": path, "depth": -5}).tool == "who_owns(depth=1)"
 
 

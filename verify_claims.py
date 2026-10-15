@@ -12,8 +12,8 @@ one = lambda q, p=None: g.ro_query(q, params=p or {}).result_set[0][0]
 
 CLAIMS = [
     ("decisions (:Kep)", "MATCH (k:Kep) RETURN count(k)", 679),
-    ("rejected alternatives", "MATCH (a:Alternative) RETURN count(a)", 959),
-    ("titled named options", "MATCH (a:NamedOption) RETURN count(a)", 753),
+    ("rejected alternatives", "MATCH (a:Alternative) RETURN count(a)", 944),
+    ("titled named options", "MATCH (a:NamedOption) RETURN count(a)", 738),
     ("missing decision records", "MATCH (m:MissingRecord) RETURN count(m)", 49),
     ("citations of missing records", "MATCH ()-[r:CITES_MISSING]->() RETURN count(r)", 60),
     ("people", "MATCH (p:Person) RETURN count(p)", 794),

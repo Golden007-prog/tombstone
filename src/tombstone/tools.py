@@ -358,7 +358,7 @@ RETURN o.path                    AS area,
        decisions_they_shaped[0..5] AS sample_decisions,
        ideas_they_rejected[0..4]   AS sample_rejected_ideas,
        sigs_touched,
-       CASE WHEN size(live_approvers) = 0 THEN 'ORPHANED' ELSE 'COVERED' END AS status
+       CASE WHEN size(live_approvers) = 0 THEN 'NO_DEDICATED_OWNER' ELSE 'OWNED' END AS status
 LIMIT $limit
 """
 

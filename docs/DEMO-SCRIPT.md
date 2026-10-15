@@ -1,8 +1,11 @@
 # Demo video — 3 minutes, hard cap
 
-Organizer guidance, verbatim: **3 minutes maximum**, plain screen recording, product first, not an
-architecture diagram. So: no title card, no "hi everyone", no stack slide. The first frame is the
-product and the first sentence is the problem.
+**3 minutes, self-imposed.** The hackathon publishes no video-length rule — I looked, and there
+isn't one on the event page, the rules page or the kickoff blog. Three minutes is simply what
+general hackathon-judging advice converges on (MLH, Devpost), and a judge watching dozens of
+entries will thank you for it. Plain screen recording, product first, no architecture diagram:
+no title card, no "hi everyone", no stack slide. The first frame is the product and the first
+sentence is the problem.
 
 Record the voiceover **separately** from the screen capture and lay them together. Narrating live
 while driving the UI is the single biggest cause of ten retakes at midnight.
@@ -123,7 +126,7 @@ ownership files.*
 
 ## What is deliberately NOT in this video
 
-- No architecture diagram. Organizer guidance says product first.
+- No architecture diagram. Judges see the product first or they stop watching.
 - No stack list. It is in the README.
 - No multi-tenancy benchmark. It is a strong result but it is not what Track 3 asks for, and it
   would cost 20 seconds this script does not have.

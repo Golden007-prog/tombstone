@@ -43,7 +43,11 @@ Potential Impact · Creativity & Innovation · Technical Excellence · Best Use 
 
 ## 2. Organizer hard constraints (violating these is self-inflicted)
 - **Video: 3 minutes max**, plain screen recording, product first, not an architecture diagram.
-- **"We should not need to sign up or create an account to try it"** — Kunal Kushwaha, verbatim.
+- ~~"We should not need to sign up or create an account to try it" — Kunal Kushwaha~~
+  **UNVERIFIED.** A research agent attributed this (and a "3 minutes maximum" video cap) to the
+  organizer. I went back to the cited page and **neither quote is there**. Both were treated as
+  design guidance anyway because they are sound on their own merits, but they are NOT organizer
+  rules and must not be presented as such.
 - Live deployment preferred. **Do NOT rely on FalkorDB Cloud free tier**: 100MB cap, stopped after 1 day
   idle, deleted after 7. A link submitted Oct 18 is likely dead when judged.
 - Required artifacts: public repo · README with setup AND the graph data model · the Cypher/algorithms the

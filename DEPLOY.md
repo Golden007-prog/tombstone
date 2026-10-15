@@ -56,7 +56,7 @@ go through `/api/ask` server-side.
 curl -s https://<host>/api/health | python3 -m json.tool          # expect "falkordb": "up"
 curl -s -X POST https://<host>/api/tool \
   -H 'content-type: application/json' \
-  -d '{"tool":"orphaned_ownership","args":{}}'                    # expect 7 rows
+  -d '{"tool":"ownership_dilution","args":{}}'                    # expect 7 rows
 ```
 
 Before submitting, open the live URL **from a different network, in a private window**, and confirm
