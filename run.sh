@@ -27,15 +27,55 @@ if ! command -v docker >/dev/null; then
   exit 1
 fi
 
-docker compose up -d
-echo "waiting for FalkorDB on 6380…"
-for _ in $(seq 1 40); do
-  if docker exec falkordb redis-cli PING >/dev/null 2>&1; then break; fi
-  sleep 1
-done
-if ! docker exec falkordb redis-cli PING >/dev/null 2>&1; then
-  echo "FalkorDB did not come up. Check: docker compose logs falkordb" >&2
-  exit 1
+# Is a FalkorDB already answering on 6380? Checked over a plain socket rather than with
+# `docker exec falkordb`, because that assumes WE started it and that it is called that.
+#
+# This matters more than it looks. The compose file fixes `container_name: falkordb`, so anyone
+# who already has a FalkorDB container -- a second checkout of this repo, or simply someone who
+# has used FalkorDB before, which at a FalkorDB hackathon is most people -- got:
+#
+#   Error response from daemon: Conflict. The container name "/falkordb" is already in use
+#
+# and the quickstart stopped there. Reusing a healthy instance is both the fix and the better
+# behaviour: nobody wants a second database started behind their back.
+ping_falkordb() {
+  "$PY" - <<'PY' 2>/dev/null
+import socket, sys
+try:
+    sock = socket.create_connection(("localhost", 6380), timeout=2)
+    sock.sendall(b"PING\r\n")
+    sys.exit(0 if b"PONG" in sock.recv(64) else 1)
+except Exception:
+    sys.exit(1)
+PY
+}
+
+if ping_falkordb; then
+  echo "FalkorDB is already serving on 6380 — reusing it rather than starting a second one."
+else
+  if ! docker compose up -d 2>/tmp/tombstone-compose.err; then
+    echo "Could not start FalkorDB:" >&2
+    sed 's/^/  /' /tmp/tombstone-compose.err >&2
+    if grep -q 'already in use by container' /tmp/tombstone-compose.err; then
+      cat >&2 <<'MSG'
+
+  A container called "falkordb" already exists but is not serving on 6380. Either start it:
+      docker start falkordb
+  or remove it and let this script create a fresh one:
+      docker rm -f falkordb
+MSG
+    fi
+    exit 1
+  fi
+  echo "waiting for FalkorDB on 6380…"
+  for _ in $(seq 1 40); do
+    ping_falkordb && break
+    sleep 1
+  done
+  if ! ping_falkordb; then
+    echo "FalkorDB did not come up. Check: docker compose logs falkordb" >&2
+    exit 1
+  fi
 fi
 
 export PYTHONPATH="${PYTHONPATH:-}:$(pwd)/src"
