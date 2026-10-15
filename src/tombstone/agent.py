@@ -21,6 +21,7 @@ import os
 import time
 
 from graphkit.ingest import connect
+from tombstone.memory import Memory
 from tombstone.tools import CATALOGUE, Answer, Tools
 
 SYSTEM = """You route questions about an engineering organisation's decision history to exactly one tool.
@@ -48,14 +49,16 @@ class Agent:
         self._embedder = embedder
         self._provider = None
         self.connect_error: str | None = None
+        self.memory: Memory | None = None
         # Connect defensively. With the database gone this product has nothing to do, but it
         # should say so in a sentence rather than raise out of a constructor.
         try:
             self.db = connect()
             self.g = self.db.select_graph(graph_name)
             self.tools = Tools(self.g, self.now_ms)
+            self.memory = Memory(self.g)
         except Exception as e:
-            self.db = self.g = self.tools = None
+            self.db = self.g = self.tools = self.memory = None
             self.connect_error = str(e)[:200]
 
     # ---- lazily loaded so the CLI starts fast and a keyless demo still works ----
@@ -82,6 +85,7 @@ class Agent:
             self.db = connect()
             self.g = self.db.select_graph(self.graph_name)
             self.tools = Tools(self.g, self.now_ms)
+            self.memory = Memory(self.g)
             self.connect_error = None
             return True
         except Exception as e:
@@ -143,6 +147,17 @@ class Agent:
                 return self.tools.successor_for(args.get("handle") or "")
             if tool == "broken_lineage":
                 return self.tools.broken_lineage(min_cites=max(1, num(args.get("min_cites", 1), 1)))
+            if tool == "recall":
+                text = args.get("question") or args.get("idea_text") or ""
+                if not text.strip():
+                    return Answer("UNKNOWN_ENTITY", "recall", note="No question supplied.")
+                qvec = list(self.embedder().embed([text]))[0].tolist()
+                rows = self.memory.recall(qvec)
+                if not rows:
+                    return Answer("NOT_IN_GRAPH", "recall",
+                                  note="Nothing like this has been asked of this graph before.",
+                                  cypher=Memory.RECALL)
+                return Answer("ANSWERED_WITH_PATH", "recall", rows=rows, cypher=Memory.RECALL)
             if tool == "who_owns":
                 return self.tools.who_owns(args.get("path") or "", depth=num(args.get("depth", 4), 4))
         except Exception as e:
@@ -178,6 +193,14 @@ class Agent:
                     "answer": f"Tool routing failed: {str(e)[:220]}", "health": h}
 
         ans = self.dispatch(choice["tool"], choice.get("args", {}))
+        # Remember what was learned. Additive and best-effort: a memory write must never break
+        # the answer the user actually asked for.
+        if self.memory and ans.shape == "ANSWERED_WITH_PATH" and ans.tool != "recall":
+            try:
+                qv = list(self.embedder().embed([question]))[0].tolist()
+                self.memory.record(question, ans, qvec=qv)
+            except Exception:
+                pass
         return {
             "question": question,
             "routed_to": choice["tool"],
@@ -241,6 +264,19 @@ def render(a: Answer) -> str:
         lines = [f"• {r[0]} already approves {r[1]} of their {r[2]} abandoned areas "
                  f"(owns {r[3]} overall)" for r in a.rows]
         return "Most-overlapping current approvers:\n\n" + "\n".join(lines)
+    if t == "recall":
+        import datetime as _dt
+        lines = []
+        for asked, tool_used, shape, times, ts, rows, cited, dist in a.rows:
+            when = _dt.datetime.fromtimestamp((ts or 0) / 1000).strftime("%d %b %H:%M")
+            refs = ", ".join(str(c.get("key")) for c in (cited or []) if c.get("key"))[:120]
+            lines.append(
+                f"• “{asked}” — asked {times}x, last {when}, answered with {tool_used} ({shape}, {rows} rows)"
+                + (f"\n    cited: {refs}" if refs else "")
+            )
+        return ("This graph has been asked something like that before:\n\n" + "\n".join(lines)
+                + "\n\nRecall is a traversal over what those answers cited, not a cached string — "
+                  "every citation above still points at a live node.")
     if t == "broken_lineage":
         lines = [f"• {r[0]} — cited by {r[1]} decision(s): {', '.join(str(x) for x in r[2])}"
                  for r in a.rows]

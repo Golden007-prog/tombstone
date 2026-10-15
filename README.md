@@ -19,6 +19,7 @@ answers four questions that are each a traversal:
 | **Who owns this?** | at depth 1, silence. At depth 4, that it's **orphaned** — and what its departed owners decided elsewhere |
 | **Which areas have no living owner?** | 7 of them, with every recorded owner gone |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
+| **Has this been asked before?** | the prior answer, when, and the live nodes it cited |
 
 ![The reasoning path behind one answer](docs/img/path.svg)
 
@@ -303,7 +304,7 @@ LIMIT $limit
 
 ## The agent
 
-Six tools. The model picks one and fills its arguments; hand-written Cypher answers; a
+Seven tools. The model picks one and fills its arguments; hand-written Cypher answers; a
 deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
 so it cannot soften a negative into a maybe or name someone who isn't in the graph.
 
@@ -319,6 +320,35 @@ Every answer is one of four shapes:
 Entity names are resolved against the graph *before* any traversal, because a plausible wrong name
 is worse than no answer. And a negative never stands alone — an empty traversal only means this
 corpus doesn't record it, which the UI says in those words every time.
+
+## It remembers what it learns
+
+The brief asks for three things: that the agent acts on connected data, **remembers what it learns**,
+and shows how it reached each answer. The third is the path view above. This is the second.
+
+Every answered question is written back as an `(:Answer)` node that **`CITED`s the exact graph nodes
+it was built from** — not stored as text. Two consequences:
+
+- **Recall is a traversal, not a cache.** A remembered answer can be re-checked against the live
+  graph instead of trusted. If a cited node is gone, the memory can say so.
+- **Memory lives in the same graph as the facts**, so one query can cross from one to the other:
+
+```cypher
+MATCH (a:Answer)-[:CITED]->(p:Person)-[:EMERITUS_OF]->(f:OwnersFile)
+RETURN a.question, p.key, count(DISTINCT f) AS areas_they_left
+```
+```
+"whose departure hurt most?"    -> lavalamp    left 31 areas
+"which areas have nobody left?" -> vishh       left 14 areas
+```
+
+That query **starts in memory and ends in facts**. A separate memory store — a vector DB, a Redis
+cache — structurally cannot answer it, and would also quietly make the "works without FalkorDB"
+test pass, which is precisely the failure the rules describe.
+
+Recall is semantic, so it survives rewording: ask a fresh session *"who currently owns the podgc
+controller"* and it finds the earlier *"who owns pkg/controller/podgc?"*, with its citations intact.
+There is a test for each of these.
 
 ## Why FalkorDB, measured honestly
 

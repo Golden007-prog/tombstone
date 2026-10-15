@@ -300,4 +300,5 @@ CATALOGUE = {
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",
     "who_owns": "Who owns an area. depth=1 gives the approver list; depth=4 adds what the departed owner decided elsewhere. Args: path, depth.",
+    "recall": "Has this graph been asked something like this before, and what did that answer cite? Args: question.",
 }

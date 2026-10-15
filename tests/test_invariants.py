@@ -310,3 +310,76 @@ def test_unparseable_model_output_degrades_cleanly(agent):
     out = agent.ask("who owns the kubelet?")
     assert out["shape"] == "DEGRADED"
     assert "routing failed" in out["answer"].lower()
+
+
+# ---------------- memory: "remembers what it learns" ----------------
+
+def test_answers_are_written_back_and_cite_real_nodes(agent):
+    """An answer is stored as a node that CITES the nodes it was built from, not as text.
+
+    That is what makes recall a traversal instead of a cache, and it is why a remembered answer
+    can be re-checked against the live graph rather than trusted.
+    """
+    agent._provider = _StubProvider('{"tool":"orphaned_ownership","args":{}}')
+    out = agent.ask("which areas have nobody left?")
+    assert out["shape"] == "ANSWERED_WITH_PATH"
+
+    rows = agent.g.ro_query(
+        """
+        MATCH (a:Answer)-[c:CITED]->(n)
+        WHERE a.tool = 'orphaned_ownership'
+        RETURN DISTINCT labels(n)[0] AS label, c.role AS role
+        """
+    ).result_set
+    labels = {r[0] for r in rows}
+    assert "OwnersFile" in labels, f"no area citations: {rows}"
+    assert "Person" in labels, f"no person citations: {rows}"
+
+
+def test_memory_and_facts_are_traversable_in_one_query(agent):
+    """Memory lives in the SAME graph as the facts.
+
+    A separate memory store would make the 'works without FalkorDB' test pass, which is exactly
+    the failure the rules describe -- and it could not answer this query at all.
+    """
+    agent._provider = _StubProvider('{"tool":"departed_bridges","args":{"min_areas":3}}')
+    agent.ask("whose departure hurt most?")
+    rows = agent.g.ro_query(
+        """
+        MATCH (a:Answer)-[:CITED]->(p:Person)-[:EMERITUS_OF]->(f:OwnersFile)
+        RETURN a.question, p.key, count(DISTINCT f) AS areas
+        ORDER BY areas DESC LIMIT 1
+        """
+    ).result_set
+    assert rows, "could not traverse from a remembered answer into the facts it cited"
+    assert rows[0][2] > 0
+
+
+def test_recall_works_across_sessions_on_different_wording(agent):
+    """A new agent object, a differently-worded question, and it still finds the prior answer."""
+    agent._provider = _StubProvider(
+        '{"tool":"who_owns","args":{"path":"pkg/controller/podgc/OWNERS","depth":4}}')
+    agent.ask("who owns pkg/controller/podgc?")
+
+    fresh = Agent(graph_name=GRAPH, now_ms=1_760_000_000_000)
+    a = fresh.dispatch("recall", {"question": "who currently owns the podgc controller"})
+    assert a.shape == "ANSWERED_WITH_PATH", render(a)
+    assert "podgc" in render(a)
+
+
+def test_recall_admits_when_it_has_never_been_asked(agent):
+    a = agent.dispatch("recall", {"question": "what is the airspeed velocity of an unladen swallow"})
+    assert a.shape == "NOT_IN_GRAPH"
+    assert "never" in render(a).lower() or "nothing" in render(a).lower()
+
+
+def test_memory_write_failure_never_breaks_the_answer(agent, monkeypatch):
+    """Memory is additive. A write problem must not cost the user their answer."""
+    def boom(*_a, **_k):
+        raise RuntimeError("simulated memory failure")
+
+    agent._provider = _StubProvider('{"tool":"orphaned_ownership","args":{}}')
+    monkeypatch.setattr(agent.memory, "record", boom)
+    out = agent.ask("which areas have nobody left?")
+    assert out["shape"] == "ANSWERED_WITH_PATH"
+    assert len(out["rows"]) == 7
