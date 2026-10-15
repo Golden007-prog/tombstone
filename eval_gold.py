@@ -216,6 +216,20 @@ def main() -> int:
             fails.append(f"the inheritance walk for {probe} gives {sorted(want)}, "
                          f"which the answer does not name: {said[:90]}")
 
+    # The README states this result by name, so it is read back out of the page rather than
+    # trusted. A number nobody derives goes stale within a day; a NAME in a claim about a real
+    # person is worse, because it reads as authoritative and nothing about it looks approximate.
+    readme = open("README.md").read()
+    walk = live_approvers("staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS")
+    if "exactly one\nperson, `apelisse`" in readme or "person, `apelisse`" in readme:
+        ok = walk == {"apelisse"}
+        print(f"  {'PASS' if ok else 'FAIL'}  the README names apelisse as the one person the "
+              f"metrics path falls back to, and the raw files agree")
+        if not ok:
+            fails.append(f"the README names apelisse; walking the corpus gives {sorted(walk)}")
+    else:
+        fails.append("the README no longer states the metrics-path finding where this can check it")
+
     # The NOTICE promises what was and was not ingested, and a promise about personal data is
     # the one a judge is most entitled to check by grepping. One email-shaped string exists: a
     # kernel mailing-list Message-ID quoted inside a verbatim KEP excerpt, named explicitly in

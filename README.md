@@ -498,6 +498,27 @@ files that parse to something. Five OWNERS files in the tree declare nothing at 
 still a node, because it names no approvers, so everything under it falls through to its parent.
 That is exactly the inheritance this product walks. The gold was wrong; the corpus has 585.
 
+**It also checks an ANSWER, not only the structure.** A faithful graph still leaves room for a
+traversal that returns the wrong people, so the OWNERS inheritance is walked a second time in
+plain Python over the raw records — no Cypher, no database — and compared with what the tool says.
+That puts the claim at the top of this page on independent footing: walking the committed files
+upward from `staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS` finds **exactly one
+person, `apelisse`**, and the product's answer names the same one. Until this existed, the only
+thing confirming that finding was the database it came from.
+
+Writing it took three wrong checks, all of them mine, and each one is worth knowing because the
+product distinguishes three things a reader might not:
+
+| | |
+|---|---|
+| `live_approvers` | who is **named on this file** and still approves. Zero for the metrics file, correctly: it declares reviewers and `emeritus_approvers` and no approvers at all |
+| the inheritance walk | who can approve the path once you follow OWNERS **upward**. The same as the first when a file has its own approvers, different when it does not |
+| `_inherited_by` | the **fallback parent**. For `pkg/scheduler`, which has its own eight approvers, it names `pkg/OWNERS` — where approval would drop if those eight vanished |
+
+I asked each of those for one of the others' answers in turn, and the product was right every
+time. A check that disagrees with the thing it checks is a claim about one of them; it took three
+rounds to establish which.
+
 **And it shows which rule is load-bearing.** Disable alias expansion in the gold calculation —
 treat `sig-api-machinery-approvers` as a person rather than expanding it to the three people it
 names — and "files with exactly one approver" goes from **45 to 247**. The bus-factor answer would
