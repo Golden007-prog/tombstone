@@ -134,3 +134,8 @@ pre.diff{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-s
    three minutes knows where to start; everything else stays available but stops competing. */
 .chip.step{border-color:var(--accent);color:var(--accent);font-weight:600}
 .chip.step:hover{background:color-mix(in srgb, var(--accent) 12%, transparent)}
+
+/* Said next to the answer rather than buried under a disclosure. Competing entries show a badge
+   when an answer's citations verify; this product's claim is stronger and was harder to find. */
+.provenance{font-size:12px;color:var(--dim);margin:10px 0 0;line-height:1.55;
+  border-left:2px solid var(--line);padding-left:10px}

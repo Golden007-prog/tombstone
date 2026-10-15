@@ -168,6 +168,12 @@ function renderAnswer(text) {
   }
 }
 
+// An answer is "from rows" when a query actually produced it. Refusals and degraded answers are
+// not, and must not carry the provenance claim.
+function cyRan(data) {
+  return (data.cypher || "").trim() && Array.isArray(data.rows);
+}
+
 function show(data, graphArgs) {
   $("result").classList.remove("hidden");
   $("shape").textContent = data.shape || "?";
@@ -187,6 +193,17 @@ function show(data, graphArgs) {
   const cov = data.coverage && Object.keys(data.coverage).length ? data.coverage : null;
   $("covwrap").classList.toggle("hidden", !cov);
   if (cov) $("coverage").textContent = JSON.stringify(cov, null, 2);
+
+  // The provenance line belongs to answers that came from a query. A refusal did not run one,
+  // and claiming "formatted from rows this query returned" under it would be false.
+  const fromRows = !!cyRan(data);
+  $("provenance").classList.toggle("hidden", !fromRows);
+  if (fromRows) {
+    $("provenance").lastElementChild.nextSibling.textContent =
+      data.routed_by === "llm"
+        ? " — the model's only decision is which tool to call."
+        : " — the model's only decision is which tool to call, and on this instance there is no model at all.";
+  }
 
   // No Cypher ran, so do not offer to show it. A disclosure that opens onto "(none)" with an
   // empty hash beside it looks like something failed, when nothing did -- the router declined.

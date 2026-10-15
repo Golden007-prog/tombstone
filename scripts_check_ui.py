@@ -124,7 +124,8 @@ def dom(url: str, attempts: int = 4) -> dict:
         # Strictly require the page to say it finished. The earlier version also accepted a DOM
         # with no autorun flag at all, treating "never started" as "nothing to wait for".
         if 'data-autorun="done"' in out:
-            probe = Probe(set(PANELS) | set(PANELS.values()) | {"shape", "answer", "graphwrap"})
+            probe = Probe(set(PANELS) | set(PANELS.values())
+                  | {"shape", "answer", "graphwrap", "provenance", "cypher", "cywrap"})
             probe.feed(out)
             return probe.found
         budget += 10000
@@ -181,6 +182,17 @@ def main() -> int:
                     failures.append(
                         f"{label}: #{panel} is visible but #{inner} is empty "
                         f"-- a panel that renders with nothing in it reads as a failure")
+        # The provenance line claims the answer was formatted from rows a query returned. It must
+        # appear exactly when that is true. On a refusal no query ran, so the claim would be a
+        # lie -- which is a worse failure than any empty panel, because it is a false statement
+        # about the product's own integrity sitting next to an answer that does not have one.
+        has_cypher = bool((found.get("cypher") or {}).get("text", "").strip())
+        prov = visible(found.get("provenance"))
+        if prov != has_cypher:
+            failures.append(
+                f"{label}: provenance line is {'shown' if prov else 'hidden'} but the answer "
+                f"{'did' if has_cypher else 'did NOT'} come from a query")
+
         if visible(found.get("graphwrap")):
             if "<svg" not in (found.get("graphwrap") or {}).get("text", "") + "<svg":
                 failures.append(f"{label}: graph panel visible with no graph in it")
