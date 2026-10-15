@@ -455,7 +455,18 @@ Rule 3 says a product that still works without the graph is decoration, so here 
 
 There is **no in-memory mirror and no cached fallback** anywhere in this repo. With the database
 unreachable, every endpoint returns `DEGRADED` and says so. There is a test for it
-(`test_agent_fails_loudly_without_the_database`).
+(`test_agent_fails_loudly_without_the_database`) — and, because a unit test proves the code has no
+fallback rather than that the deployed thing behaves, `./scripts_verify_deploy.sh` now **kills
+FalkorDB inside the running container** and checks what is left:
+
+- health reports `down` rather than claiming to be fine
+- a question answered moments earlier comes back `DEGRADED` — **not from memory.** Memory lives in
+  the same graph, so it dies with it. A remembered answer served while the records it cites are
+  unreachable would be a stale claim dressed as a fresh one, which is the precise failure this
+  whole project argues against
+- the page itself still returns 200, so a visitor meets an honest error instead of a dead site
+
+On a Space this is not hypothetical: a killed database is what an OOM looks like.
 
 ## How do I know the graph is a faithful reading of the corpus?
 

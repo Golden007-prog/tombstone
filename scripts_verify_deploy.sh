@@ -189,6 +189,44 @@ if docker inspect "$IMG" --format '{{.State.OOMKilled}}' 2>/dev/null | grep -q t
   exit 1
 fi
 
+# ---------------------------------------------------------------------------
+# "Turn FalkorDB off and it fails loudly" is one of the README's central claims, and until now it
+# had only ever been checked by reading the code for a fallback that is not there. On a Space the
+# database being killed is not hypothetical -- it is what an OOM looks like. So kill it here, in
+# the container, and watch what the product does. This runs LAST because it ends the instance.
+echo
+echo "killing FalkorDB inside the container, to see what the product does when it is gone"
+docker exec "$IMG" sh -c 'for p in /proc/[0-9]*; do
+    if grep -aq falkordb $p/cmdline 2>/dev/null || grep -aq redis-server $p/cmdline 2>/dev/null;
+    then kill -9 ${p##*/}; fi; done' >/dev/null 2>&1 || true
+sleep 3
+
+down_health="$(curl -s -m 5 "http://localhost:$PORT/api/health" || true)"
+echo "$down_health" | grep -q '"down"' \
+  || { echo "FAIL: health still claims FalkorDB is up after it was killed: $down_health"; exit 1; }
+echo "  health reports down, rather than claiming to be fine"
+
+down_answer="$(curl -s -m 20 -X POST "http://localhost:$PORT/api/tool" \
+  -H 'content-type: application/json' -d '{"tool":"sole_approver_risk","args":{}}' || true)"
+echo "$down_answer" | grep -q 'DEGRADED' \
+  || { echo "FAIL: a tool answered something other than DEGRADED with no database: $down_answer"; exit 1; }
+# The same question answered a moment ago. If memory could serve it now, the product would be
+# handing back a stale claim while the thing it cites is unreachable -- which is the exact failure
+# this whole project argues against. Memory lives in the graph, so it dies with it.
+echo "$down_answer" | grep -q 'ANSWERED_FROM_MEMORY' \
+  && { echo "FAIL: memory served an answer while the graph was unreachable"; exit 1; }
+echo "  a question answered moments ago now returns DEGRADED, not a remembered answer"
+
+down_typed="$(curl -s -m 20 -X POST "http://localhost:$PORT/api/ask" \
+  -H 'content-type: application/json' -d '{"question":"which areas have exactly one approver?"}' || true)"
+echo "$down_typed" | grep -q 'DEGRADED' \
+  || { echo "FAIL: a typed question did not degrade honestly: $down_typed"; exit 1; }
+
+page_code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "http://localhost:$PORT/" || true)"
+[ "$page_code" = "200" ] \
+  || { echo "FAIL: the page itself stopped serving when the database died ($page_code)"; exit 1; }
+echo "  the page still serves, so a visitor sees an honest error instead of a dead site"
+
 echo
 echo "Deploy path verified. The only thing left is HF_TOKEN:"
 echo "  export HF_TOKEN=hf_...   &&   ./deploy_hf.sh"
