@@ -23,7 +23,7 @@ const CHIPS = [
     args: { idea_text: "let the kubelet manage this state itself instead of the API server" } },
   { label: "Which areas lost every dedicated owner?",
     tool: "ownership_dilution", args: {} },
-  { label: "Whose stepping back cost the most authority?",
+  { label: "Whose stepping back cost the most connective authority?",
     tool: "stepped_back_bridges", args: { min_areas: 3 } },
   { label: "Who should inherit lavalamp's areas?",
     tool: "successor_for", args: { handle: "lavalamp" }, graph: { handle: "lavalamp" } },
