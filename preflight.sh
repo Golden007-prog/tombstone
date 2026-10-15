@@ -96,6 +96,7 @@ run "GRAPH.COPY carries the whole graph"   "$PY" bench_copy.py
 run "the blog post's claims"               "$PY" verify_blog.py
 run "corpus counts across every doc"       "$PY" scripts_check_doc_counts.py
 run "the README renders on GitHub"         "$PY" scripts_check_markdown_renders.py
+run "the principles table matches the code" "$PY" scripts_check_principles.py
 
 # The Cypher catalogue is generated; drift means the README shows queries that no longer run.
 if "$PY" scripts_gen_readme_cypher.py > /tmp/preflight-cypher.md 2>/dev/null \

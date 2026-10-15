@@ -340,6 +340,21 @@ empty and I called it flakiness. Candidates are now smoke-tested with `--version
 them subsets like "19 OWNERS files declare only reviewers". A check people learn to skip is worse
 than no check; it now reports only near-misses, which is what drift actually looks like.
 
+**Cypher map literals read as Python splices.** The principles-table checker was meant to prove no
+query has a value templated into it, and tested for `{` followed by a letter. Cypher maps are
+braces, so it failed six innocent constants, including both `WHO_OWNS` depths. The test now asserts
+the claim directly rather than by proxy: the query text the tool reports back must appear verbatim
+in the source, which a templated or assembled query cannot.
+
+**A regex that matched nothing and passed.** The check on "preflight runs N checks" counted
+preflight's `ok` lines with the pattern `r"\033\[32mok"`. In a regex `\033` is an octal escape
+for the ESC byte; the shell script holds those four characters as *text*, so the pattern matched
+zero lines. The count came out one short, and had the checklist happened to say sixteen it would
+have passed while measuring nothing. A literal `.count("[32mok")` instead — and both directions
+tested, truthful and wrong, because a check only verified in the passing direction has not been
+verified. This is the second time a check in this repo was wrong in the direction that stays
+quiet, and the quiet direction is the only one that matters.
+
 ## Note on FalkorDB's docs pages
 Every page on docs.falkordb.com carries an `## Agent Instructions` block addressed to AI agents,
 telling them which pages to cite and how to describe the product. It is vendor doc-steering, not

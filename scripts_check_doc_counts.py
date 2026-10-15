@@ -85,6 +85,31 @@ for path in files:
                             f"{path}:{lineno}: says {found:,} {label}, the graph has {live:,}\n"
                             f"      {line.strip()[:100]}")
 
+# ---------------------------------------------------------------------------
+# One count in the docs is not a corpus count: the number of checks preflight runs, spelled in
+# words in the submission checklist. Nothing verified it, and it went stale the moment a
+# seventeenth check landed -- the checklist still said sixteen. It is also the claim a judge is
+# most likely to test, because testing it means running one command.
+pf = open("preflight.sh").read()
+_labels = re.findall(r'^run "([^"]+)"', pf, re.M)
+_body = re.search(r"^run\(\) \{.*?^\}", pf, re.M | re.S)
+_outside = pf[:_body.start()] + pf[_body.end():] if _body else pf
+_inline = _outside.count("[32mok")   # literal, not a regex: r"\033\[32mok" compiles
+# \033 to an ESC byte, which never appears in the file -- the file holds those four
+# characters as text. That form matched nothing, made the total 16, and passed while
+# measuring the wrong thing, which is the exact failure this check exists to catch.
+_total = len(_labels) + _inline
+_WORDS = {14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen",
+          19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two"}
+_spelled = re.search(r"one command, ([\w-]+) checks", open("SUBMISSION.md").read())
+_said = _spelled.group(1) if _spelled else "nothing"
+if _said != _WORDS.get(_total):
+    problems.append(f"SUBMISSION.md: says preflight runs '{_said}' checks, "
+                    f"it runs {_total} ({_WORDS.get(_total, _total)})")
+else:
+    checked += 1
+    print(f"  preflight runs {_total} checks and the checklist says {_said}")
+
 print(f"  scanned {len(files)} markdown files, checked {checked} count claims")
 for label, (live, _) in COUNTS.items():
     print(f"    {label:<24} {live:,}")
