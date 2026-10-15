@@ -39,6 +39,30 @@ def connect(host: str | None = None, port: int | None = None) -> FalkorDB:
     )
 
 
+def expand_aliases(names: Iterable[str], alias_table: dict[str, list[str]]) -> list[str]:
+    """Expand group aliases to real handles; pass real handles through unchanged.
+
+    Kubernetes OWNERS files reference group aliases such as `sig-api-machinery-approvers`
+    rather than people, and the expansion table lives in a separate OWNERS_ALIASES file.
+    Skipping this silently turns 8% of a `Person` population into groups and understates
+    ownership by several hundred edges, so it is not optional.
+    """
+    out: list[str] = []
+    for n in names:
+        if not isinstance(n, str):
+            continue
+        h = n.strip().lstrip("@").lower()
+        if not h:
+            continue
+        out.extend(alias_table.get(h, [h]))
+    return out
+
+
+def is_bot(handle: str) -> bool:
+    h = handle.lower()
+    return h.endswith("[bot]") or h.endswith("-bot") or "prow" in h or h in {"k8s-ci-robot"}
+
+
 def chunked(rows: Sequence[Any], size: int = BATCH) -> Iterator[Sequence[Any]]:
     for i in range(0, len(rows), size):
         yield rows[i : i + size]

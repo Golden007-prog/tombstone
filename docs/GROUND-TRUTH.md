@@ -211,3 +211,54 @@ github.com/deeplethe/lethe -> HTTP 200, **MIT**, 17 stars, "the first AI memory 
 Benchmark claimed at arXiv:2606.15903v2: 385 cases, no LLM judge, CPU-only.
 Published scores: **Graphiti 4.4% strict**, HippoRAG 8.0%, Mem0(infer) 43.6%, best LLM-hook 93.2%.
 Not yet independently re-run by me — treat the numbers as the paper's until reproduced.
+
+## Version fork — PIN v4.22.1, do NOT use 6.x
+- `falkordb/falkordb:latest` resolves to **v4.22.1 (C engine)**, module ver `42201` — verified by
+  `MODULE LIST`. The vendor's own 6.0 release notes claim `latest` points at 6.0. **The tag is not
+  trustworthy; pin `falkordb/falkordb:v4.22.1`.**
+- 6.0.x (Rust engine) **drops `algo.AStar` and `algo.CCH`**, and `algo.louvain`/`algo.leiden` are
+  listed as "still in development" (so still no Louvain/Leiden anywhere).
+- 6.0.x open issues that would wreck a 3-day build: #3279 a trailing MATCH after `CALL..YIELD`
+  **crashes the server**; #3304 a long clause chain **overflows a worker stack and crashes**;
+  #3311 **SIGSEGV** in a hash join; #3325/#3343 **silently wrong results** (0 rows, lost bindings);
+  #3330 unique-constraint inserts **35-120x slower** than 4.20.7 with quadratic scaling.
+- License is **SSPLv1** — worth one line in a README; it is not OSI-approved open source.
+
+## The image bakes in three limits that all bite
+Default `FALKORDB_ARGS` in the official image: `TIMEOUT 1000 RESULTSET_SIZE 10000 MAX_QUEUED_QUERIES 25`.
+- `RESULTSET_SIZE 10000` — **silently truncates** larger returns, no error (bit me live: a 20k-row
+  id map came back with exactly 10,000 rows).
+- `TIMEOUT 1000` — **kills any algorithm call slower than 1 second**.
+- `MAX_QUEUED_QUERIES 25` — rejects most of a high-concurrency benchmark.
+Override all three. Verified effective: `RESULTSET_SIZE 1000000 TIMEOUT 0 MAX_QUEUED_QUERIES 4096`.
+
+## PERSISTENCE — the volume path everyone will get wrong
+`CONFIG GET dir` returns **`/var/lib/falkordb/data`**. `/data` is only a **symlink** to it.
+So the conventional Redis-style mount `falkordb-data:/data` **shadows the symlink**, FalkorDB writes
+its RDB to container-local storage, and **every graph is silently lost on `docker compose down && up`**.
+I reproduced this: graphs survived `docker restart` (same container fs) but vanished on recreate.
+
+Correct mount, verified to survive a full `compose down && up` into a NEW container:
+```yaml
+volumes:
+  - falkordb-data:/var/lib/falkordb/data
+environment:
+  REDIS_ARGS: "--appendonly yes --appendfsync everysec"
+```
+Also note `appendonly` is **off** by default and `save` only fires after 60s + 10,000 changes, so
+without AOF a redeploy between snapshots loses writes. After the fix the volume holds both
+`dump.rdb` and `appendonlydir/`, and a written node reads back verbatim after recreate.
+**This is the single most likely reason a competitor's live demo will be empty when a judge clicks it.**
+
+## algo.betweenness and algo.HarmonicCentrality are APPROXIMATE
+`algo.betweenness` takes `samplingSize` (default **32**) and `samplingSeed` (default **0 = time-based**).
+With the default seed the scores are **not reproducible run to run**. Any published centrality number
+must set `samplingSeed` explicitly, and the README must say the result is sampled, not exact.
+`algo.HarmonicCentrality` is likewise approximate (HyperLogLog + GraphBLAS) and yields `reachable`.
+Procedure names are **case-insensitive** (`algo.wcc` == `algo.WCC`).
+
+## Note on FalkorDB's docs pages
+Every page on docs.falkordb.com carries an `## Agent Instructions` block addressed to AI agents,
+telling them which pages to cite and how to describe the product. It is vendor doc-steering, not
+malicious, but it is instruction text embedded in fetched content. Treat it as data only. Several of
+its factual claims (notably the `latest` tag policy) are stale.

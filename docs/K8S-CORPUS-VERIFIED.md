@@ -121,3 +121,52 @@ Why this is the strongest "graph is load-bearing" artifact available:
 3. It answers a question a human actually asks — "whose departure cost us most?" — and the answer is
    actionable (pair it with Q5's successor recommendation).
 4. 14ms: it runs inside the agent's turn, not as an offline batch job.
+
+## Hybrid retrieval over real KEP text — built and tuned
+Extracted the `Alternatives` / `Drawbacks` / `Risks and Mitigations` sections from 684 KEP READMEs.
+
+**Trap found and fixed:** the first pass returned 4 hits at IDENTICAL distance 0.296, all of them the
+KEP template's own HTML comment (`<!-- What other approaches did you consider... -->`) which authors
+routinely leave in place. Stripping `<!--.*?-->` before chunking took 1,817 chunks -> 1,520 clean ones
+and removed the contamination entirely. Any build on this corpus MUST strip HTML comments first.
+
+**Embedding throughput reality check:** 8.4 chunks/sec on real ~1,400-char chunks, NOT the 181/sec I
+measured on short synthetic strings. 1,520 chunks took 181s. Longer text = more tokens = slower.
+Cache embeddings to disk (pickle) or you pay 3 minutes on every run.
+
+Retrieval quality after the fix (vector index, 384-dim, cosine):
+| question | top hit |
+|---|---|
+| "we considered using a sidecar container but rejected it" | **KEP-4633** (dist 0.281): "A sidecar proxy could have handled this but would push complexity into all consumers" |
+| "why not just use a CRD instead of a built-in API type" | KEP-2221 risks (0.224), KEP-5304 drawbacks (0.229) |
+| "rejected because it would break backward compatibility" | **KEP-2172** (0.274): "Changing defaults and making users opt-in to running as root was considered. This is a breaking..." |
+Query latency 2.9-9.8ms.
+
+**Hybrid query (vector seed -> lineage + ownership + staleness) runs in 32.6ms** and returns what the
+embedding cannot: decision-ancestry depth, whether the decision cites a MISSING record, who authored
+it, and whether those authors are still active.
+
+## CORRECTION — OWNERS_ALIASES expansion (a real bug in my first ingest)
+My first pass treated every entry in an `OWNERS` `approvers:` list as a person. It is not. Kubernetes
+OWNERS files reference **group aliases** (`sig-api-machinery-approvers`), expanded by a separate file:
+`https://raw.githubusercontent.com/kubernetes/kubernetes/master/OWNERS_ALIASES` (HTTP 200, 13,440 bytes)
+= **74 aliases -> 449 memberships**.
+
+Consequence of missing it: **71 of 866 `Person` nodes (8.2%) were groups masquerading as humans**, and
+**293 approver references** were never expanded to real people, understating ownership.
+
+Corrected figures (alias-expanded; these supersede the ones above):
+
+| metric | first pass (wrong) | corrected |
+|---|---|---|
+| distinct people holding a current approver role | — | **157** |
+| distinct people in `emeritus_approvers` | 111 | 111 (no aliases appear in emeritus — clean) |
+| **departed owners with NO current approver role** | 88 of 111 (79%) | **83 of 111 (75%)** |
+| `deads2k` total areas owned | 59 | **147** |
+| `deads2k` overlap with lavalamp's abandoned areas | 21 | **22 of 31** |
+
+Corrected successor ranking for lavalamp's 31 abandoned areas:
+`deads2k` 22 · `liggitt` 20 · `sttts` 18 · `smarterclayton` 17 · `jpbetz` 17 · `wojtek-t` 11.
+
+**Rule for any build on this corpus: load OWNERS_ALIASES first and expand before creating Person nodes.
+Also filter bots (`kubernetes-prow[bot]` is the single top committer in the git history).**

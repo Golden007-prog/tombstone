@@ -1,17 +1,38 @@
-# FalkorDB for Graph Hacks. Host 6379 is often taken by a local redis-server,
-# so we publish on 6380 to avoid a silent "unknown command 'GRAPH.QUERY'" failure.
+# FalkorDB for Graph Hacks.
+#
+# Pinned to v4.22.1 (C engine) deliberately, NOT :latest and NOT 6.x:
+#   - `latest` currently resolves to v4.22.1 anyway, but the vendor's own 6.0 release notes
+#     claim `latest` points at 6.0, so the tag is not trustworthy. Pin explicitly.
+#   - 6.0.x (Rust engine) drops algo.AStar and algo.CCH, and its open issues include server
+#     crashes on a trailing MATCH after CALL..YIELD (#3279), a worker-stack overflow (#3304),
+#     a SIGSEGV in hash joins (#3311), several silently-wrong-result bugs (#3325, #3343),
+#     and a 35-120x unique-constraint insert regression (#3330).
+#
+# Ports: published on 6380, not 6379. A local Homebrew `redis-server` commonly owns 6379 and
+# silently shadows Docker's mapping, surfacing as `unknown command 'GRAPH.QUERY'`.
 services:
   falkordb:
-    image: falkordb/falkordb:latest
+    image: falkordb/falkordb:v4.22.1
     container_name: falkordb
     ports:
       - "6380:6379"   # Cypher / RESP
       - "3100:3000"   # FalkorDB Browser UI
     volumes:
-      - falkordb-data:/data
+      # MUST be /var/lib/falkordb/data, NOT /data. `/data` is only a SYMLINK to it, so the
+      # conventional Redis-style `:/data` mount shadows the symlink and FalkorDB writes its
+      # RDB to container-local storage instead -- silently lost on `compose down && up`.
+      # Verified: with `:/data`, graphs vanish on container recreate; with the real dir they survive.
+      - falkordb-data:/var/lib/falkordb/data
     environment:
-      # default RESULTSET_SIZE=10000 silently truncates large returns
-      FALKORDB_ARGS: "RESULTSET_SIZE 100000 TIMEOUT 0"
+      # The official image bakes in TIMEOUT 1000 / RESULTSET_SIZE 10000 / MAX_QUEUED_QUERIES 25.
+      # All three bite:
+      #   RESULTSET_SIZE 10000     silently TRUNCATES larger returns with no error or warning
+      #   TIMEOUT 1000             kills any algorithm call slower than 1s
+      #   MAX_QUEUED_QUERIES 25    rejects most of a high-concurrency benchmark
+      FALKORDB_ARGS: "RESULTSET_SIZE 1000000 TIMEOUT 0 MAX_QUEUED_QUERIES 4096 THREAD_COUNT 8"
+      # appendonly is OFF by default and `save` only fires after 60s+10000 changes, so a
+      # crash or redeploy between snapshots loses writes. AOF makes the demo durable.
+      REDIS_ARGS: "--appendonly yes --appendfsync everysec"
     healthcheck:
       test: ["CMD", "redis-cli", "PING"]
       interval: 5s
