@@ -128,6 +128,42 @@ function runFromUrl() {
   runTool(chip, btn).finally(() => { document.body.dataset.autorun = "done"; });
 }
 
+
+// A unified diff in a proportional font is not a diff: the - and + columns stop lining up, which
+// is precisely the thing the reader is scanning for. So contiguous diff lines are lifted into a
+// monospace block that scrolls sideways rather than wrapping -- wrapping a diff on a phone
+// destroys it just as thoroughly.
+//
+// Built with text nodes, never innerHTML. The content is the product's own output, but a
+// rendering path that interprets markup is a rendering path that can be made to interpret
+// markup, and there is no reason to have one here.
+const DIFF_START = /^--- /;
+const DIFF_LINE = /^(\+\+\+ |@@ |[-+ ])/;
+
+function renderAnswer(text) {
+  const host = $("answer");
+  host.textContent = "";
+  const lines = text.split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    if (DIFF_START.test(lines[i])) {
+      const block = [];
+      while (i < lines.length && (DIFF_START.test(lines[i]) || DIFF_LINE.test(lines[i]))) {
+        block.push(lines[i]); i++;
+      }
+      const pre = document.createElement("pre");
+      pre.className = "diff";
+      pre.textContent = block.join("\n");
+      host.appendChild(pre);
+    } else {
+      const start = i;
+      while (i < lines.length && !DIFF_START.test(lines[i])) i++;
+      const chunk = lines.slice(start, i).join("\n");
+      if (chunk.trim()) host.appendChild(document.createTextNode(chunk + "\n"));
+    }
+  }
+}
+
 function show(data, graphArgs) {
   $("result").classList.remove("hidden");
   $("shape").textContent = data.shape || "?";
@@ -136,7 +172,7 @@ function show(data, graphArgs) {
   if (data.ms != null) bits.push(`${data.ms}ms`);
   if (data.rows) bits.push(`${data.rows.length} row${data.rows.length === 1 ? "" : "s"}`);
   $("meta").textContent = bits.join("  ·  ");
-  $("answer").textContent = data.answer || "(no answer)";
+  renderAnswer(data.answer || "(no answer)");
 
   // The one number that is the point, pulled from the rows by the server — never written by
   // hand and never by the model, so it cannot disagree with the answer underneath it.

@@ -123,3 +123,9 @@ body.focus #result { margin-top: 0; }
 body.focus.show-ask .askbox { display: block !important; }
 body.focus.show-ask .chips,
 body.focus.show-ask .hint { display: none !important; }
+
+/* Diff blocks lifted out of an answer. Monospace so the columns line up, `pre` so they are not
+   re-wrapped, and sideways scrolling instead of wrapping -- a wrapped diff is unreadable. */
+pre.diff{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+  line-height:1.5;white-space:pre;overflow-x:auto;margin:10px 0;padding:10px 12px;
+  background:rgba(255,255,255,.03);border-left:2px solid var(--line,#333);border-radius:4px}

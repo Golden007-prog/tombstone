@@ -197,16 +197,32 @@ def subgraph(path: str = "", handle: str = "", limit: int = 40):
     return {"nodes": list(nodes.values()), "edges": list(edge_set.values())}
 
 
+# `FileResponse` sets an ETag and Last-Modified but no Cache-Control, which leaves browsers free
+# to cache heuristically and never revalidate. On a demo that gets redeployed and passed around by
+# link, that means a returning visitor can run YESTERDAY'S JavaScript against today's API and see
+# a page that is subtly, silently wrong. I hit exactly that while testing: the server was serving
+# new code and the browser was still running the old.
+#
+# `no-cache` permits caching but requires revalidation on every load. Starlette's FileResponse
+# does NOT honour If-None-Match here -- a conditional request comes back 200, not 304 -- so each
+# load re-fetches rather than revalidating cheaply. That is about 25KB for the three files
+# combined (27KB measured), which is the right trade for a demo whose whole claim is that what you
+# see is what actually ran.
+REVALIDATE = {"Cache-Control": "no-cache"}
+
+
 @app.get("/")
 def index():
-    return FileResponse(os.path.join(WEB, "index.html"))
+    return FileResponse(os.path.join(WEB, "index.html"), headers=REVALIDATE)
 
 
 @app.get("/app.js")
 def appjs():
-    return FileResponse(os.path.join(WEB, "app.js"), media_type="application/javascript")
+    return FileResponse(os.path.join(WEB, "app.js"),
+                        media_type="application/javascript", headers=REVALIDATE)
 
 
 @app.get("/style.css")
 def css():
-    return FileResponse(os.path.join(WEB, "style.css"), media_type="text/css")
+    return FileResponse(os.path.join(WEB, "style.css"),
+                        media_type="text/css", headers=REVALIDATE)
