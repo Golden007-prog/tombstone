@@ -21,7 +21,7 @@ breathe, so the budget for 3:00 is **about 500 spoken words.** This script now h
 
 ---
 
-### 0:00–0:16 — The problem, over a real screen · 46 words
+### 0:00–0:16 — The problem, over a real screen · 47 words
 
 > *[Screen: the Kubernetes enhancements repo on GitHub, scrolling a long KEP README, landing on an
 > Alternatives section.]*
@@ -32,7 +32,7 @@ breathe, so the budget for 3:00 is **about 500 spoken words.** This script now h
 > There are seven hundred of these. A rejected option isn't a document, so no search index holds
 > it. Propose it again three years later and nobody can find out it was refused."
 
-### 0:16–0:34 — The shallow answer, and the silence · 43 words
+### 0:16–0:32 — The shallow answer, and the silence · 43 words
 
 > *[Screen: Tombstone. Click the shallow who-owns chip for
 > staging/src/k8s.io/apiserver/pkg/endpoints/metrics.]*
@@ -45,7 +45,7 @@ breathe, so the budget for 3:00 is **about 500 spoken words.** This script now h
 *On screen the badge reads `NOT_IN_GRAPH`, and the coverage line names 679 decisions and 585
 ownership files.*
 
-### 0:34–0:58 — The same question, four hops deep · 59 words
+### 0:32–0:56 — The same question, four hops deep · 62 words
 
 > *[Click the 4-hop chip. The SVG path draws.]*
 >
@@ -57,19 +57,21 @@ ownership files.*
 >
 > That's the path the answer came from — the nodes the query walked, not a summary written after."
 
-### 0:58–1:22 — The question you cannot ask a search box · 62 words
+### 0:56–1:24 — The question you cannot ask a search box · 80 words
 
-> *[Click the kubelet chip.]*
+> *[Type the question into the box and press Ask. This instance has no API key.]*
 >
 > "This is the question the whole thing exists for. Has anyone tried this before?
+>
+> No API key here - that was routed locally, by meaning, against a fixed list of tools.
 >
 > Yes. KEP-6061 considered pulling profile artifacts into the kubelet, and rejected it. Here's the
 > recorded reason, in the author's own words.
 >
-> It also tells me whether anyone who made that call still approves anything here. A rationale
+> It also tells me whether anyone who made that call still approves anything here - a rationale
 > whose authors hold no authority is a different kind of risk."
 
-### 1:22–1:40 — The answer no search engine can give · 41 words
+### 1:24–1:42 — The answer no search engine can give · 41 words
 
 > *[Click the whose-departure-cost-most chip.]*
 >
@@ -80,7 +82,7 @@ ownership files.*
 >
 > A whole-graph property. Under twenty milliseconds, inside the request."
 
-### 1:40–2:14 — It drafts the fix, and refuses two of them · 96 words
+### 1:42–2:16 — It drafts the fix, and refuses two of them · 100 words
 
 > *[Click the draft-the-fix chip.]*
 >
@@ -101,7 +103,7 @@ ownership files.*
 *On screen: `2 OWNERS patches drafted from the graph, 1 candidate refused with a reason`. Both
 drafts are committed under `docs/patches/`, so a judge can read them without running anything.*
 
-### 2:14–2:28 — It remembers, and the memory is in the graph · 37 words
+### 2:16–2:30 — It remembers, and the memory is in the graph · 39 words
 
 > *[Click the asked-before chip.]*
 >
@@ -110,7 +112,7 @@ drafts are committed under `docs/patches/`, so a judge can read them without run
 >
 > One query can start in memory and end in facts."
 
-### 2:28–2:46 — Remove the database · 37 words
+### 2:30–2:46 — Remove the database · 37 words
 
 > *[Terminal beside the browser: stop the falkordb container, then refresh the page.]*
 >

@@ -111,7 +111,7 @@ class Agent:
                     "answer": f"I am not going to guess. {choice['why'].capitalize()}."
                               + (f" Name the {choice['needs']} and ask again."
                                  if choice.get("needs") else
-                                 " The buttons below are the questions this graph does answer."),
+                                 " The buttons on this page are the questions it does answer."),
                     "routed_by": "local-embedding", "near": choice.get("near", []),
                     "catalogue": CATALOGUE}
         ans = self.dispatch(choice["tool"], choice["args"])

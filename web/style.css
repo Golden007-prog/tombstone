@@ -57,7 +57,11 @@ button.primary:hover{filter:brightness(1.08);color:#fff}
   background:var(--bg);color:var(--muted);cursor:pointer;text-align:left}
 .chip:hover{border-color:var(--accent);color:var(--accent)}
 .result{margin:22px 0;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
-.hidden{display:none}
+/* Utility class, so it must beat any later component rule of equal specificity.
+   Without !important `.headline{display:flex}` five lines below won this, and an
+   EMPTY headline bar rendered on every shape that has no headline -- which is every
+   honest refusal. */
+.hidden{display:none !important}
 .shapebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:11px}
 .shape{font:11px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;padding:5px 9px;border-radius:5px;
   background:var(--accent-soft);color:var(--accent);border:1px solid currentColor}
@@ -114,3 +118,8 @@ body.focus header,
 body.focus .intro,
 body.focus .askbox { display: none !important; }
 body.focus #result { margin-top: 0; }
+
+/* `?ask=...&focus=1` keeps the question visible while everything else above the answer goes. */
+body.focus.show-ask .askbox { display: block !important; }
+body.focus.show-ask .chips,
+body.focus.show-ask .hint { display: none !important; }

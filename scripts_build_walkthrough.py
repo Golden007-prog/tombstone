@@ -39,15 +39,18 @@ BEATS = [
     ("run=who_owns&i=1", 9, [
         "Same question, four hops. Nobody named on that file still holds approval authority -",
         "and here is what they decided elsewhere, including the alternatives they rejected."]),
-    ("run=has_this_been_tried", 8, [
-        "Has this been tried before? The rejected option, its recorded reason,",
-        "and whether anyone who made that call still approves anything here."]),
+    ("ask=has+anyone+tried+moving+this+into+the+kubelet%3F", 9, [
+        "Typed, not clicked - and this instance has no API key. The question is routed",
+        "locally by meaning, then the same hand-written Cypher answers it."]),
     ("run=draft_owners_patch", 9, [
         "It does not just report the problem. It drafts the fix:",
         "a real OWNERS patch, written to disk. Nothing is sent anywhere."]),
     ("run=draft_owners_patch", 9, [
         "And it refuses what it cannot justify. One handle is not in the file at all -",
         "an alias expands to it, so no edit to that file would remove it."]),
+    ("ask=write+me+a+poem+about+kubernetes", 7, [
+        "Ask it something outside the graph and it declines, by name.",
+        "A router that always picks something is confidently wrong on everything else."]),
     ("run=stepped_back_bridges", 8, [
         "Whose stepping back cost the most connective authority - betweenness centrality.",
         "A whole-graph property. No search index and no embedding produces this."]),

@@ -1,6 +1,6 @@
 # walkthrough-silent.mp4
 
-A 50-second captioned walkthrough of six beats, every frame a real headless screenshot of the
+A 58-second captioned walkthrough of seven beats, every frame a real headless screenshot of the
 running app — no mockups and no reconstruction.
 
 **It is not the submission video.** That needs narration, per [`../DEMO-SCRIPT.md`](../DEMO-SCRIPT.md),
@@ -24,10 +24,15 @@ that added this file", and that commit contained only the .mp4.
 |---|---|
 | 1 | the shallow question returning `NOT_IN_GRAPH`, with what was searched |
 | 2 | the same question four hops deep — who held it, and what they decided elsewhere |
-| 3 | "has this been tried?" — the rejected option, its reason, and whether a decider still has authority |
+| 3 | **a typed question, on an instance with no API key** — routed locally, answered by the same Cypher |
 | 4 | **the action**: a real OWNERS patch drafted from the graph and written to disk |
 | 5 | **the refusals** — the handle that is not in the file at all, because an alias expands to it |
-| 6 | betweenness centrality: whose stepping back cost the most connective authority |
+| 6 | **asked for a poem, it declines by name** rather than route into the patch-drafting tool |
+| 7 | betweenness centrality: whose stepping back cost the most connective authority |
+
+Beats 3 and 6 are captured through `?ask=<question>&focus=1`, which deep-links a free-text
+question — so a question and its answer can be shared as a URL, and so the walkthrough can show
+someone typing rather than only clicking.
 
 One trap worth keeping written down: ffmpeg's `drawtext` **silently drops** a line containing an
 unescaped `%`, with no error. That is how "72%" vanished from a caption in the first cut. The

@@ -100,6 +100,20 @@ function chips() {
 // When several chips share a tool (who_owns runs at two depths) `&i=` picks which one.
 function runFromUrl() {
   const p = new URLSearchParams(location.search);
+  // `?ask=<text>` deep-links a FREE-TEXT question: it fills the box and submits, so a question
+  // and its answer can be shared as a URL, and so the walkthrough can capture someone typing
+  // rather than only clicking. Works keyless, because routing does.
+  const typed = p.get("ask");
+  if (typed) {
+    // Keep the ask box on screen for a typed question even in focus mode -- hiding it would
+    // hide the thing being demonstrated, which is that someone typed this.
+    if (p.get("focus") === "1") document.body.classList.add("focus", "show-ask");
+    $("q").value = typed;
+    document.body.dataset.autorun = "pending";
+    ask().finally(() => { document.body.dataset.autorun = "done"; });
+    return;
+  }
+
   const want = p.get("run");
   if (!want) return;
   const matches = CHIPS.map((c, i) => [c, i]).filter(([c]) => c.tool === want);
@@ -134,12 +148,20 @@ function show(data, graphArgs) {
   $("covwrap").classList.toggle("hidden", !cov);
   if (cov) $("coverage").textContent = JSON.stringify(cov, null, 2);
 
-  $("cypher").textContent = (data.cypher || "").trim() || "(none)";
+  // No Cypher ran, so do not offer to show it. A disclosure that opens onto "(none)" with an
+  // empty hash beside it looks like something failed, when nothing did -- the router declined.
+  const cy = (data.cypher || "").trim();
+  $("cywrap").classList.toggle("hidden", !cy);
+  $("cypher").textContent = cy;
   $("sha").textContent = data.query_sha || "";
 
   if (graphArgs && data.shape === "ANSWERED_WITH_PATH") drawGraph(graphArgs);
   else $("graphwrap").classList.add("hidden");
-  $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  // In focus mode the answer is already at the top, and scrolling to it pushes the typed
+  // question off-screen -- which hides the thing a capture of this view is meant to show.
+  if (!document.body.classList.contains("focus")) {
+    $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 }
 
 async function runTool(c, btn) {
@@ -175,8 +197,10 @@ async function ask() {
       body: JSON.stringify({ question: q }),
     });
     const d = await r.json();
-    const g = d.routed_args && d.routed_args.path ? { path: d.routed_args.path }
-            : d.routed_args && d.routed_args.handle ? { handle: d.routed_args.handle } : null;
+    // The server reports the chosen arguments under `routing.args`; this read `routed_args`,
+    // which never existed, so a typed question never drew its reasoning path.
+    const ra = (d.routing && d.routing.args) || d.routed_args || {};
+    const g = ra.path ? { path: ra.path } : ra.handle ? { handle: ra.handle } : null;
     show(d, g);
   } catch (e) {
     show({ shape: "DEGRADED", answer: "Request failed: " + e });
