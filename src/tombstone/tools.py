@@ -236,7 +236,52 @@ LIMIT $limit
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "broken_lineage", rows=rows, ms=ms, cypher=self.BROKEN_LINEAGE)
 
-    # ---------- TOOL 6: the depth contrast the rubric asks for ----------
+    # ---------- TOOL 6: keeping knowledge current ----------
+    STALE_KNOWLEDGE = """
+MATCH (other:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep)
+WHERE k.status IN ['provisional', 'implementable']
+  AND k.created_ms > 0
+  AND ($now - k.created_ms) > $ageMs
+WITH k, count(DISTINCT other) AS still_cited_by
+OPTIONAL MATCH (author:Person)-[:AUTHORED|APPROVED]->(k)
+OPTIONAL MATCH (author)-[liveRole:APPROVES]->()
+WITH k, still_cited_by,
+     count(DISTINCT author)   AS authors,
+     count(DISTINCT liveRole) AS live_roles
+RETURN k.num                              AS kep,
+       k.title                            AS title,
+       k.status                           AS status,
+       k.sig                              AS sig,
+       ($now - k.created_ms) / $msYear    AS years_undecided,
+       still_cited_by,
+       authors,
+       live_roles,
+       CASE WHEN live_roles = 0 THEN 'NO_LIVING_AUTHOR' ELSE 'HAS_LIVING_AUTHOR' END AS currency,
+       k.url                              AS source_url
+ORDER BY live_roles ASC, still_cited_by DESC, years_undecided DESC
+LIMIT $limit
+"""
+
+    def stale_knowledge(self, min_years: int = 3, limit: int = 10) -> Answer:
+        """What does this graph know that is going stale?
+
+        Track 3 asks for "keeping knowledge current". The honest version of that on a real corpus
+        is not a freshness timestamp -- it is: which decisions are still being cited by other
+        decisions, are still formally undecided years later, AND have no author left who could
+        say why. Each of those three alone is noise; together they are a knowledge-decay signal.
+        """
+        params = {"now": self.now_ms, "ageMs": max(0, min_years) * MS_PER_YEAR,
+                  "msYear": MS_PER_YEAR, "limit": limit}
+        rows, ms = self._run("stale_knowledge", self.STALE_KNOWLEDGE, params)
+        if not rows:
+            return Answer("NOT_IN_GRAPH", "stale_knowledge", ms=ms,
+                          cypher=self.STALE_KNOWLEDGE, coverage=self._coverage(),
+                          note=f"No decision older than {min_years} years is still being cited "
+                               f"while formally undecided.")
+        return Answer("ANSWERED_WITH_PATH", "stale_knowledge", rows=rows, ms=ms,
+                      cypher=self.STALE_KNOWLEDGE, params={"min_years": min_years})
+
+    # ---------- TOOL 7: the depth contrast the rubric asks for ----------
     WHO_OWNS_DEPTH1 = """
 MATCH (p:Person)-[:APPROVES]->(o:OwnersFile {path: $path})
 RETURN p.key AS approver, o.path AS area, o.url AS source_url
@@ -300,5 +345,6 @@ CATALOGUE = {
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",
     "who_owns": "Who owns an area. depth=1 gives the approver list; depth=4 adds what the departed owner decided elsewhere. Args: path, depth.",
+    "stale_knowledge": "What does this graph know that is going stale? Decisions still cited by others, still undecided years later, with no living author. Args: min_years.",
     "recall": "Has this graph been asked something like this before, and what did that answer cite? Args: question.",
 }

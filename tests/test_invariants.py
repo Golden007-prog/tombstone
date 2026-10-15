@@ -383,3 +383,26 @@ def test_memory_write_failure_never_breaks_the_answer(agent, monkeypatch):
     out = agent.ask("which areas have nobody left?")
     assert out["shape"] == "ANSWERED_WITH_PATH"
     assert len(out["rows"]) == 7
+
+
+# ---------------- Track 3's "keeping knowledge current" ----------------
+
+def test_stale_knowledge_surfaces_decisions_with_no_living_author_first(agent):
+    """The urgent case is not 'old' -- it is old, still being cited, AND nobody left to ask.
+
+    Each signal alone is noise. Ordering must put the combination at the top or the finding is
+    buried under merely-popular decisions.
+    """
+    a = agent.dispatch("stale_knowledge", {"min_years": 3})
+    assert a.shape == "ANSWERED_WITH_PATH"
+    live_roles = [r[7] for r in a.rows]
+    assert live_roles == sorted(live_roles), f"not ordered by living authors: {live_roles}"
+    assert live_roles[0] == 0, "a decision with no living author exists but was not surfaced first"
+    top = a.rows[0]
+    assert top[5] >= 1, "the top stale decision should still be cited by something"
+
+
+def test_stale_knowledge_admits_when_nothing_qualifies(agent):
+    a = agent.dispatch("stale_knowledge", {"min_years": 40})
+    assert a.shape == "NOT_IN_GRAPH"
+    assert a.coverage.get("decisions_indexed", 0) > 500

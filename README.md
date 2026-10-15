@@ -19,6 +19,7 @@ answers four questions that are each a traversal:
 | **Who owns this?** | at depth 1, silence. At depth 4, that it's **orphaned** — and what its departed owners decided elsewhere |
 | **Which areas have no living owner?** | 7 of them, with every recorded owner gone |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
+| **What's going stale?** | decisions still cited, still undecided years on, with no author left to ask |
 | **Has this been asked before?** | the prior answer, when, and the live nodes it cited |
 
 ![The reasoning path behind one answer](docs/img/path.svg)
@@ -304,7 +305,7 @@ LIMIT $limit
 
 ## The agent
 
-Seven tools. The model picks one and fills its arguments; hand-written Cypher answers; a
+Eight tools. The model picks one and fills its arguments; hand-written Cypher answers; a
 deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
 so it cannot soften a negative into a maybe or name someone who isn't in the graph.
 
@@ -320,6 +321,28 @@ Every answer is one of four shapes:
 Entity names are resolved against the graph *before* any traversal, because a plausible wrong name
 is worse than no answer. And a negative never stands alone — an empty traversal only means this
 corpus doesn't record it, which the UI says in those words every time.
+
+## Keeping knowledge current
+
+Track 3 names this explicitly, and the honest version on a real corpus is not a freshness
+timestamp. A decision being old is not interesting. A decision being *still cited by other
+decisions*, *still formally undecided years later*, **and** having *no author left who could say
+why* — that is knowledge decaying in place. Each signal alone is noise; the conjunction is the
+finding, and it needs three different traversals to compute.
+
+```
+KEP-583  "Coscheduling"
+  provisional for 7 years, still cited by 2 other decisions, sig-scheduling
+  NO author of it still approves anything
+
+KEP-2149 "ClusterID for ClusterSet Identification"
+  implementable for 4 years, still cited by 1 other decision, sig-multicluster
+  NO author of it still approves anything
+```
+
+**37 decisions are stale-and-still-cited; 2 of them have nobody left.** Those two are ordered
+first, because "old and popular" is a worse signal than "old and unanswerable" — a test asserts
+that ordering, since burying them under merely-cited decisions would waste the finding.
 
 ## It remembers what it learns
 

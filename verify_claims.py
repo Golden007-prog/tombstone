@@ -34,6 +34,19 @@ CLAIMS = [
      "WITH p, count(c) AS n WHERE n = 0 RETURN count(DISTINCT p)", 83),
     ("total departed people",
      "MATCH (p:Person)-[:EMERITUS_OF]->() RETURN count(DISTINCT p)", 111),
+    ("stale decisions still cited",
+     "MATCH (o:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
+     "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
+     "AND (1760000000000 - k.created_ms) > 94672800000 "
+     "RETURN count(DISTINCT k)", 37),
+    ("...of which none of their authors remain",
+     "MATCH (o:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
+     "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
+     "AND (1760000000000 - k.created_ms) > 94672800000 "
+     "WITH DISTINCT k "
+     "OPTIONAL MATCH (au:Person)-[:AUTHORED|APPROVED]->(k) "
+     "OPTIONAL MATCH (au)-[lr:APPROVES]->() "
+     "WITH k, count(DISTINCT lr) AS live WHERE live = 0 RETURN count(k)", 2),
 ]
 
 fails = 0

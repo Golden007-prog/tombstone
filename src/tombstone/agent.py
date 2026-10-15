@@ -147,6 +147,8 @@ class Agent:
                 return self.tools.successor_for(args.get("handle") or "")
             if tool == "broken_lineage":
                 return self.tools.broken_lineage(min_cites=max(1, num(args.get("min_cites", 1), 1)))
+            if tool == "stale_knowledge":
+                return self.tools.stale_knowledge(min_years=max(0, num(args.get("min_years", 3), 3)))
             if tool == "recall":
                 text = args.get("question") or args.get("idea_text") or ""
                 if not text.strip():
@@ -264,6 +266,16 @@ def render(a: Answer) -> str:
         lines = [f"• {r[0]} already approves {r[1]} of their {r[2]} abandoned areas "
                  f"(owns {r[3]} overall)" for r in a.rows]
         return "Most-overlapping current approvers:\n\n" + "\n".join(lines)
+    if t == "stale_knowledge":
+        lines = []
+        for kep, title, status, sig, years, cited, authors, live, currency, url in a.rows:
+            lines.append(
+                f"• KEP-{kep} “{str(title)[:62]}”\n"
+                f"    {status} for {years} years, still cited by {cited} other decision(s), {sig}\n"
+                f"    {'NO author of it still approves anything' if currency == 'NO_LIVING_AUTHOR' else 'at least one author is still active'}"
+            )
+        return ("Knowledge going stale — still load-bearing, still undecided, and in some cases "
+                "nobody left to ask:\n\n" + "\n".join(lines))
     if t == "recall":
         import datetime as _dt
         lines = []
