@@ -105,3 +105,35 @@ part is the data rule — no private company data — which is exactly why few a
 the public-company-corpus problem elegantly gets credibility the T1 crowd cannot buy.
 Counterweight: T2 is literally the FalkorDB CEO's own slide deck ("Agent Amnesia"), so sponsor alignment is
 highest there despite the cheapest prize. Pending the remaining 7 recon agents.
+
+## Field re-census — 2026-10-15 17:40 IST (first census was 15:40)
+Deduped total **127** repos (was 119). Nine new in two hours, so the field is still filling.
+
+Four new entries sit closest to Tombstone's thesis. All four were checked directly:
+
+| repo | thesis overlap | commits | data | live demo |
+|---|---|---|---|---|
+| `saksham-AI500/Graph_Hackathon-Company-Brain-` | **highest** — "ownership drift", "traces documented decisions", "abstains from unsupported claims" | **1** | GitHub API + **synthetic** | no |
+| `harshedabdulla/node-and-nerve` | org context service, "trace decisions, retrieve evidence" | 5 | **fake / synthetic** | no |
+| `atharvgaur1845/bidbrain` | "prove absences", "show the path behind every answer" | 5 | **synthetic** | no |
+| `dhruvalgupta2003/precedent` | "a decision graph agents check before they act" | 8 | — | no (last push **Oct 12**, before the window opened) |
+
+### What this changes
+- **Proof-by-absence and path-showing are no longer uncontested.** `bidbrain` advertises both. They
+  were two of the seven openings identified this morning; treat them as table stakes now.
+- **Real public data at scale is MORE differentiating than it looked, not less.** Every one of the
+  four closest competitors is on synthetic data, which confirms the ~95% figure holds even at the
+  sharp end of the field. `saksham` plans to use the GitHub API, which is rate-limited to 60
+  requests/hour unauthenticated — they will hit that wall.
+- **Nothing in the field has a live deployment yet.**
+
+### What still differentiates Tombstone, in order
+1. **The rejected alternative as a first-class node** — 753 titled options extracted
+   deterministically from a real corpus. Nobody else has this, and it is the Atrium winning move.
+2. **`emeritus_approvers`** — Kubernetes writes its own attrition into a machine-readable field and
+   nothing in the world reads it. 83 of 111 departed owners hold no current role.
+3. **Betweenness for "whose departure cost most"** — an algorithm as the decision mechanism, which
+   only ~2 of 110 entries attempt.
+4. **Claims that falsify themselves** — `verify_claims.py` (15/15) and `eval_retrieval.py`
+   (12/12 hits, 3/3 negative controls).
+5. **A container that boots in 9s and needs no external database.**
