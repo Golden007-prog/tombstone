@@ -69,6 +69,10 @@ CLAIMS = [
      "WITH k, au, count(lr) AS live, count(em) AS gone "
      "WITH k, sum(live) AS lives, sum(CASE WHEN gone > 0 AND live = 0 THEN 1 ELSE 0 END) AS stepped "
      "WHERE lives = 0 AND stepped > 0 RETURN count(k)", 2),
+    # Counted, not remembered: this was published as "8 of 679" for a long time and was wrong on
+    # the total, the denominator and the breakdown.
+    ("decisions with no usable creation date",
+     "MATCH (k:Kep) WHERE k.created_ms = 0 RETURN count(k)", 7),
     ("KEP authors appearing in no OWNERS file",
      "MATCH (p:Person)-[:AUTHORED|APPROVED]->(:Kep) "
      "OPTIONAL MATCH (p)-[a:APPROVES]->() OPTIONAL MATCH (p)-[e:EMERITUS_OF]->() "

@@ -29,16 +29,33 @@ def to_ms(datestr) -> int:
         return int(datestr.timestamp() * 1000)
     if isinstance(datestr, _dt.date):
         return (datestr - EPOCH).days * 86400000
-    s = str(datestr or "")[:10]
-    # The template ships `creation-date: 'yyyy-mm-dd'` and some authors never replace it; others
-    # transpose the month and day (KEP-5075 is `2025-30-01`). Both are unusable, neither is an
-    # excuse to drop the record.
+    s = str(datestr or "")[:10].strip()
+    # The template ships `creation-date: 'yyyy-mm-dd'` and some authors never replace it. Those
+    # are unusable, and neither is an excuse to drop the record.
     if not s or not s[:4].isdigit():
         return 0
     try:
         return (_dt.date.fromisoformat(s) - EPOCH).days * 86400000
     except ValueError:
-        return 0
+        pass
+
+    # Some authors write the date without zero-padding: `2024-2-1`, `2023-9-18`, `2025-10-9`.
+    # fromisoformat rejects those, and discarding them loses three real dates for a formatting
+    # habit. They are unambiguous, so they are parsed.
+    #
+    # What is NOT parsed is a month above twelve -- `2023-14-05`, `2025-30-01`. Those are
+    # presumably day-month transpositions, and "presumably" is not a date. Guessing would invent
+    # a creation date for a decision, which is exactly the kind of fabrication this product
+    # exists to refuse; they stay unusable and the UI keeps saying "date not recorded".
+    parts = s.split("-")
+    if len(parts) == 3 and all(p.isdigit() for p in parts):
+        year, month, day = (int(p) for p in parts)
+        if 1 <= month <= 12:
+            try:
+                return (_dt.date(year, month, day) - EPOCH).days * 86400000
+            except ValueError:
+                return 0
+    return 0
 
 
 def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> dict:

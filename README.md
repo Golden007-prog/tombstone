@@ -18,7 +18,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
-> - **Nothing here is asserted.** 107 tests, 25 graph claims, 17 rendered UI states and every
+> - **Nothing here is asserted.** 107 tests, 26 graph claims, 17 rendered UI states and every
 >   benchmark re-run by **23 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
@@ -987,8 +987,14 @@ times. Each fix made the claim narrower and more defensible.
   reproducible, but it is an approximation and the UI says so.
 - **206 of 959 alternatives are untitled prose**, not named options. They're in the graph but
   excluded from `:NamedOption`, so they never seed a "has this been tried?" answer.
-- **8 of 679 decisions have no usable date** — 3 omit the field, 5 still carry the template's
-  literal `'yyyy-mm-dd'`. These render as "date not recorded", never as an age.
+- **7 of 681 decisions have no usable date** — 3 omit the field entirely, 2 still carry the
+  template's literal `'yyyy-mm-dd'`, and 2 give a month above twelve (`2023-14-05`,
+  `2025-30-01`), presumably a day-month transposition. "Presumably" is not a date, so they stay
+  unusable rather than being guessed at; all seven render as "date not recorded", never as an age.
+  This said *8 of 679* until I counted it: the figure predated later corpus changes, and the
+  breakdown was wrong too. Three more decisions wrote their date without zero-padding
+  (`2024-2-1`, `2023-9-18`, `2025-10-9`), which `fromisoformat` rejects — those were being thrown
+  away for a formatting habit and are now parsed, since they are unambiguous.
 - Some sub-headings inside an `Alternatives` section are structural ("Implementation sketch") rather
   than real options. The deterministic parser cannot always tell.
 - "No current approver" means *this corpus* records none. People own things informally.
