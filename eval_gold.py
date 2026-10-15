@@ -24,6 +24,8 @@ Run: PYTHONPATH=src python eval_gold.py
 from __future__ import annotations
 
 import gzip
+import os
+import re
 import json
 import sys
 from collections import Counter
@@ -143,6 +145,76 @@ def main() -> int:
           f"-> {still}")
     if not ok:
         fails.append(f"spiffxp still approves {still}, the README names hack/jenkins/OWNERS")
+
+    # ---------------------------------------------------------------- answers, not just structure
+    #
+    # Everything above proves the GRAPH is a faithful reading of the corpus. It does not prove an
+    # ANSWER is right: the queries could be stable, the graph correct, and the traversal still
+    # return the wrong people. So compute what the answer should be straight from the corpus --
+    # walking the OWNERS inheritance in plain Python, exactly as the rules describe it and without
+    # touching the database -- and compare it to what the tool actually says.
+    aliases_l = {k.lower(): v for k, v in d["aliases"].items()}
+    owners = d["owners"]
+
+    def live_approvers(path: str) -> set[str]:
+        """Who can approve `path`, walking up until someone can, as Kubernetes OWNERS inherit."""
+        seen = set()
+        cur = path
+        while cur:
+            rec = owners.get(cur) or {}
+            who = expand(rec.get("approvers", []), aliases_l)
+            if who:
+                return who
+            if (rec.get("options") or {}).get("no_parent_owners"):
+                return set()                      # the chain is severed here, by declaration
+            if cur in seen:
+                return set()
+            seen.add(cur)
+            parent = os.path.dirname(os.path.dirname(cur))
+            cur = f"{parent}/OWNERS" if parent else ("OWNERS" if cur != "OWNERS" else "")
+        return set()
+
+    # Two quantities, and the first run of this check conflated them -- which is the useful part.
+    # The tool's live_approvers column is who is NAMED ON THAT FILE and still approves; the
+    # inheritance walk is who can approve the path once you follow OWNERS upward. They are equal
+    # when a file has its own approvers and differ when it does not, and the metrics file is the
+    # second case: it declares reviewers and emeritus_approvers only, so its own column is empty
+    # and approval falls to a parent. The product says both things correctly; my first gold asked
+    # one of them for the other's answer.
+    for probe in ("pkg/scheduler/OWNERS",
+                  "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS"):
+        short = probe.split("/")[-2]
+
+        # 1. named on the file itself
+        own = expand((owners.get(probe) or {}).get("approvers", []), aliases_l)
+        row = agent.dispatch("who_owns", {"path": probe, "depth": 4}).rows
+        got = set(row[0][1] or []) if row else set()
+        ok = own == got
+        print(f"  {'PASS' if ok else 'FAIL'}  who_owns names {len(got)} approver(s) on {short}, "
+              f"and the file declares the same")
+        if not ok:
+            fails.append(f"who_owns({probe}) named {sorted(got)}; the file declares {sorted(own)}")
+
+        # 2. who ends up able to approve it, walking OWNERS upward.
+        #
+        # Only meaningful when the file has NO approvers of its own. `_inherited_by` reports the
+        # FALLBACK parent -- for pkg/scheduler, which has its own eight, it correctly names
+        # pkg/OWNERS, the file approval would drop to if those eight vanished. Comparing that to
+        # the effective owner set is a third conflation of the same kind: the product distinguishes
+        # "who owns this", "who is named here" and "who would inherit it", and a check has to pick
+        # one and ask for that one.
+        if own:
+            print(f"  SKIP  {short} has its own approvers, so there is no inheritance to check")
+            continue
+        want = live_approvers(probe)
+        said = agent._inherited_by(probe) or ""
+        named = {w.strip("`,.()") for w in re.findall(r"[a-z0-9][a-z0-9_-]{2,}", said)}
+        covered = want <= named if want else True
+        print(f"  {'PASS' if covered else 'FAIL'}  walking OWNERS upward from {short} gives "
+              f"{sorted(want) or 'nobody'}, and the answer says so")
+        if not covered:
+            fails.append(f"the inheritance walk for {probe} gives {sorted(want)}, "
+                         f"which the answer does not name: {said[:90]}")
 
     # The NOTICE promises what was and was not ingested, and a promise about personal data is
     # the one a judge is most entitled to check by grepping. One email-shaped string exists: a
