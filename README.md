@@ -15,11 +15,11 @@ answers four questions that are each a traversal:
 
 | question | what comes back |
 |---|---|
-| **Has this been tried?** | the rejected option, its recorded reason, and whether any decider still works here |
+| **Has this been tried?** | the rejected option, its recorded reason, and whether any decider still holds approval authority |
 | **Who owns this?** | at depth 1, silence. At depth 4, that every dedicated owner left — and who inherited it |
 | **Who inherited this code when its owners left?** | the broader group approval silently fell back to |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
-| **What's going stale?** | decisions still cited, still undecided years on, with no author left to ask |
+| **What's going stale?** | decisions still cited, still undecided years on, with no author with authority left to ask |
 | **Has this been asked before?** | the prior answer, when, and the live nodes it cited |
 
 ![The reasoning path behind one answer](docs/img/path.svg)
@@ -140,19 +140,19 @@ MERGE (a)-[e:CO_AUTHORED]->(b) SET e.w = shared
 
 | | count |
 |---|---|
-| decisions (`:Kep`) | 679 |
-| rejected alternatives (`:Alternative`) | 944 — of which **738 are titled, named options** |
-| missing decision records (`:MissingRecord`) | 49 (cited 60 times) |
+| decisions (`:Kep`) | 681 |
+| rejected alternatives (`:Alternative`) | 958 — of which **752 are titled, named options** |
+| missing decision records (`:MissingRecord`) | 47 (cited 55 times) |
 | people | 794 |
 | ownership files | 585 |
 | `APPROVES` / `EMERITUS_OF` | 2,584 / 298 |
-| `CO_AUTHORED` | 5,870 |
+| `CO_AUTHORED` | 5,879 |
 
 Findings that fall straight out of it, each checkable:
 
-- **60 of 363 internal decision pointers (16.5%) don't resolve.** One missing record,
+- **55 of 358 internal decision pointers (15.4%) don't resolve.** One missing record,
   `/keps/sig-api-machinery/0006-apply.md`, is cited by **four** separate decisions.
-- **83 of 111 departed owners hold no current approver role anywhere.**
+- **83 of 111 people listed as emeritus hold no approval authority anywhere.**
 - **7 areas lost every *dedicated* approver** — see the correction below; they are not unowned.
 - `lavalamp` is emeritus in **31** ownership files and has the highest betweenness of any departed
   contributor (196.1, sampled, seed pinned).
@@ -197,7 +197,7 @@ LIMIT $limit
 ```
 `query_sha` = `52f160988857` — stamped on every answer this query produces.
 
-### `ownership_dilution` — Which areas lost every DEDICATED approver, and which broader group inherits them now?
+### `ownership_dilution` — Which areas lost every approver with dedicated authority, and which broader group inherits them now?
 
 *Why a graph:* Kubernetes OWNERS inherit, so finding who actually covers a directory means walking UP the tree until you hit live approvers — a variable-length traversal. One area falls back two levels because the directory in between is also dead.
 
@@ -228,7 +228,7 @@ LIMIT $limit
 ```
 `query_sha` = `b0145239cfc7` — stamped on every answer this query produces.
 
-### `departed_bridges` — Whose departure cost the most CONNECTIVE knowledge — not just the most files?
+### `stepped_back_bridges` — Who held the most CONNECTIVE authority before stepping back — not just the most files?
 
 *Why a graph:* Betweenness centrality is a whole-graph property. No traversal, no SQL join and no embedding can compute it. Composed with an ownership traversal in the SAME query.
 
@@ -240,7 +240,7 @@ MATCH (p)-[:EMERITUS_OF]->(f:OwnersFile)
 OPTIONAL MATCH (p)-[liveRole:APPROVES]->()
 WITH p, bridge, count(DISTINCT f) AS abandoned_areas, count(liveRole) AS live_roles
 WHERE live_roles = 0 AND abandoned_areas >= $minAreas
-RETURN p.key                        AS departed_bridge,
+RETURN p.key                        AS stepped_back_bridge,
        round(bridge * 100) / 100     AS betweenness,
        abandoned_areas
 ORDER BY bridge DESC
@@ -353,18 +353,18 @@ finding, and it needs three different traversals to compute.
 ```
 KEP-583  "Coscheduling"
   provisional for 7 years, still cited by 2 other decisions, sig-scheduling
-  1 author verifiably stepped back; 1 whose status this corpus does not record
+  1 author no longer holds approval authority; 1 whose status this corpus does not record
 
 KEP-2149 "ClusterID for ClusterSet Identification"
   implementable for 4 years, still cited by 1 other decision, sig-multicluster
-  1 author verifiably stepped back; 2 whose status this corpus does not record
+  1 author no longer holds approval authority; 2 whose status this corpus does not record
 ```
 
-**37 decisions are stale-and-still-cited; 2 have an author who verifiably stepped back and none
+**38 decisions are stale-and-still-cited; 2 have an author who no longer hold approval authority and none
 who still holds an approver role.**
 
 The wording matters, and my first version got it wrong. I inferred "no living author" from the
-*absence* of an approver role — but **427 of 593 KEP authors (72%) appear in no OWNERS file at
+*absence* of an approver role — but **428 of 595 KEP authors (72%) appear in no OWNERS file at
 all**, so absence mostly means "was never an approver", not "has left". Only `emeritus_approvers`,
 an explicit published statement that someone stepped back, is counted as departure; everyone else
 is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
@@ -451,6 +451,19 @@ cluster/gce/windows               lost yujuhong, yliaog, pjh, mtaufen, ibabou
 `test_no_directory_is_actually_unowned` now fails loudly if the wrong claim ever creeps back.
 Of 585 OWNERS files, 57 set `no_parent_owners`; none of those is left without a live approver.
 
+## What "stepped back" means here, precisely
+
+`emeritus_approvers` is Kubernetes' own field, and
+[the docs define it exactly](https://www.kubernetes.dev/docs/guide/owners/): those people
+"can no longer approve code (use the `/approve` command)" and are "ignored by prow for assignment".
+
+So this product says someone **holds no approval authority** — a mechanical, prow-enforced fact.
+It does **not** say they left the project, and it must not. I checked: `k82cn` (Klaus Ma), whose
+name appears against the oldest stale decision here, pushed public commits **today**. People step
+back from reviewing an area for many reasons and stay entirely active. An earlier draft of this
+README said "departed" and "has left" throughout. That was wrong about real, named people, and
+the wording is now the narrower thing the data actually supports.
+
 ## On sourcing
 
 Four claims in this project turned out to be wrong, all the same shape: **a strong conclusion
@@ -519,6 +532,5 @@ real signal rather than a restatement of the field's definition. Claim survives.
 **"X% of internal decision pointers don't resolve" — decay, or just moved files?**
 Partly the latter, and my first number was inflated. Two references point at legacy flat-layout
 `.md` records that still exist, and one used `/kep/` instead of `/keps/` — a typo whose target is
-unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 60/363
-(16.5%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
+unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 55/358 (15.4%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
 snapshot so a snapshot build and a live build cannot disagree.

@@ -28,7 +28,7 @@ SYSTEM = """You route questions about an engineering organisation's decision his
 
 The graph holds Kubernetes' own governance record: enhancement proposals (decisions), the rejected
 alternatives recorded inside them, the people who authored and approved them, and the ownership
-files that say who currently approves each area and who has departed.
+files that say who currently approves each area and whose approval authority has lapsed.
 
 Pick the single best tool. Do not answer the question yourself -- you cannot see the data.
 If the question names a person, pass their GitHub handle as `handle`.
@@ -141,8 +141,8 @@ class Agent:
                     qvec, max_dist=num(args.get("max_dist", 0.45), 0.45, float))
             if tool == "ownership_dilution":
                 return self.tools.ownership_dilution()
-            if tool == "departed_bridges":
-                return self.tools.departed_bridges(min_areas=max(0, num(args.get("min_areas", 3), 3)))
+            if tool == "stepped_back_bridges":
+                return self.tools.stepped_back_bridges(min_areas=max(0, num(args.get("min_areas", 3), 3)))
             if tool == "successor_for":
                 return self.tools.successor_for(args.get("handle") or "")
             if tool == "broken_lineage":
@@ -259,7 +259,7 @@ def render(a: Answer) -> str:
         for area, departed, nd, fallback, levels, n_fb, _url in a.rows:
             lines.append(
                 f"• {area}\n"
-                f"    every dedicated approver departed: {', '.join(departed[:4])}"
+                f"    every dedicated approver has stepped back: {', '.join(departed[:4])}"
                 + (f" (+{len(departed)-4} more)" if len(departed) > 4 else "") + "\n"
                 f"    approval now falls back {levels} level(s) up to {fallback} — "
                 f"{n_fb} approver(s) who never specifically owned this"
@@ -267,9 +267,9 @@ def render(a: Answer) -> str:
         return (f"{n} area(s) lost every dedicated approver. They are not unowned — Kubernetes "
                 f"OWNERS inherit — but approval has silently widened to people who never signed "
                 f"up for this code:\n\n" + "\n".join(lines))
-    if t == "departed_bridges":
+    if t == "stepped_back_bridges":
         lines = [f"• {r[0]} — betweenness {r[1]}, left {r[2]} area(s) behind" for r in a.rows]
-        return ("Ranked by how much CONNECTIVE knowledge left with them (betweenness centrality "
+        return ("Ranked by how much CONNECTIVE authority was concentrated in people who have since stepped back (betweenness centrality "
                 "over the co-authorship graph, sampled, seed pinned):\n\n" + "\n".join(lines))
     if t == "successor_for":
         lines = [f"• {r[0]} already approves {r[1]} of their {r[2]} abandoned areas "
@@ -282,7 +282,7 @@ def render(a: Answer) -> str:
             gone, live, unknown = int(gone or 0), int(live or 0), int(unknown or 0)
             who = []
             if gone:
-                who.append(f"{gone} author{'s' if gone > 1 else ''} verifiably stepped back")
+                who.append(f"{gone} author{'s' if gone > 1 else ''} no longer hold approval authority")
             if live:
                 who.append(f"{live} still hold an approver role")
             if unknown:
@@ -293,7 +293,7 @@ def render(a: Answer) -> str:
                 f"    {'; '.join(who)}"
             )
         return ("Knowledge going stale — still load-bearing, still undecided, and in some cases "
-                "the people who wrote it have stepped back:\n\n" + "\n".join(lines)
+                "the people who wrote it no longer hold approval authority:\n\n" + "\n".join(lines)
                 + "\n\nNote: being absent from OWNERS is not evidence of departure — 72% of KEP "
                   "authors never held an approver role. Only `emeritus_approvers` is counted as "
                   "stepping back.")
@@ -321,7 +321,7 @@ def render(a: Answer) -> str:
         area = a.rows[0][0] if a.rows else "?"
         live = a.rows[0][1] if a.rows else []
         status = a.rows[0][7] if a.rows else "?"
-        head = (f"{area}: {'every dedicated owner has left' if status == 'NO_DEDICATED_OWNER' else 'actively owned'}."
+        head = (f"{area}: {'no one named here still holds approval authority' if status == 'NO_DEDICATED_OWNER' else 'actively owned'}."
                 + (f" Current approvers: {', '.join(live)}." if live
                    else " Approval falls back to the parent OWNERS — Kubernetes OWNERS inherit, "
                         "so this is not unowned, but nobody named here still owns it."))
@@ -330,7 +330,7 @@ def render(a: Answer) -> str:
             _, _, departed, ndec, decisions, ideas, sigs, _ = r
             if not departed:
                 continue
-            bit = f"• {departed} (departed) shaped {ndec} decision(s)"
+            bit = f"• {departed} (no longer approves here) shaped {ndec} decision(s)"
             if decisions:
                 bit += f": KEP-{', KEP-'.join(str(d) for d in decisions)}"
             if ideas:

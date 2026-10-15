@@ -15,7 +15,7 @@ anywhere in the repository?
 
 **83 of 111. Seventy-five percent.**
 
-And seven directories have lost *every owner they specifically named*. `pkg/controller/podgc` is
+And seven directories have lost *the approval authority of every owner they named*. `pkg/controller/podgc` is
 owned, on paper, by two people who are both gone.
 
 They are not unowned — I got that wrong first time, and it is worth saying why. Kubernetes OWNERS
@@ -185,7 +185,7 @@ MATCH (p)-[:EMERITUS_OF]->(f:OwnersFile)
 OPTIONAL MATCH (p)-[live:APPROVES]->()
 WITH p, bridge, count(DISTINCT f) AS abandoned, count(live) AS live_roles
 WHERE live_roles = 0 AND abandoned >= 3
-RETURN p.key AS departed_bridge, round(bridge*100)/100 AS betweenness, abandoned
+RETURN p.key AS stepped_back_bridge, round(bridge*100)/100 AS betweenness, abandoned
 ORDER BY bridge DESC
 ```
 

@@ -14,7 +14,7 @@ license: apache-2.0
 **The decisions your org already made and forgot. Asked as a graph.**
 
 Ask *"has anyone tried this before?"* and get the rejected design option, the recorded reason, and
-whether anyone who made that call still works here — over **Kubernetes' real public governance
+whether anyone who made that call still holds approval authority — over **Kubernetes' real public governance
 record**, not an invented company.
 
 Graph Hacks 2026 (WeMakeDevs x FalkorDB), Track 3 — Company Brain.

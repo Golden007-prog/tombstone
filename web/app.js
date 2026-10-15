@@ -19,7 +19,7 @@ const CHIPS = [
   { label: "Which areas lost every dedicated owner?",
     tool: "ownership_dilution", args: {} },
   { label: "Whose departure cost the most knowledge?",
-    tool: "departed_bridges", args: { min_areas: 3 } },
+    tool: "stepped_back_bridges", args: { min_areas: 3 } },
   { label: "Who should inherit lavalamp's areas?",
     tool: "successor_for", args: { handle: "lavalamp" }, graph: { handle: "lavalamp" } },
   { label: "Which cited decisions no longer exist?",

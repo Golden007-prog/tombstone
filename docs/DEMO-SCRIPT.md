@@ -43,7 +43,7 @@ ownership files.*
 >
 > "Same question. Four hops.
 >
-> It is orphaned — every recorded owner has left. And now it can tell you who they were, and what
+> It is orphaned — no recorded owner still holds approval authority. And now it can tell you who they were, and what
 > they decided elsewhere. gmarek shaped KEP-383, and personally rejected this alternative:
 > *Leaving Current Dedup Mechanism but Improve Backoff Behavior*.
 >

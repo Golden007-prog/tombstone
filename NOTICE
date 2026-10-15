@@ -1,0 +1,25 @@
+Tombstone
+Copyright 2026 Aviral Garg
+
+This product includes material derived from the Kubernetes project:
+
+  kubernetes/enhancements  — https://github.com/kubernetes/enhancements
+  kubernetes/kubernetes    — https://github.com/kubernetes/kubernetes (OWNERS, OWNERS_ALIASES)
+
+  Copyright The Kubernetes Authors.
+  Licensed under the Apache License, Version 2.0.
+
+data/corpus.json.gz redistributes verbatim excerpts of KEP prose — specifically the
+"Alternatives", "Drawbacks" and "Risks and Mitigations" sections — together with structured
+metadata from kep.yaml and OWNERS files.
+
+Modifications made to that material:
+  - HTML comments stripped (the KEP template's own prompts)
+  - "Alternatives" sections split into individual titled options
+  - structural sub-headings ("Examples", "Conclusion", "Implementation sketch") excluded
+  - OWNERS group aliases expanded to individual handles via OWNERS_ALIASES
+  - bot accounts filtered
+  - email addresses NOT ingested, by choice
+
+No personal data beyond the GitHub handles, display names and affiliations that the Kubernetes
+project itself publishes as its governance record is included.

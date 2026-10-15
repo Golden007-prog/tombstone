@@ -30,12 +30,14 @@ def to_ms(datestr) -> int:
     if isinstance(datestr, _dt.date):
         return (datestr - EPOCH).days * 86400000
     s = str(datestr or "")[:10]
-    # The KEP template ships `creation-date: 'yyyy-mm-dd'` and some authors never replace it.
+    # The template ships `creation-date: 'yyyy-mm-dd'` and some authors never replace it; others
+    # transpose the month and day (KEP-5075 is `2025-30-01`). Both are unusable, neither is an
+    # excuse to drop the record.
     if not s or not s[:4].isdigit():
         return 0
     try:
         return (_dt.date.fromisoformat(s) - EPOCH).days * 86400000
-    except Exception:
+    except ValueError:
         return 0
 
 
@@ -65,6 +67,7 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
         )
     ing.nodes("Kep", kep_rows)
     stats["Kep"] = len(kep_rows)
+    stats["parse_failures"] = len(getattr(corpus, "parse_failures", []))
 
     # ---------------- Alternative nodes (LATENT #1) ----------------
     alt_rows, alt_edges = [], []

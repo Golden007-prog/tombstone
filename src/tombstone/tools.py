@@ -202,15 +202,15 @@ MATCH (p)-[:EMERITUS_OF]->(f:OwnersFile)
 OPTIONAL MATCH (p)-[liveRole:APPROVES]->()
 WITH p, bridge, count(DISTINCT f) AS abandoned_areas, count(liveRole) AS live_roles
 WHERE live_roles = 0 AND abandoned_areas >= $minAreas
-RETURN p.key                        AS departed_bridge,
+RETURN p.key                        AS stepped_back_bridge,
        round(bridge * 100) / 100     AS betweenness,
        abandoned_areas
 ORDER BY bridge DESC
 LIMIT $limit
 """
 
-    def departed_bridges(self, min_areas: int = 3, limit: int = 10, seed: int = 42) -> Answer:
-        """Whose departure cost the most CONNECTIVE knowledge, not just the most files?
+    def stepped_back_bridges(self, min_areas: int = 3, limit: int = 10, seed: int = 42) -> Answer:
+        """Who held the most CONNECTIVE authority before stepping back, not just the most files?
 
         Betweenness centrality is the point: it is a whole-graph property, so neither a traversal
         nor a vector search can produce it. The seed is pinned because algo.betweenness is sampled
@@ -218,9 +218,9 @@ LIMIT $limit
         reproducible.
         """
         params = {"minAreas": min_areas, "limit": limit, "seed": seed}
-        rows, ms = self._run("departed_bridges", self.DEPARTED_BRIDGES, params)
+        rows, ms = self._run("stepped_back_bridges", self.DEPARTED_BRIDGES, params)
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
-        return Answer(shape, "departed_bridges", rows=rows, ms=ms,
+        return Answer(shape, "stepped_back_bridges", rows=rows, ms=ms,
                       cypher=self.DEPARTED_BRIDGES, params=params, coverage=self._coverage(),
                       note="betweenness is sampled (size 32, seed pinned) -- approximate, reproducible")
 
@@ -390,8 +390,8 @@ LIMIT $limit
 
 CATALOGUE = {
     "has_this_been_tried": "Search recorded rejected design alternatives by meaning, and report whether anyone who made that call is still around. Args: idea_text.",
-    "ownership_dilution": "Which areas lost every DEDICATED approver, and which broader group inherits them now? Walks the OWNERS tree. Args: none.",
-    "departed_bridges": "Rank departed people by how much CONNECTIVE knowledge left with them (betweenness centrality). Args: min_areas.",
+    "ownership_dilution": "Which areas lost every approver with dedicated authority, and which broader group inherits them now? Walks the OWNERS tree. Args: none.",
+    "stepped_back_bridges": "Rank departed people by how much CONNECTIVE knowledge left with them (betweenness centrality). Args: min_areas.",
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",
     "who_owns": "Who owns an area. depth=1 gives the approver list; depth=4 adds what the departed owner decided elsewhere. Args: path, depth.",

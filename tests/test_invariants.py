@@ -166,7 +166,7 @@ def test_depth_contrast_is_real(agent):
     d4 = agent.dispatch("who_owns", {"path": path, "depth": 4})
     assert d1.shape == "NOT_IN_GRAPH"
     assert d4.shape == "ANSWERED_WITH_PATH"
-    assert "every dedicated owner has left" in render(d4)
+    assert "no one named here still holds approval authority" in render(d4)
 
 
 def test_unknown_entity_runs_nothing(agent):
@@ -189,7 +189,7 @@ def test_no_age_is_rendered_when_the_date_is_missing(agent):
 def test_malformed_arguments_never_leak_a_python_error(agent):
     """A bad argument type is a bad request, not a database failure. Judges will poke at this."""
     for tool, args in [
-        ("departed_bridges", {"min_areas": "lots"}),
+        ("stepped_back_bridges", {"min_areas": "lots"}),
         ("broken_lineage", {"min_cites": -1}),
         ("has_this_been_tried", {"idea_text": "kubelet state", "max_dist": "near"}),
         ("who_owns", {"path": None, "depth": 4}),
@@ -209,7 +209,7 @@ def test_any_depth_clamps_to_the_two_that_exist(agent):
     for d in (2, 9999, 7):
         a = agent.dispatch("who_owns", {"path": path, "depth": d})
         assert a.tool == "who_owns(depth=4)", f"depth={d} produced {a.tool}"
-        assert "every dedicated owner has left" in render(a)
+        assert "no one named here still holds approval authority" in render(a)
     assert agent.dispatch("who_owns", {"path": path, "depth": -5}).tool == "who_owns(depth=1)"
 
 
@@ -342,7 +342,7 @@ def test_memory_and_facts_are_traversable_in_one_query(agent):
     A separate memory store would make the 'works without FalkorDB' test pass, which is exactly
     the failure the rules describe -- and it could not answer this query at all.
     """
-    agent._provider = _StubProvider('{"tool":"departed_bridges","args":{"min_areas":3}}')
+    agent._provider = _StubProvider('{"tool":"stepped_back_bridges","args":{"min_areas":3}}')
     agent.ask("whose departure hurt most?")
     rows = agent.g.ro_query(
         """

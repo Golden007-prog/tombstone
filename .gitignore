@@ -14,3 +14,4 @@ data/cache/
 .fastembed_cache/
 .pytest_cache/
 **/__pycache__/
+.private/

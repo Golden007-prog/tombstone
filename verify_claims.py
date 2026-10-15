@@ -11,16 +11,16 @@ g = connect().select_graph("tomb:k8s")
 one = lambda q, p=None: g.ro_query(q, params=p or {}).result_set[0][0]
 
 CLAIMS = [
-    ("decisions (:Kep)", "MATCH (k:Kep) RETURN count(k)", 679),
-    ("rejected alternatives", "MATCH (a:Alternative) RETURN count(a)", 944),
-    ("titled named options", "MATCH (a:NamedOption) RETURN count(a)", 738),
-    ("missing decision records", "MATCH (m:MissingRecord) RETURN count(m)", 49),
-    ("citations of missing records", "MATCH ()-[r:CITES_MISSING]->() RETURN count(r)", 60),
+    ("decisions (:Kep)", "MATCH (k:Kep) RETURN count(k)", 681),
+    ("rejected alternatives", "MATCH (a:Alternative) RETURN count(a)", 958),
+    ("titled named options", "MATCH (a:NamedOption) RETURN count(a)", 752),
+    ("missing decision records", "MATCH (m:MissingRecord) RETURN count(m)", 47),
+    ("citations of missing records", "MATCH ()-[r:CITES_MISSING]->() RETURN count(r)", 55),
     ("people", "MATCH (p:Person) RETURN count(p)", 794),
     ("ownership files", "MATCH (o:OwnersFile) RETURN count(o)", 585),
     ("APPROVES edges", "MATCH ()-[r:APPROVES]->() RETURN count(r)", 2584),
     ("EMERITUS_OF edges", "MATCH ()-[r:EMERITUS_OF]->() RETURN count(r)", 298),
-    ("CO_AUTHORED edges", "MATCH ()-[r:CO_AUTHORED]->() RETURN count(r)", 5870),
+    ("CO_AUTHORED edges", "MATCH ()-[r:CO_AUTHORED]->() RETURN count(r)", 5879),
     ("lavalamp emeritus files", "MATCH (:Person{key:'lavalamp'})-[:EMERITUS_OF]->(f) RETURN count(f)", 31),
     ("'0006-apply.md' cited by",
      "MATCH (k:Kep)-[:CITES_MISSING]->(:MissingRecord{key:'/keps/sig-api-machinery/0006-apply.md'}) "
@@ -47,8 +47,8 @@ CLAIMS = [
      "MATCH (o:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
      "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
      "AND (1760000000000 - k.created_ms) > 94672800000 "
-     "RETURN count(DISTINCT k)", 37),
-    ("...with an author who verifiably stepped back",
+     "RETURN count(DISTINCT k)", 38),
+    ("...with an author who no longer hold approval authority",
      "MATCH (o:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
      "WHERE k.status IN ['provisional','implementable'] AND k.created_ms > 0 "
      "AND (1760000000000 - k.created_ms) > 94672800000 "
@@ -63,7 +63,7 @@ CLAIMS = [
      "MATCH (p:Person)-[:AUTHORED|APPROVED]->(:Kep) "
      "OPTIONAL MATCH (p)-[a:APPROVES]->() OPTIONAL MATCH (p)-[e:EMERITUS_OF]->() "
      "WITH p, count(a) AS na, count(e) AS ne WHERE na = 0 AND ne = 0 "
-     "RETURN count(DISTINCT p)", 427),
+     "RETURN count(DISTINCT p)", 428),
 ]
 
 fails = 0

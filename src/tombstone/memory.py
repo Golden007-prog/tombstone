@@ -106,7 +106,7 @@ class Memory:
                     keys["OwnersFile"].add(r[0])
                     for d in (r[1] or []):
                         keys["Person"].add(d)
-                elif t == "departed_bridges":
+                elif t == "stepped_back_bridges":
                     keys["Person"].add(r[0])
                 elif t == "successor_for":
                     keys["Person"].add(r[0])

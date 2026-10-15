@@ -24,6 +24,24 @@ from dataclasses import dataclass, field
 
 import yaml
 
+
+class _StrDateLoader(yaml.SafeLoader):
+    """YAML loader that leaves timestamps as strings.
+
+    PyYAML eagerly converts an unquoted `2025-01-30` into a date, and raises
+    `ValueError: month must be in 1..12` on a malformed one. The corpus contains exactly that:
+    KEP-5075 carries `creation-date: 2025-30-01`. With a bare except around the parse, one typo
+    silently removed the whole KEP -- and since four other KEPs cite it, it then showed up as a
+    MISSING decision record. A manufactured absence is indistinguishable from a real one, which
+    is fatal in a product whose central claim is absence. So: parse dates as text, validate later.
+    """
+
+
+_StrDateLoader.add_constructor(
+    "tag:yaml.org,2002:timestamp",
+    lambda loader, node: loader.construct_scalar(node),
+)
+
 COMMENT = re.compile(r"<!--.*?-->", re.S)
 # Sub-headings inside an `Alternatives` section that are structure, not an option someone argued
 # for and lost. Measured on the real corpus: these account for 28 of 753 titled sub-headings
@@ -181,7 +199,8 @@ def is_template(rel_path: str, kep: dict) -> bool:
 
 @dataclass
 class Corpus:
-    keps: dict = field(default_factory=dict)        # rel_path -> kep.yaml dict
+    keps: dict = field(default_factory=dict)
+    parse_failures: list = field(default_factory=list)        # rel_path -> kep.yaml dict
     readmes: dict = field(default_factory=dict)     # rel_path -> markdown
     owners: dict = field(default_factory=dict)      # rel_path -> OWNERS dict
     aliases: dict = field(default_factory=dict)
@@ -202,12 +221,14 @@ class Corpus:
         for dp, _dn, fn in os.walk(enhancements_keps):
             rel = os.path.relpath(dp, enhancements_keps)
             if "kep.yaml" in fn:
+                fp = os.path.join(dp, "kep.yaml")
                 try:
-                    d = yaml.safe_load(open(os.path.join(dp, "kep.yaml"), encoding="utf-8", errors="replace"))
+                    d = yaml.load(open(fp, encoding="utf-8", errors="replace"), Loader=_StrDateLoader)
                     if isinstance(d, dict) and not is_template(rel, d):
                         self.keps[rel] = d
-                except Exception:
-                    pass
+                except Exception as e:
+                    # Never silent. A dropped KEP becomes a fake missing record downstream.
+                    self.parse_failures.append({"path": rel, "error": f"{type(e).__name__}: {e}"})
             if "README.md" in fn:
                 try:
                     self.readmes[rel] = open(os.path.join(dp, "README.md"), encoding="utf-8", errors="replace").read()
@@ -218,11 +239,12 @@ class Corpus:
                 continue
             p = os.path.join(dp, "OWNERS")
             try:
-                d = yaml.safe_load(open(p, encoding="utf-8", errors="replace"))
+                d = yaml.load(open(p, encoding="utf-8", errors="replace"), Loader=_StrDateLoader)
                 if isinstance(d, dict):
                     self.owners[os.path.relpath(p, k8s_root)] = d
-            except Exception:
-                pass
+            except Exception as e:
+                self.parse_failures.append(
+                    {"path": os.path.relpath(p, k8s_root), "error": f"{type(e).__name__}: {e}"})
         return self
 
     _keps_root: str = ""
