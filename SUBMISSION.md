@@ -103,6 +103,8 @@ See the AI assistance disclosure section of the README.
 
 ## Pre-submit checklist
 
+- [ ] `./scripts_verify_deploy.sh` first — builds the image for linux/amd64 and runs it as a
+      non-root user exactly as a Space does, then asserts the product actually answers
 - [ ] `./deploy_hf.sh` and paste the Space URL above, in the README, and `gh repo edit --homepage`
 - [ ] Record the narrated video (`docs/DEMO-SCRIPT.md` — 464 words, 2.6 w/s, verified speakable)
 - [ ] Upload unlisted, then **open it in a private window** to confirm it plays without a sign-in
