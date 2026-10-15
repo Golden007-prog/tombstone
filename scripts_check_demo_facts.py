@@ -1,0 +1,75 @@
+"""Assert that the demo script narrates what the app actually shows.
+
+The timing checker proved the script could be SPOKEN in three minutes. Nothing proved it was
+TRUE. Two beats had gone stale against the live graph without anything failing: one named a person
+and a KEP that the four-hop answer does not mention any more, and one said the top of the
+centrality ranking was someone who is actually third. Both would have been discovered while
+editing the recording, at which point the fix is another take.
+
+So the factual claims in the narration are checked against live tool output, the same way every
+number in the README is. This is the cheapest possible insurance against the most expensive
+failure in the submission: a video that has to be re-shot.
+"""
+from __future__ import annotations
+
+import sys
+
+sys.path.insert(0, "src")
+from tombstone.agent import Agent, render  # noqa: E402
+
+SCRIPT = "docs/DEMO-SCRIPT.md"
+OWNERS = "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS"
+
+script = open(SCRIPT).read()
+agent = Agent(graph_name="tomb:k8s")
+fails = []
+
+
+def check(label: str, ok: bool, detail: str = "") -> None:
+    print(f"  {'PASS' if ok else 'FAIL'}  {label}{(' — ' + detail) if detail else ''}")
+    if not ok:
+        fails.append(label)
+
+
+# Beat 3 — the four-hop answer. The narration names a person and an alternative title; both must
+# still be what the tool returns, or the voiceover describes a screen nobody is looking at.
+four_hop = render(agent.dispatch("who_owns", {"path": OWNERS, "depth": 4}))
+for token in ("logicalhan", "Doing nothing is a viable alternative"):
+    check(f"beat 3 narrates {token!r}",
+          token in script and token.lower() in four_hop.lower())
+
+# Beat 4 — "has this been tried" must still surface KEP-6061.
+vec = list(agent.embedder().embed(["has anyone tried moving this into the kubelet?"]))[0].tolist()
+tried = agent.tools.has_this_been_tried(vec, max_dist=0.45)
+check("beat 4 narrates KEP-6061", "6061" in script and "6061" in render(tried))
+
+# Beat 5 — the point of the beat is that centrality is NOT file count. The script says the person
+# with the most areas is only third, and the top of the list left five.
+bridges = agent.dispatch("stepped_back_bridges", {"min_areas": 3})
+rows = bridges.rows
+top_areas = int(rows[0][2])
+most_areas_rank = 1 + max(range(len(rows)), key=lambda i: int(rows[i][2]))
+check("beat 5: top of the ranking did NOT leave the most areas",
+      most_areas_rank != 1, f"top left {top_areas}, the most-areas person ranks {most_areas_rank}")
+check("beat 5 says 'only third'", "only third" in script and most_areas_rank == 3,
+      f"most-areas person ranks {most_areas_rank}")
+check("beat 5 says the top left five", "left five" in script and top_areas == 5,
+      f"top left {top_areas}")
+
+# Beat 6 — the drafting action: three candidates, two drafted, one refused.
+drafted = agent.dispatch("draft_owners_patch", {})
+patches = sum(1 for r in drafted.rows if r[3] == "patch")
+check("beat 6: three candidates", "Three people are recorded" in script and len(drafted.rows) == 3,
+      f"{len(drafted.rows)} candidates")
+check("beat 6: two drafted, one refused", patches == 2 and len(drafted.rows) - patches == 1,
+      f"{patches} drafted, {len(drafted.rows) - patches} refused")
+
+# Beat 6 also names the vendored case: emeritus in twenty files, approver in one.
+em = agent.g.ro_query(
+    "MATCH (p:Person {key:'stewart-yu'})-[:EMERITUS_OF]->(o) RETURN count(o)").result_set[0][0]
+check("beat 6 says 'emeritus in twenty files'", "twenty files" in script and em == 20,
+      f"actually {em}")
+
+print(f"\n{'FAILED' if fails else 'OK'}: the demo script "
+      f"{'does not match' if fails else 'matches'} what the app returns")
+sys.exit(1 if fails else 0)

@@ -45,15 +45,15 @@ breathe, so the budget for 3:00 is **about 500 spoken words.** This script now h
 *On screen the badge reads `NOT_IN_GRAPH`, and the coverage line names 679 decisions and 585
 ownership files.*
 
-### 0:32–0:56 — The same question, four hops deep · 62 words
+### 0:32–0:56 — The same question, four hops deep · 61 words
 
 > *[Click the 4-hop chip. The SVG path draws.]*
 >
 > "Same question. Four hops.
 >
-> Nobody named on that file still holds approval authority. But now it can tell you who they were,
-> and what they decided elsewhere. gmarek shaped KEP-383, and personally rejected an alternative
-> titled Leaving Current Dedup Mechanism but Improve Backoff Behavior.
+> Nobody named on that file still holds approval authority. But now it can tell you who they were
+> and what they decided elsewhere. logicalhan shaped six decisions, and personally rejected an
+> alternative titled: Doing nothing is a viable alternative.
 >
 > That's the path the answer came from — the nodes the query walked, not a summary written after."
 
@@ -71,14 +71,15 @@ ownership files.*
 > It also tells me whether anyone who made that call still approves anything here - a rationale
 > whose authors hold no authority is a different kind of risk."
 
-### 1:24–1:42 — The answer no search engine can give · 41 words
+### 1:24–1:42 — The answer no search engine can give · 52 words
 
 > *[Click the whose-departure-cost-most chip.]*
 >
 > "This one no amount of search can produce.
 >
 > Not who owned the most files — betweenness centrality. Who bridged groups that otherwise didn't
-> talk. lavalamp scores highest, and left thirty-one areas behind.
+> talk. Look: the person who left the most areas behind, thirty-one, is only third. Top of the
+> list left five.
 >
 > A whole-graph property. Under twenty milliseconds, inside the request."
 
