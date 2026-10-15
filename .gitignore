@@ -12,3 +12,5 @@ data/cache/
 .DS_Store
 *.log
 .fastembed_cache/
+.pytest_cache/
+**/__pycache__/
