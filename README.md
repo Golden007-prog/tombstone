@@ -18,7 +18,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
-> - **Nothing here is asserted.** 116 tests, 26 graph claims, 18 rendered UI states and every
+> - **Nothing here is asserted.** 119 tests, 26 graph claims, 18 rendered UI states and every
 >   benchmark re-run by **29 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 

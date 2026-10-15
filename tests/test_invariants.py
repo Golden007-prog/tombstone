@@ -1251,3 +1251,63 @@ def test_a_near_tie_is_the_one_case_that_offers(agent):
     assert out["shape"] == "UNSURE_WHICH_TOOL"
     assert len(out.get("near", [])) >= 2
     assert "too close to call" in out["answer"]
+
+
+# ---------------- the counterfactual's picture must agree with its answer ----------------
+#
+# The drawn cascade is built from the verdict in the answer rather than recomputed, because
+# deciding which areas a cohort strands needs a GRAPH.COPY and running a second one here could
+# reach a different conclusion than the text beside it. This asserts the property that choice was
+# made to guarantee: what is struck through on the canvas is exactly what the tool said was
+# stranded, and the areas drawn as surviving really do inherit coverage from an ancestor that
+# still has an approver.
+
+COHORT = ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"]
+
+
+def test_the_drawn_cascade_matches_the_counterfactual_it_illustrates(agent):
+    from tombstone.server import subgraph
+
+    answer = agent.dispatch("what_if_they_go", {"handles": COHORT})
+    if answer.shape == "DEGRADED":
+        pytest.skip("GRAPH.COPY unavailable on this host; the counterfactual itself is skipped")
+    stranded = answer.rows[0][1]
+    assert stranded, "this cohort is the one the README quotes; it must strand something"
+
+    drawn = subgraph(handles=",".join(COHORT), stranded=",".join(stranded))
+    struck = {n["full"] for n in drawn["nodes"] if n["kind"] == "area_stranded"}
+    assert struck == set(stranded), (
+        f"the canvas strikes through {struck} but the answer said {set(stranded)} -- a picture "
+        f"that contradicts the text beside it is worse than no picture")
+
+
+def test_every_surviving_area_drawn_shows_why_it_survives(agent):
+    """The first version drew survivors with nothing to say why they survived."""
+    from tombstone.server import subgraph
+
+    answer = agent.dispatch("what_if_they_go", {"handles": COHORT})
+    if answer.shape == "DEGRADED":
+        pytest.skip("GRAPH.COPY unavailable on this host")
+    drawn = subgraph(handles=",".join(COHORT), stranded=",".join(answer.rows[0][1]))
+    edges = drawn["edges"]
+    inherits = {e["source"] for e in edges if e["label"] == "INHERITS_FROM"}
+    survivors = {n["id"] for n in drawn["nodes"] if n["kind"] == "area"}
+    ancestors = {e["target"] for e in edges if e["label"] == "INHERITS_FROM"}
+    # Every surviving area is either the ancestor that carries others, or inherits from one.
+    for area in survivors:
+        assert area in inherits or area in ancestors, (
+            f"{area} is drawn as surviving with no inheritance edge -- a reader cannot tell why "
+            f"it is not struck through")
+    # ...and the ancestor must have someone still approving it.
+    kept = {e["target"] for e in edges if e["label"] == "STILL APPROVES"}
+    assert ancestors and ancestors <= kept, (
+        "an area drawn as inheriting coverage must show the person who still provides it")
+
+
+def test_an_out_of_domain_area_name_draws_nothing(agent):
+    """`stranded` arrives from the client, so a value naming no real area must draw nothing."""
+    from tombstone.server import subgraph
+
+    drawn = subgraph(handles=",".join(COHORT), stranded="not/a/real/OWNERS")
+    struck = [n for n in drawn["nodes"] if n["kind"] == "area_stranded"]
+    assert not struck, "a path that names no ownership file must not be drawn as a real area"

@@ -219,8 +219,12 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
             return {"nodes": [], "edges": [], "note": "no handles supplied"}
 
         def area_of(apath, is_strand):
+            # `full` is what the tooltip shows, so it carries the REAL path. Letting it default to
+            # the display label meant hovering an area showed the same shortened string already on
+            # screen, with the "/OWNERS" that identifies the file stripped off.
             return add(apath, apath.replace("/OWNERS", ""),
-                       "area_stranded" if is_strand else "area", {"stranded": is_strand})
+                       "area_stranded" if is_strand else "area",
+                       {"stranded": is_strand, "full": apath})
 
         drawn_strand = 0
         for apath in strand[:2]:

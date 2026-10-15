@@ -61,7 +61,7 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Nothing here is asserted. **29 CI steps on every push** re-check it: 116 tests, 26 graph claims
+Nothing here is asserted. **29 CI steps on every push** re-check it: 119 tests, 26 graph claims
 re-queried against the live database, 17 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, both benchmarks re-run, and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
