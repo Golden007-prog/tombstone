@@ -151,6 +151,30 @@ for _doc in ("README.md", "SUBMISSION.md"):
             problems.append(f"{_doc}: says {_said} rendered UI states, the check drives {_states}")
         else:
             checked += 1
+# The fallback video's length, stated in the submission copy. It said 50s while the file was 86s,
+# because the video has been rebuilt four times today and that line was typed once. The duration is
+# derived the same way the build script derives it -- the beat budgets plus the two cards -- so it
+# needs no ffmpeg to check and cannot disagree with what the build actually produces.
+_build = open("scripts_build_walkthrough.py").read()
+_beats = re.findall(r'^\s{4}\("[^"]+",\s*(\d+),', _build, re.M)
+_cards = re.search(r"total = sum\(b\[1\] for b in BEATS\) \+ (\d+)", _build)
+if not _beats or not _cards:
+    problems.append("could not derive the walkthrough's duration from the build script")
+else:
+    _dur = sum(int(b) for b in _beats) + int(_cards.group(1))
+    for _said, _unit in re.findall(r"walkthrough-silent\.mp4`?,\s*(\d+)(s)\b", open("SUBMISSION.md").read()):
+        if int(_said) != _dur:
+            problems.append(f"SUBMISSION.md: says the fallback video is {_said}s, "
+                            f"the build produces {_dur}s")
+        else:
+            checked += 1
+    for _said in re.findall(r"An? (\d+)-second captioned walkthrough", open("docs/video/README.md").read()):
+        if int(_said) != _dur:
+            problems.append(f"docs/video/README.md: says {_said}s, the build produces {_dur}s")
+        else:
+            checked += 1
+    print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
+
 print(f"  the UI check drives {_states} rendered states and every document agrees")
 
 print(f"  the workflow has {_steps} named steps and both docs say so")

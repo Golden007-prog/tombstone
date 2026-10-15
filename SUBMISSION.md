@@ -76,8 +76,13 @@ never checked.
 
 ## Against the organisers' own published principles
 
-There are no judging criteria, but WeMakeDevs published *How to build an agent that reasons over
-a graph*. The README maps every principle in it to where that piece lives here — the fixed tool
+No *scored* criteria are published. Two things come close, and the README maps this build against
+both. The first is the track's own five "Key focus" bullets — four are answered with exact numbers
+(681 of 681 decision records carry their source URL; 83 people are emeritus somewhere while holding
+no current approval anywhere), and the fifth asks for "docs, tickets, and chats" where this has
+docs only, which the README says plainly along with why a fabricated Acme Corp would be worse. The
+second is an article WeMakeDevs published, *How to build an agent that reasons over a graph*, whose
+principles the README maps one by one to where each piece lives here — the fixed tool
 catalogue, names resolved before any query runs, the four answer shapes (named the same way),
 "not in the graph" kept distinct from "nothing breaks", the path returned with the answer rather
 than an explanation written afterwards, memory as nodes with a date, a demo that asks the same question at two depths — and, where the article
@@ -93,7 +98,7 @@ Resources page after building this.
 | Repository | https://github.com/aviralgarg05/tombstone |
 | Live demo | *(fill in after `./deploy_hf.sh`)* |
 | Demo video | *(fill in — narrated cut per `docs/DEMO-SCRIPT.md`)* |
-| Fallback video | `docs/video/walkthrough-silent.mp4`, 50s, captioned, in-repo |
+| Fallback video | `docs/video/walkthrough-silent.mp4`, 86s, captioned, in-repo |
 | Blog post | *(fill in if published — side prize is for the best post)* |
 
 ## How FalkorDB is used (Rule: it must support a central part of the product)
