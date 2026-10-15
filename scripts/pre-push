@@ -41,6 +41,16 @@ run() {
 
 echo "pre-push: the checks that need no database"
 run "the demo script is speakable"  python3 scripts_check_demo_timing.py
+# A token-shaped string must never leave this machine. This matters today specifically: the next
+# thing that happens to this repository is somebody exporting HF_TOKEN and running a deploy. The
+# deploy script reads it from the environment and never writes it down, and .env is ignored -- but
+# the cost of being wrong once is a revoked key and a public credential, and the check is a grep.
+run "no credential-shaped strings in what is being pushed" sh -c '
+  if git grep -nIE "(hf_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)" -- . >/tmp/pp-secrets 2>/dev/null; then
+    echo "credential-shaped strings found in tracked files:"; cat /tmp/pp-secrets; exit 1
+  fi
+  exit 0'
+
 if [ -n "$YAML_PY" ]; then
   # EVERY workflow, not just verify.yml. This checked one file and I broke a different one --
   # keepwarm.yml, with a heredoc whose body sat at column 0 and silently ended the YAML block
