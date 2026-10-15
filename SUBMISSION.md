@@ -19,17 +19,30 @@ The decisions your org already made and forgot. Asked as a graph.
 
 **Track 03 — Company Brain.**
 
-*Second track, if entering more than one.* For context when deciding: at least one competing
-Track 3 entry (`StarKnightt/threadline`) is entering three tracks, so multi-track entry is clearly
-permitted and being used. That is a reason to decide deliberately, not a reason to follow.*
+*Second track, if entering more than one.* The field as of 16 Oct, from public repositories
+rather than from a gallery — there is none. Fifteen-plus entries are now public, and at least
+three are serious Track 3 builds:
 
-*Reasoning:* Track 02 (Agent Memory) is arguable but not yet
-earned. Answers persist as `(:Answer)` nodes that `CITED` the real records they came from, and a
+| entry | what it is | tracks |
+|---|---|---|
+| `Sumit99589/orion` | forks the company graph into a "parallel universe" before a change, live on Vercel, MCP server, per-person memory graphs | all three |
+| `Vaibhaav-Tiwari/lineage` | truth maintenance: when a decision reverses, the answers and beliefs built on it are struck through and actions blocked. 745 PEPs plus forum threads and commits since 2015 | two |
+| `StarKnightt/threadline` | 3D replay of every traversal, a verifier agent that path-checks each citation, 60-question eval | all three |
+
+Read their READMEs rather than run them, so this is what they claim, not what they do. Two things
+follow that are worth acting on. **Multi-track entry is normal here**, so entering one track is a
+choice and should be a reasoned one. And **all three are deployed** — the live demo is the clearest
+gap in this submission, not a nice-to-have.*
+
+*Reasoning, and the new field strengthens it rather than weakening it:* Track 02 (Agent Memory)
+is arguable but not yet earned. Answers persist as `(:Answer)` nodes that `CITED` the real records they came from, and a
 later session gets `ANSWERED_FROM_MEMORY` only when those citations still resolve — so memory
 invalidates itself when the graph moves underneath it. What Track 02 also asks for is agents that
-**share state with each other**, and there is one agent here, not several. Entering on a half-met
-brief would weaken the Track 3 entry rather than add to it. Decide deliberately; do not drift into
-it.
+**share state with each other**, and there is one agent here, not several. Orion runs a shared
+task board with atomic claims and heartbeat release; Lineage runs a Historian and a Steward that
+act on each other's output. Against entries that meet that brief fully, entering on a half-met one
+is worse than not entering: it invites the comparison on the axis where this is weakest, and costs
+attention on the axis where it is strongest. Decide deliberately; do not drift into it.
 
 ## Description
 
