@@ -71,7 +71,7 @@ You cannot find that by searching. You find it by counting inbound edges to a ga
 
 ---
 
-## Six things FalkorDB taught me the hard way
+## Seven things FalkorDB taught me the hard way
 
 I measured rather than trusted, and most of what follows cost me time.
 
@@ -148,6 +148,50 @@ say in your write-up that the result is an approximation.
 arithmetic. Also: `LIMIT` is **not** respected by `CREATE`, `SET`, `DELETE` or `MERGE` —
 `UNWIND [1,2,3] AS v CREATE (:T {v: v}) RETURN 1 LIMIT 1` creates three nodes. Bound destructive
 work with `WITH ... LIMIT n` *before* the clause.
+
+### 7. Your graph is a projection, and the moment you *act* you have to go back to the source
+
+This one cost me a wrong patch, caught before it shipped, and it is the lesson I would keep if I
+could keep only one.
+
+My agent does one thing rather than only answering: it drafts an OWNERS patch. The finding is an
+inconsistency the project created itself — Kubernetes writes `emeritus_approvers` to record that
+someone stepped back from an area, and three people are recorded that way across several files
+while one *other* file still lists them as an active approver.
+
+Easy enough. Find them in Cypher, remove the handle, write the diff. Three candidates, three
+patches.
+
+Two of those three patches would have been wrong, and the graph could not tell me so.
+
+The first was the strongest signal in the entire corpus: one person recorded emeritus in **twenty**
+files, still an approver in exactly one. Irresistible. That one file is
+`vendor/k8s.io/utils/ptr/OWNERS` — and `vendor/` is vendored code, synced from another repository.
+Patching it there would be reverted by the next sync. So the exclusion went into the query itself,
+and the best-looking row in my results became a row I deliberately throw away.
+
+The second is the real lesson. `approvers: [sig-cluster-lifecycle-leads]` is an **alias**, and my
+ingest expands aliases into `APPROVES` edges — correctly, because that is who really holds
+authority. So the graph says, truthfully, that this person approves `cluster-bootstrap`. But their
+handle **does not appear in that file at all.** There is no edit to it that removes them. A patch
+generated from the graph would have been a patch that changes nothing, submitted with total
+confidence.
+
+The graph is a *projection* of the source, flattened for traversal — and expansion is lossy in the
+exact direction that matters when you stop reading and start writing. Querying wants the expanded
+view. Editing wants the literal file. So the drafting layer loads the parsed corpus alongside the
+graph and refuses any case where the handle is not literally named, reporting which alias put them
+there instead.
+
+If you are building an agent that acts rather than reports, that is the generalisation: **the
+representation you query is not always the representation you may edit.** Find out which one your
+write path is standing on before it writes anything.
+
+The third guard is one only the graph could supply. If removing a handle empties the `approvers`
+list, the file does not become unowned — it silently starts *inheriting* from an ancestor. A
+one-line fix with a consequence two directories up. The draft names the ancestor that would take
+over and how many approvers it has, which no amount of reading that one file could tell you.
+
 
 ---
 
