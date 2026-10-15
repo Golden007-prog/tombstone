@@ -127,3 +127,87 @@ No OPENAI/ANTHROPIC/GEMINI/GROQ key present in env. Ollama installed but not run
 models pulled. Several unrelated project .env files exist in the home dir (not inspected).
 Options: (a) user supplies a key, (b) Gemini/Groq free tier, (c) Ollama local for dev +
 keyless demo mode, (d) pre-baked read-only demo sessions so judges need no key.
+
+## MULTI-TENANCY SCALING — independently measured 1 -> 1000 tenant graphs
+(200 nodes + 199 edges per tenant graph, local Docker, 11 CPU / 8GB. Nobody in the ~110-repo field has
+published this; third-party reviewers call FalkorDB's multi-tenancy "claimed, not measured".)
+
+| tenants | read p50 | read p99 | write p50 | total mem | mem/tenant | select_graph |
+|---|---|---|---|---|---|---|
+| 1 | 0.42ms | 2.34ms | 0.28ms | 3.7MB | 537.0KB | 2.2us |
+| 10 | 0.43ms | 1.64ms | 0.33ms | 8.2MB | 512.3KB | 1.2us |
+| 50 | 0.51ms | 5.48ms | 0.38ms | 28.3MB | 513.5KB | 1.3us |
+| 100 | 0.46ms | 1.09ms | 0.34ms | 53.0MB | 510.4KB | 0.6us |
+| 250 | 0.37ms | 0.90ms | 0.27ms | 125.2MB | 499.7KB | 0.4us |
+| 500 | 0.40ms | 0.94ms | 0.30ms | 244.6MB | 494.4KB | 1.8us |
+| **1000** | **0.38ms** | **0.82ms** | **0.29ms** | 482.7MB | 491.1KB | 1.3us |
+
+Creation: 1000 tenant graphs in 1.86s = **539 tenants/sec**.
+
+### Concurrent mixed read/write (75/25) spread across all 1000 tenant graphs
+| workers | throughput | read p50/p99 | write p50/p99 |
+|---|---|---|---|
+| 1 | 2,531 ops/s | 0.40 / 0.63ms | 0.32 / 0.48ms |
+| 8 | **8,175 ops/s** | 0.74 / 1.33ms | 0.74 / 1.89ms |
+| 32 | 7,008 ops/s | 1.85 / 8.00ms | 1.64 / 6.51ms |
+| 64 | 6,514 ops/s | 2.60 / 15.91ms | 2.46 / 13.54ms |
+
+### Findings
+1. **Read latency is FLAT from 1 to 1000 tenant graphs** (0.42ms -> 0.38ms) and p99 improves
+   (2.34ms -> 0.82ms). Tenant count does not degrade per-query performance.
+2. `select_graph()` costs ~1us regardless of how many graphs exist => keyspace lookup is O(1).
+3. Memory is **linear and predictable at ~491KB per tenant** for this shape. Honest caveat worth
+   publishing: 10,000 tenants x 491KB ~= 4.8GB, so FalkorDB's "10K+ multi-graphs" headline is
+   MEMORY-bound, not architecture-bound. That is a real, citable limitation.
+4. Throughput peaks at 8 workers (8,175 ops/s) and degrades gracefully, not catastrophically, to 64.
+5. **Isolation is physical, not a filter.** Tenant 1 running the identical Cypher that returns
+   tenant 0's secret gets `[]`, and `CALL db.labels()` in tenant 1 does not even list the `Secret`
+   label. This is a far stronger claim than `WHERE n.tenant = $id` and is demoable in 10 seconds.
+
+## Concurrency model — MEASURED, resolves a doc ambiguity
+Docs state "FalkorDB uses a per-graph reader-writer model / only one write query executes at a time on a
+given graph" but never say whether writes to DIFFERENT graphs run in parallel. Measured it (30k-node
+UNWIND CREATE per write, solo baseline 0.021s):
+
+| writers | all on SAME graph | each on OWN graph | speedup |
+|---|---|---|---|
+| 2 | 0.034s | 0.036s | 0.96x (overhead dominates) |
+| 4 | 0.084s | 0.050s | **1.67x** |
+| 8 | 0.146s | 0.089s | **1.64x** (1.89x vs serial projection) |
+
+**Conclusion: graph-per-tenant gives a real but BOUNDED write-throughput win of ~1.6-1.9x at 4-8
+concurrent writers, not linear scaling.** The per-graph write lock is confirmed (8 writers on one graph
+took ~7x the solo time). The plateau is consistent with the third-party claim that Redis's
+single-threaded core caps scaling past ~8 threads. Quote 1.6-1.9x, never "linear".
+
+## Purge/DELETE traps — VERIFIED
+- `UNWIND [1,2,3] AS v CREATE (a:T{p:v}) RETURN a LIMIT 1` creates **3** nodes. LIMIT is NOT respected
+  by CREATE/SET/DELETE/MERGE. A purge bounded with a trailing LIMIT deletes the wrong amount.
+- The CORRECT bounded-purge idiom is `MATCH (a:T) WITH a LIMIT 2 DELETE a` -> "Nodes deleted: 2". Verified.
+
+## Temporal support — PARTIAL, docs and my first probe were both wrong
+| expression | result |
+|---|---|
+| `date() + duration({days:1})` | **OK** -> 2026-10-16 |
+| `duration({days:2}) - duration({days:1})` | **OK** -> P1D |
+| `datetime() + duration({hours:2})` | **FAILS** |
+| `WHERE n.ts > datetime() - duration({days:7})` | **FAILS** |
+=> DATE arithmetic works; DATETIME arithmetic does not. Store timestamps as **epoch millis integers**
+and compare numerically. Do not design any decay/TTL logic around datetime arithmetic.
+
+## Vector index cannot property-filter — CONFIRMED, and it is a 10-second demo
+Docs: "Vector queries don't filter by properties." Measured consequence in a SHARED graph:
+```
+CALL db.idx.vector.queryNodes('Fact','emb',2,vecf32([1,0,0])) YIELD node RETURN node.t, node.s
+-> A "tenantA secret"   +   B "tenantB secret"      <-- CROSS-TENANT LEAK
+```
+Post-filtering the same top-2 to tenant A returns only 1 row — you asked for k and kept k/N.
+**So a shared graph + `WHERE n.tenant=$id` post-filter gives you either a measurable leak or recall
+collapse.** Graph-per-tenant is therefore structurally necessary for vector memory, not hygiene.
+This is the single best "why the graph is load-bearing" demo beat found so far.
+
+## ForgetEval — verified to exist
+github.com/deeplethe/lethe -> HTTP 200, **MIT**, 17 stars, "the first AI memory built to forget."
+Benchmark claimed at arXiv:2606.15903v2: 385 cases, no LLM judge, CPU-only.
+Published scores: **Graphiti 4.4% strict**, HippoRAG 8.0%, Mem0(infer) 43.6%, best LLM-hook 93.2%.
+Not yet independently re-run by me — treat the numbers as the paper's until reproduced.
