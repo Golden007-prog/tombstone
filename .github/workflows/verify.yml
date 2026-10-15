@@ -89,6 +89,9 @@ jobs:
       - name: Graph vs a text baseline on the same corpus
         run: python eval_graph_vs_text.py
 
+      - name: The premise measurement still matches what the README claims
+        run: python measure_repeat_rejections.py
+
       - name: The demo script can actually be spoken in 3 minutes
         run: python scripts_check_demo_timing.py
 

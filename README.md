@@ -19,7 +19,9 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those eight on purpose.** See why below.
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
-never a thing you could look up. The rejected option isn't a document — it's a 200-word subsection
+never a thing you could look up. *(I tried to measure that premise on this corpus and could
+not confirm it — [the measurement is here](#i-tested-this-products-own-premise-and-could-not-confirm-it),
+along with what is demonstrated instead.)* The rejected option isn't a document — it's a 200-word subsection
 buried inside a 4,000-word proposal about something else. It has no identity, so you can't count how
 often an idea was refused, you can't ask who refused it, and you can't find out whether anyone who
 knows why is still around.
@@ -725,6 +727,38 @@ itself publishes as its governance record are in, addresses are out.
 
 Modifications to the redistributed material are listed in [`NOTICE`](NOTICE), as Apache-2.0 §4
 requires — the snapshot contains verbatim KEP prose.
+
+## I tested this product's own premise, and could not confirm it
+
+The first sentence of this README says large orgs keep re-proposing things they already rejected.
+That is the motivation for everything here, and I had never measured it. So I did:
+`PYTHONPATH=src python measure_repeat_rejections.py`.
+
+Compare all 752 named rejected alternatives pairwise by embedding, keep pairs belonging to
+different decisions, and ask whether the record **already links** those two decisions through
+`REPLACES`, `SUPERSEDED_BY` or `SEE_ALSO`.
+
+| | |
+|---|---|
+| cross-decision pairs sharing a near-identical alternative | **3** |
+| of those, already linked in the record | **3** |
+| re-proposals this corpus can demonstrate | **0** |
+
+All three are a successor KEP carrying its predecessor's Alternatives section forward — which is
+exactly what should happen, and which the record already captures. The band just below
+near-identical holds 31 pairs that are *topically adjacent* rather than the same idea: "add pod
+index as a label" sitting near "generic `managed-by`". Counting those as repeats would be the
+same overclaim this product exists to avoid, so they are excluded and named.
+
+**So the premise is not demonstrated on this corpus, and I am not going to pretend otherwise.**
+What is demonstrated is the weaker, sufficient claim: a rejected alternative is not retrievable
+today — it has no identity, no index entry and no owner — so the question *"has this been tried?"*
+cannot currently be asked at all, by anyone, at any scale. This makes it askable. Whether the
+answer then comes back "yes, twice" is the organisation's business, not the tool's.
+
+Finding no silent repeats is a result. The measurement is committed, it runs in CI, and it fails
+if these numbers ever stop matching the table above — so if a real re-proposal does appear, this
+README gets a better story than the one it has now.
 
 ## A correction I made, and why it is in the README
 
