@@ -125,7 +125,7 @@ outright. Volunteer both before anyone finds them.
 ## "How do you know any of this is true?"
 
 One command: `./preflight.sh` — seventeen checks, every number re-derived against the live graph.
-29 CI steps on every push. 119 tests. Each answer in the UI carries its Cypher, that query's hash,
+30 CI steps on every push. 119 tests. Each answer in the UI carries its Cypher, that query's hash,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

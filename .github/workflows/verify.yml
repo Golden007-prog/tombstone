@@ -133,6 +133,9 @@ jobs:
       - name: The README's printed output blocks match a live run
         run: python scripts_check_readme_examples.py
 
+      - name: The graph is a faithful reading of the corpus (gold computed without the database)
+        run: python eval_gold.py
+
       - name: The keyless router, on language it was not tuned against
         run: python eval_router.py
 

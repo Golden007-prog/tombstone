@@ -20,7 +20,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those twenty on purpose,** and ties the baseline on the
 >   control category. See why below.
 > - **Nothing here is asserted.** 119 tests, 26 graph claims, 18 rendered UI states and every
->   benchmark re-run by **29 CI steps on each push** — including the claims I had to withdraw,
+>   benchmark re-run by **30 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
@@ -456,6 +456,41 @@ Rule 3 says a product that still works without the graph is decoration, so here 
 There is **no in-memory mirror and no cached fallback** anywhere in this repo. With the database
 unreachable, every endpoint returns `DEGRADED` and says so. There is a test for it
 (`test_agent_fails_loudly_without_the_database`).
+
+## How do I know the graph is a faithful reading of the corpus?
+
+Every other check here asks the graph a question and asserts something about the answer. That
+proves the queries are stable. It does not prove the graph is a correct reading of the files it
+was built from — if ingest dropped a field or expanded an alias wrongly, the queries would go on
+agreeing with each other and every check would stay green.
+
+[`eval_gold.py`](eval_gold.py) computes the same facts a second time from
+[`data/corpus.json.gz`](data/corpus.json.gz) — the committed raw corpus — using **nothing but the
+standard library**. No Cypher, no FalkorDB, no `tombstone.tools`; the graph never grades itself.
+Then it compares:
+
+```
+  gold (no database)        graph
+  PASS  ownership files                                   585     585
+  PASS  decisions                                         681     681
+  PASS  files with exactly one approver                    45      45
+  PASS  people recorded emeritus somewhere                111     111
+  PASS  people emeritus somewhere, approving nowhere       83      83
+  PASS  lavalamp's emeritus files                          31      31
+  PASS  spiffxp emeritus files                              9       9
+  PASS  spiffxp still approves exactly hack/jenkins/OWNERS -> ['hack/jenkins/OWNERS']
+```
+
+**It found a disagreement on the first run, and the graph was right.** My independent
+count said 580 ownership files where the graph said 585, because I had counted only the
+files that parse to something. Five OWNERS files in the tree declare nothing at all — and an empty OWNERS file is
+still a node, because it names no approvers, so everything under it falls through to its parent.
+That is exactly the inheritance this product walks. The gold was wrong; the corpus has 585.
+
+**And it shows which rule is load-bearing.** Disable alias expansion in the gold calculation —
+treat `sig-api-machinery-approvers` as a person rather than expanding it to the three people it
+names — and "files with exactly one approver" goes from **45 to 247**. The bus-factor answer would
+have been five times too alarming, and nothing else in this repository would have noticed.
 
 ## Does the graph actually do work a text search cannot? Measured.
 

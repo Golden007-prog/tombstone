@@ -82,6 +82,7 @@ if ! curl -sf -m 5 http://localhost:8099/api/health >/dev/null 2>&1; then
 fi
 
 run "the invariants"                       "$PY" -m pytest tests/ -q
+run "the graph against the raw corpus"  "$PY" eval_gold.py
 run "every README number, against the graph" "$PY" verify_claims.py
 run "the drafting action's own claims"     "$PY" verify_action.py
 run "the memory claims"                    "$PY" verify_memory.py
