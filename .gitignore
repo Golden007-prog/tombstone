@@ -7,6 +7,8 @@ node_modules/
 .next/
 data/raw/
 data/cache/
+# data/corpus.json.gz and data/vectors.npy ARE committed on purpose: they make a cold start
+# on a free tier instant and let `git clone && docker compose up` reproduce the demo graph offline.
 .DS_Store
 *.log
 .fastembed_cache/

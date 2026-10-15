@@ -66,10 +66,18 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
     # ---------------- Alternative nodes (LATENT #1) ----------------
     alt_rows, alt_edges = [], []
     titled = untitled = 0
-    for rel, md in corpus.readmes.items():
+    # A snapshot carries alternatives already extracted (comments stripped), so a deploy does not
+    # re-parse 59MB of markdown. Fall back to live parsing when loading from a working tree.
+    prebuilt = getattr(corpus, "_prebuilt_alternatives", None)
+    if prebuilt is not None:
+        source = {rel: [(a["title"], a["body"]) for a in items] for rel, items in prebuilt.items()}
+    else:
+        source = {rel: rejected_alternatives(md) for rel, md in corpus.readmes.items()
+                  if rel in corpus.keps}
+    for rel, found in source.items():
         if rel not in corpus.keps:
             continue
-        for i, (title, body) in enumerate(rejected_alternatives(md)):
+        for i, (title, body) in enumerate(found):
             if not body or len(body) < 100:
                 continue
             if title:
