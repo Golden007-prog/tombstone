@@ -26,16 +26,33 @@ fi
 echo "building for linux/amd64, as the Space does"
 docker build --platform linux/amd64 -t "$IMG" "$STAGE" >/dev/null 2>&1
 
+# The image installs python3 from the pinned base image's apt repos, so its version moves only
+# when the base tag moves. That is stable, and stable is not the same as checked: fastembed needs
+# onnxruntime, which has no wheel outside 3.11-3.14, and a base bump that carried Python past
+# that would break the build in a way whose error never mentions Python. It is cheap to assert.
+img_py="$(docker run --rm --platform linux/amd64 --entrypoint /opt/venv/bin/python "$IMG" \
+          -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo unknown)"
+case "$img_py" in
+  3.11|3.12|3.13|3.14) echo "  image Python $img_py -> inside the supported range" ;;
+  *) echo "FAIL: the image runs Python $img_py; fastembed needs 3.11-3.14"; exit 1 ;;
+esac
+
 echo "running as a non-root user with no volumes, as the Space does"
 docker rm -f "$IMG" >/dev/null 2>&1 || true
-# Capped at 512MB on purpose. Measured peak is ~393MB with the embedder loaded and a GRAPH.COPY
-# fork in flight, so this leaves roughly 120MB of headroom and FAILS if a change eats it. The
-# Space's free tier has far more, but a cap that is never approached catches nothing: the point is
-# to notice a regression here rather than as an OOM on the hosted demo, where it looks like the
-# product crashing. GRAPH.COPY forks, so memory is the resource this product is most likely to
-# regress on.
+# Two memory facts matter and they are very different, so the container runs with room and the
+# tighter one is asserted rather than imposed.
+#
+#   serial use            ~400MB  -- answering, drafting, one counterfactual at a time
+#   six concurrent copies ~900MB  -- measured; it OOMs at 768MB and at 1GB, and survives at 2GB
+#
+# GRAPH.COPY materialises a whole graph per call, so concurrency multiplies it. Running the whole
+# check at 512MB -- which an earlier version did -- made the concurrency burst OOM the container
+# and looked like a product failure when it was a sizing mistake in the harness. Running it all at
+# 2GB would hide a serial regression. So: 2GB of room, and SERIAL_CEILING asserted after the
+# serial checks, before any concurrency.
+SERIAL_CEILING_MB=512
 docker run -d --name "$IMG" --platform linux/amd64 --user 1000 \
-  --memory=512m --memory-swap=512m -p "$PORT:8099" "$IMG" >/dev/null
+  --memory=2g --memory-swap=2g -p "$PORT:8099" "$IMG" >/dev/null
 
 for _ in $(seq 1 60); do
   health="$(curl -s -m 3 "http://localhost:$PORT/api/health" 2>/dev/null || true)"
@@ -114,7 +131,16 @@ if printf '%s' "$app_js" | grep -qE 'localStorage|sessionStorage|document\.cooki
 fi
 echo "  no browser storage   -> survives third-party cookie blocking"
 
-# Six counterfactuals at once, all of which fork, inside 512MB. The failure this is looking for is
+serial_mb="$(docker stats --no-stream --format '{{.MemUsage}}' "$IMG" 2>/dev/null \
+             | awk '{print $1}' | sed 's/MiB//')"
+serial_int="${serial_mb%%.*}"
+if [ -n "$serial_int" ] && [ "$serial_int" -gt "$SERIAL_CEILING_MB" ]; then
+  echo "FAIL: serial use peaked at ${serial_mb}MiB, above the ${SERIAL_CEILING_MB}MiB ceiling"
+  exit 1
+fi
+echo "  serial peak ${serial_mb}MiB, under the ${SERIAL_CEILING_MB}MiB ceiling"
+
+# Six counterfactuals at once, all of which fork. Needs ~900MB, which is why the container has 2GB. The failure this is looking for is
 # a 500 or a hung request; a DEGRADED is the designed answer when a fork genuinely cannot happen,
 # and is counted as a pass. Judges share links, so concurrent use of the one hosted container is
 # the normal case rather than the stress case.
@@ -134,7 +160,13 @@ def call(_):
 
 with cf.ThreadPoolExecutor(max_workers=6) as ex:
     shapes = list(ex.map(call, range(6)))
-answered = sum(s == "ANSWERED_WITH_PATH" for s in shapes)
+# Both shapes are a successful answer. The serial checks above ask this same counterfactual, so
+# by the time the burst runs the question is legitimately remembered and the repeats come back
+# ANSWERED_FROM_MEMORY. Counting only ANSWERED_WITH_PATH reported six successes as zero and read
+# exactly like a concurrency regression -- a narrow assertion that only became wrong when memory
+# started recording tool calls, which was itself a bug fixed hours earlier.
+ANSWERED = {"ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY"}
+answered = sum(s in ANSWERED for s in shapes)
 degraded = sum(s == "DEGRADED" for s in shapes)
 hard = [s for s in shapes if s and s.startswith("HARD-FAILURE")]
 print(f"  6 concurrent forking requests: {answered} answered, {degraded} degraded honestly, "
@@ -146,7 +178,7 @@ if answered == 0:
 PY
 
 peak="$(docker stats --no-stream --format '{{.MemUsage}}' "$IMG" 2>/dev/null)"
-echo "  peak memory in a 512MB container: $peak"
+echo "  peak with six concurrent copies: $peak"
 if docker inspect "$IMG" --format '{{.State.OOMKilled}}' 2>/dev/null | grep -q true; then
   echo "FAIL: the container was OOM-killed inside 512MB"
   exit 1

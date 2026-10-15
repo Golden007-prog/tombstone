@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import threading
 import time
 
 from graphkit.ingest import connect
@@ -42,6 +43,10 @@ def query_sha(cypher: str) -> str:
     """Stamp every answer with a hash of the query that produced it, so the README's query
     catalogue is verifiably the thing that ran rather than a retelling."""
     return hashlib.sha256(" ".join((cypher or "").split()).encode()).hexdigest()[:12]
+
+
+# One memory write at a time. See Agent._remember for why this exists.
+_MEMORY_WRITE_LOCK = threading.Lock()
 
 
 class Agent:
@@ -144,10 +149,18 @@ class Agent:
                         f"re-running it just now returned the same {len(ans.rows)} rows.")
 
         # Additive and best-effort: a memory write must never break the answer that was asked for.
+        #
+        # Serialised, because it embeds. When chip clicks began being remembered, every tool call
+        # started running fastembed, and six concurrent counterfactuals in a 512MB container went
+        # from five answered to four dropped connections -- the server died rather than degraded,
+        # which is the one outcome this product is not allowed to have. Embedding six questions at
+        # once buys nothing; one at a time costs a few milliseconds of queueing and keeps the
+        # answer path alive.
         if ans.shape in ("ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY"):
             try:
-                qv = list(self.embedder().embed([question]))[0].tolist()
-                self.memory.record(question, ans, qvec=qv)
+                with _MEMORY_WRITE_LOCK:
+                    qv = list(self.embedder().embed([question]))[0].tolist()
+                    self.memory.record(question, ans, qvec=qv)
             except Exception:
                 pass
         return ans

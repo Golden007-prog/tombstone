@@ -501,7 +501,9 @@ python3.13 -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # 3.11
 **Python 3.11–3.14.** Not 3.15: `fastembed` needs `onnxruntime`, which publishes wheels for
 cp311–cp314 only, so `pip install` there fails with a `ResolutionImpossible` wall that never
 mentions Python. `run.sh` and `preflight.sh` check the version first and name a working
-interpreter you already have. I found this by cloning fresh on a machine whose default `python3`
+interpreter you already have. **The hosted demo is unaffected** — the image installs its Python
+from a pinned base, runs 3.13.5, and `scripts_verify_deploy.sh` asserts that before deploying, so
+a future base bump that carried Python out of range fails there rather than on the Space. I found this by cloning fresh on a machine whose default `python3`
 had moved to 3.15 — the documented command simply did not work, which is the sort of thing you
 only learn by running it rather than by having run it once a while ago.
 
@@ -1024,8 +1026,12 @@ times. Each fix made the claim narrower and more defensible.
   server process, so on a small box, or when two counterfactuals overlap, it can fail with
   "could not fork". Measured: the whole app — FalkorDB, the embedding model and a copy in
   flight — peaks at **~400 MB and runs inside a 512 MB container without being OOM-killed**, and
-  repeated copies do not grow it, so the copies are genuinely dropped. The deploy check runs
-  capped at 512 MB so a regression fails there rather than as a crash on the hosted demo. It
+  repeated copies do not grow it, so the copies are genuinely dropped. **Concurrency is a
+  different number**: six counterfactuals at once peak around **900 MB**, because each `GRAPH.COPY`
+  materialises a whole graph — measured, they OOM a 768 MB container and a 1 GB one and survive at
+  2 GB. The hosted tier has far more. The deploy check gives the container 2 GB and asserts the
+  *serial* peak stays under 512 MB, so a serial regression still fails there rather than as a
+  crash on the demo. It
   retries once, and if it still cannot copy it returns `DEGRADED` saying so — which is not
   theoretical: **six counterfactuals fired at once into a 512 MB container answered five and
   degraded one, with no errors, no hung requests and no OOM.** Judges share links, so concurrent
