@@ -87,21 +87,21 @@ ownership files.*
 >
 > A whole-graph property. Under twenty milliseconds, inside the request."
 
-### 1:42–2:16 — It drafts the fix, and refuses two of them · 100 words
+### 1:42–2:16 — It drafts the fix, and refuses two of them · 105 words
 
 > *[Click the draft-the-fix chip.]*
 >
-> "Everything so far was the agent answering. This is it doing.
+> "So far it answered. Now it acts - and then stops.
 >
 > Kubernetes writes down when someone steps back: emeritus approvers. Three people are recorded
 > that way — while another file still lists them as an active approver.
 >
-> So it drafts the patch. A real diff.
+> So it drafts the patch. A real diff. It does not apply it.
 >
 > But the refusals are the point. The strongest signal here — emeritus in twenty files, approver
-> in one — it won't touch: that file is vendored, synced from another repo.
+> in one — it won't touch: that file is vendored from another repo.
 >
-> This one it can't patch at all: his handle isn't in the file. An alias expands to him.
+> This one it can't patch at all - his handle isn't in the file; an alias expands to him.
 >
 > Patching all three would be wrong twice."
 
