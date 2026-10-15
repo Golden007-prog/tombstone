@@ -105,7 +105,7 @@ fallback anywhere in the repo, and a test asserts it.
 
 ```bash
 git clone https://github.com/aviralgarg05/tombstone tombstone && cd tombstone
-python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+python3.13 -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # Python 3.11-3.14
 ./run.sh          # FalkorDB up, graph seeded from the committed snapshot in ~1.1s
 ```
 

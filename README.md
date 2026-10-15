@@ -494,9 +494,16 @@ Full methodology and the engine gotchas: [`docs/GROUND-TRUTH.md`](docs/GROUND-TR
 
 ```bash
 git clone https://github.com/aviralgarg05/tombstone && cd tombstone
-python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+python3.13 -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # 3.11–3.14
 ./run.sh
 ```
+
+**Python 3.11–3.14.** Not 3.15: `fastembed` needs `onnxruntime`, which publishes wheels for
+cp311–cp314 only, so `pip install` there fails with a `ResolutionImpossible` wall that never
+mentions Python. `run.sh` and `preflight.sh` check the version first and name a working
+interpreter you already have. I found this by cloning fresh on a machine whose default `python3`
+had moved to 3.15 — the documented command simply did not work, which is the sort of thing you
+only learn by running it rather than by having run it once a while ago.
 
 `run.sh` prefers `./.venv` if it exists, so there is nothing to activate. It needs Docker running,
 and it tells you plainly if Docker or a dependency is missing rather than failing halfway.

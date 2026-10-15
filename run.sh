@@ -19,6 +19,28 @@ else
 fi
 echo "using $PY ($("$PY" --version 2>&1))"
 
+# Python 3.15 cannot run this. fastembed needs onnxruntime, and onnxruntime publishes wheels for
+# cp311 through cp314 only, so `pip install -r requirements.txt` fails with ResolutionImpossible
+# and a wall of version lines that never mention Python. Found by cloning fresh on a machine whose
+# default python3 had moved to 3.15: the documented quickstart simply did not work, and said so in
+# the least useful way available.
+ver="$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || echo 0.0)"
+major="${ver%%.*}"; minor="${ver#*.}"
+if [ "$major" != "3" ] || [ "$minor" -lt 11 ] || [ "$minor" -gt 14 ]; then
+  echo "This needs Python 3.11-3.14; $PY is $ver." >&2
+  echo "  fastembed depends on onnxruntime, which has no wheel outside that range." >&2
+  for cand in python3.14 python3.13 python3.12 python3.11; do
+    if command -v "$cand" >/dev/null; then
+      echo "  You have $cand. Create the venv with it:" >&2
+      echo "      rm -rf .venv && $cand -m venv .venv && ./.venv/bin/pip install -r requirements.txt" >&2
+      exit 1
+    fi
+  done
+  echo "  Install one of 3.11-3.14, or use Docker: see DEPLOY.md" >&2
+  exit 1
+fi
+
+
 if ! "$PY" -c "import falkordb, fastembed, fastapi" 2>/dev/null; then
   echo "Dependencies missing. Run:  $PY -m pip install -r requirements.txt" >&2
   exit 1
