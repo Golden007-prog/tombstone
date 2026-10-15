@@ -146,6 +146,27 @@ published this; third-party reviewers call FalkorDB's multi-tenancy "claimed, no
 
 Creation: 1000 tenant graphs in 1.86s = **539 tenants/sec**.
 
+### Re-run, 15 Oct, different machine — and it does NOT reproduce
+
+| tenants | read p50 | read p99 | mem/tenant |
+|---|---|---|---|
+| 1 | 0.33ms | 3.77ms | 512.8KB |
+| 100 | 0.49ms | 1.45ms | 504.9KB |
+| 250 | 0.76ms | 1.84ms | 497.5KB |
+| 500 | 2.19ms | **12.79ms** | 494.3KB |
+| **1000** | **2.25ms** | 6.69ms | 491.7KB |
+
+Creation: 1000 graphs in 5.39s = 185 tenants/sec. `select_graph` 0.4 → 3.6us.
+
+The memory column reproduces almost exactly (491–513 KB/tenant, both runs). **The latency columns
+do not.** The first run shows p50 flat at 0.38–0.42 ms across the whole range; the second shows it
+rising from 0.33 to 2.25 ms, roughly 7x. p99 in the second run is not even monotonic: 1.45 ms at
+100 tenants, 12.79 at 500, 6.69 at 1000.
+
+Two runs disagreeing does not tell you which is right. It tells you the quantity is too noisy for
+either to support a conclusion, and that the original finding below — "tenant count does not
+degrade per-query performance" — was a single run's noise read as a signal.
+
 ### Concurrent mixed read/write (75/25) spread across all 1000 tenant graphs
 | workers | throughput | read p50/p99 | write p50/p99 |
 |---|---|---|---|
@@ -155,9 +176,14 @@ Creation: 1000 tenant graphs in 1.86s = **539 tenants/sec**.
 | 64 | 6,514 ops/s | 2.60 / 15.91ms | 2.46 / 13.54ms |
 
 ### Findings
-1. **Read latency is FLAT from 1 to 1000 tenant graphs** (0.42ms -> 0.38ms) and p99 improves
-   (2.34ms -> 0.82ms). Tenant count does not degrade per-query performance.
-2. `select_graph()` costs ~1us regardless of how many graphs exist => keyspace lookup is O(1).
+1. ~~**Read latency is FLAT from 1 to 1000 tenant graphs** and p99 improves. Tenant count does
+   not degrade per-query performance.~~ **WITHDRAWN.** The re-run above contradicts it: p50 rose
+   7x over the same range and p99 was non-monotonic. One run cannot support this claim, and the
+   honest statement is narrower -- read latency stays **under 3ms at 1000 tenants**, which is the
+   thing that actually matters, without any claim about the shape of the curve.
+2. `select_graph()` costs single-digit microseconds (0.4-3.6us measured) however many graphs
+   exist, so the keyspace lookup is cheap. The earlier phrasing, "~1us regardless of count", was
+   tighter than two runs support.
 3. Memory is **linear and predictable at ~491KB per tenant** for this shape. Honest caveat worth
    publishing: 10,000 tenants x 491KB ~= 4.8GB, so FalkorDB's "10K+ multi-graphs" headline is
    MEMORY-bound, not architecture-bound. That is a real, citable limitation.

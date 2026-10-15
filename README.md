@@ -437,11 +437,29 @@ v4.22.1, `CALL algo.WCC(NULL, NULL)` — the two-argument form, by analogy with
 The benchmark now makes both engines agree on the component count before it times either, which
 is what caught it.
 
-Multi-tenancy, measured 1 → 1000 graphs: read p50 stays **flat** (0.42 → 0.38 ms), p99 *improves*
-(2.34 → 0.82 ms), `select_graph` is ~1µs regardless of count, memory is linear at ~491 KB/tenant.
-Isolation is physical — a second tenant running the identical Cypher gets `[]`, and `db.labels()`
-doesn't even list the label. Honest caveat: 10,000 tenants × 491 KB ≈ 4.8 GB, so FalkorDB's "10K+
-graphs" headline is memory-bound, not architecture-bound.
+Multi-tenancy, re-measured 1 → 1000 graphs with `spikes/tenancy_bench.py`. **Two of these claims
+did not survive being re-run**, so here is the corrected version:
+
+| tenants | read p50 | read p99 | KB/tenant |
+|---|---|---|---|
+| 1 | 0.33 ms | 3.77 ms | 512.8 |
+| 100 | 0.49 ms | 1.45 ms | 504.9 |
+| 500 | 2.19 ms | **12.79 ms** | 494.3 |
+| 1000 | 2.25 ms | 6.69 ms | 491.7 |
+
+What holds: **memory is linear at 491–513 KB/tenant**, and **isolation is physical** — a second
+tenant running the identical Cypher gets `[]`, and `db.labels()` does not even list the label.
+Creating 1000 tenant graphs took 5.4 s, and `select_graph` stays negligible (0.4 → 3.6 µs).
+
+What does not: read p50 **does not stay flat**. It goes 0.33 → 2.25 ms, roughly 7x, though still
+comfortably under 3 ms. And p99 is **too noisy to claim a trend from a single run** — 1.45 ms at
+100 tenants, 12.79 at 500, 6.69 at 1000. This paragraph previously said p50 stayed flat (0.42 →
+0.38 ms) and p99 *improved* (2.34 → 0.82 ms). Both were one run's noise read as a signal, which is
+the same mistake as [the networkx table](#why-falkordb-measured-honestly--including-where-it-loses)
+in a smaller key.
+
+Honest caveat that does survive: 10,000 tenants × ~491 KB ≈ 4.8 GB, so FalkorDB's "10K+ graphs"
+headline is memory-bound, not architecture-bound.
 
 Full methodology and the engine gotchas: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
 
