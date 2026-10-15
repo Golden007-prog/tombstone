@@ -265,6 +265,51 @@ class Agent:
         }
 
 
+def headline(a: Answer) -> dict | None:
+    """The one number a reader should take away, derived from the rows.
+
+    Pulled from the data rather than written by hand or by a model, so it cannot drift from what
+    the query returned. Returns {stat, label} or None when a headline would be noise.
+    """
+    if a.shape in ("UNKNOWN_ENTITY", "DEGRADED"):
+        return None
+    if a.shape == "NOT_IN_GRAPH":
+        return {"stat": "nothing", "label": "and that is a real answer, not a failure"}
+    n = len(a.rows)
+    t = a.tool
+    try:
+        if t == "sole_approver_risk":
+            held = sum(int(r[1]) for r in a.rows)
+            return {"stat": str(held), "label": f"areas held alone by {n} people"}
+        if t == "ownership_dilution":
+            thinnest = min(int(r[5]) for r in a.rows)
+            return {"stat": str(n), "label": f"areas lost every dedicated approver — thinnest falls back to {thinnest}"}
+        if t == "stepped_back_bridges":
+            return {"stat": a.rows[0][0], "label": "held the most connective authority before stepping back"}
+        if t == "has_this_been_tried":
+            return {"stat": "yes", "label": f"{n} recorded rejections of something close to this"}
+        if t == "broken_lineage":
+            cited = sum(int(r[1]) for r in a.rows)
+            return {"stat": str(n), "label": f"decision records that do not exist, cited {cited} times"}
+        if t == "stale_knowledge":
+            return {"stat": str(n), "label": "decisions still cited, still undecided, authors stepped back"}
+        if t == "successor_for":
+            return {"stat": f"{a.rows[0][1]}/{a.rows[0][2]}", "label": f"of their areas already co-owned by {a.rows[0][0]}"}
+        if t == "hollowing_communities":
+            return {"stat": f"{int(a.rows[0][4])}%", "label": f"of a {int(a.rows[0][1])}-person group has stepped back"}
+        if t == "what_if_they_go":
+            stranded = a.rows[0][1]
+            return ({"stat": str(len(stranded)), "label": "areas would be left with no owner anywhere"}
+                    if stranded else {"stat": "0", "label": "nothing would be left unowned"})
+        if t.startswith("who_owns"):
+            return {"stat": str(n), "label": "row(s) — see the path below"}
+        if t == "recall":
+            return {"stat": str(n), "label": "prior answer(s), citations still live"}
+    except (IndexError, TypeError, ValueError):
+        return None
+    return None
+
+
 def render(a: Answer) -> str:
     """Deterministic phrasing. The model is never asked to describe what the graph returned."""
     if a.shape == "ANSWERED_FROM_MEMORY":
@@ -314,9 +359,8 @@ def render(a: Answer) -> str:
                 f"    approval now falls back {levels} level(s) up to {fallback} — "
                 f"{n_fb} approver(s) who never specifically owned this"
             )
-        return (f"{n} area(s) lost every dedicated approver. They are not unowned — Kubernetes "
-                f"OWNERS inherit — but approval has silently widened to people who never signed "
-                f"up for this code:\n\n" + "\n".join(lines))
+        return ("They are not unowned — Kubernetes OWNERS inherit — but approval has silently "
+                "widened to people who never signed up for this code:\n\n" + "\n".join(lines))
     if t == "stepped_back_bridges":
         lines = [f"• {r[0]} — betweenness {r[1]}, left {r[2]} area(s) behind" for r in a.rows]
         return ("Ranked by how much CONNECTIVE authority was concentrated in people who have since stepped back (betweenness centrality "
@@ -338,11 +382,11 @@ def render(a: Answer) -> str:
                 "together:\n\n" + "\n".join(lines)
                 + "\n\n" + (a.note or ""))
     if t == "sole_approver_risk":
-        lines = [f"• {who} is the ONLY approver of {n} area(s): "
-                 f"{', '.join(x.replace('/OWNERS','') for x in sample)}"
-                 for who, n, sample in a.rows]
-        return (f"{n} person/people hold areas alone — a bus factor of one each:\n\n"
-                + "\n".join(lines))
+        lines = [f"• {who} is the only approver of {int(cnt)} "
+                 f"area{'s' if cnt != 1 else ''}: "
+                 f"{', '.join(x.replace('/OWNERS', '') for x in sample)}"
+                 for who, cnt, sample in a.rows]
+        return "\n".join(lines)
     if t == "what_if_they_go":
         cohort, stranded, before, ms, copy_ms = a.rows[0]
         who = (cohort[0] if len(cohort) == 1
@@ -396,7 +440,7 @@ def render(a: Answer) -> str:
     if t == "broken_lineage":
         lines = [f"• {r[0]} — cited by {r[1]} decision(s): {', '.join(str(x) for x in r[2])}"
                  for r in a.rows]
-        return (f"{n} cited decision record(s) do not exist:\n\n" + "\n".join(lines))
+        return "\n".join(lines)
     if t == "who_owns(depth=1)":
         lines = [f"• {r[0]} approves {r[1]}" for r in a.rows]
         return f"Current approvers ({n}):\n" + "\n".join(lines)

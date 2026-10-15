@@ -62,6 +62,12 @@ button.primary:hover{filter:brightness(1.08);color:#fff}
 .shape{font:11px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;padding:5px 9px;border-radius:5px;
   background:var(--accent-soft);color:var(--accent);border:1px solid currentColor}
 .meta{font:12px ui-monospace,Menlo,monospace;color:var(--muted)}
+.headline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:2px 0 16px;
+  padding:14px 16px;background:var(--accent-soft);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:8px}
+.hstat{font-size:30px;font-weight:650;line-height:1;color:var(--accent);letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.hlabel{font-size:14px;color:var(--ink);opacity:.82;flex:1;min-width:180px}
 .answer{margin:0;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px;line-height:1.65;
   font-family:inherit}
 .graphwrap{margin-top:16px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -90,7 +96,10 @@ code{font:12.5px ui-monospace,Menlo,monospace;background:var(--bg);border:1px so
 footer{border-top:1px solid var(--line);margin-top:30px}
 footer p{padding:18px 0;font-size:12.5px;color:var(--muted)}
 a{color:var(--accent)}
+#go.loading{opacity:.6;pointer-events:none}
+.chip.loading{opacity:.55;pointer-events:none}
 @media (max-width:620px){
+  .hstat{font-size:25px}
   .head{flex-direction:column;gap:10px}
   .row{flex-direction:column}
   .health{white-space:normal;max-width:100%}

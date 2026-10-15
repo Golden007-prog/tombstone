@@ -20,7 +20,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from tombstone.agent import Agent, render
+from tombstone.agent import Agent, headline, render
 from tombstone.tools import CATALOGUE
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -88,6 +88,7 @@ def call_tool(c: ToolCall):
     return {
         "tool": ans.tool,
         "shape": ans.shape,
+        "headline": headline(ans),
         "answer": render(ans),
         "rows": ans.rows,
         "coverage": ans.coverage,

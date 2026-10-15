@@ -606,3 +606,33 @@ def test_titled_alternatives_really_are_regex_derived(g):
     flagged = g.ro_query(
         "MATCH (a:NamedOption) WHERE a.titled = true RETURN count(a)").result_set[0][0]
     assert flagged == titled
+
+
+def test_headline_is_derived_from_rows_not_written(agent):
+    """The big number on screen must come from the data, or it will eventually contradict it."""
+    from tombstone.agent import headline
+
+    a = agent.dispatch("sole_approver_risk", {})
+    h = headline(a)
+    assert h and h["stat"] == str(sum(int(r[1]) for r in a.rows))
+
+    b = agent.dispatch("ownership_dilution", {})
+    hb = headline(b)
+    assert hb and hb["stat"] == str(len(b.rows))
+    assert str(min(int(r[5]) for r in b.rows)) in hb["label"]
+
+
+def test_headline_never_contradicts_an_empty_answer(agent):
+    from tombstone.agent import headline
+
+    a = agent.dispatch("has_this_been_tried",
+                       {"idea_text": "rewrite the control plane in COBOL", "max_dist": 0.15})
+    assert a.shape == "NOT_IN_GRAPH"
+    h = headline(a)
+    assert h["stat"] == "nothing"
+    assert "real answer" in h["label"]
+
+    for tool in ("successor_for", "who_owns"):
+        bad = agent.dispatch(tool, {"handle": "no-such-person", "path": "no/such/path"})
+        assert bad.shape == "UNKNOWN_ENTITY"
+        assert headline(bad) is None, "an unresolved entity must not get a headline number"

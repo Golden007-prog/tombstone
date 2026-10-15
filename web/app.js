@@ -85,7 +85,7 @@ function chips() {
     const b = document.createElement("button");
     b.className = "chip";
     b.textContent = c.label;
-    b.onclick = () => runTool(c);
+    b.onclick = () => runTool(c, b);
     box.appendChild(b);
   });
 }
@@ -100,6 +100,12 @@ function show(data, graphArgs) {
   $("meta").textContent = bits.join("  ·  ");
   $("answer").textContent = data.answer || "(no answer)";
 
+  // The one number that is the point, pulled from the rows by the server — never written by
+  // hand and never by the model, so it cannot disagree with the answer underneath it.
+  const h = data.headline;
+  $("headline").classList.toggle("hidden", !h);
+  if (h) { $("hstat").textContent = h.stat; $("hlabel").textContent = h.label; }
+
   const cov = data.coverage && Object.keys(data.coverage).length ? data.coverage : null;
   $("covwrap").classList.toggle("hidden", !cov);
   if (cov) $("coverage").textContent = JSON.stringify(cov, null, 2);
@@ -112,9 +118,12 @@ function show(data, graphArgs) {
   $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-async function runTool(c) {
-  $("answer").textContent = "running…";
+async function runTool(c, btn) {
+  $("answer").textContent = "running the Cypher…";
+  $("headline").classList.add("hidden");
+  $("graphwrap").classList.add("hidden");
   $("result").classList.remove("hidden");
+  if (btn) btn.classList.add("loading");
   try {
     const r = await fetch("/api/tool", {
       method: "POST",
@@ -124,6 +133,8 @@ async function runTool(c) {
     show(await r.json(), c.graph);
   } catch (e) {
     show({ shape: "DEGRADED", answer: "Request failed: " + e });
+  } finally {
+    if (btn) btn.classList.remove("loading");
   }
 }
 
@@ -131,6 +142,7 @@ async function ask() {
   const q = $("q").value.trim();
   if (!q) return;
   $("answer").textContent = "routing…";
+  $("headline").classList.add("hidden");
   $("result").classList.remove("hidden");
   try {
     const r = await fetch("/api/ask", {
