@@ -25,6 +25,29 @@ APP = os.environ.get("APP", "http://localhost:8099")
 # captured ANSWERED_FROM_MEMORY instead -- true, and not the first thing a reader should meet.
 # The walkthrough builder has cleared memory before capture for exactly this reason; the shots
 # did not, which is how the two drifted apart.
+SHOT_SOURCES = ("web/app.js", "web/style.css", "web/index.html")
+FINGERPRINT = "docs/img/.shots-fingerprint.json"
+
+
+def _fingerprint() -> dict:
+    """What the UI looked like when these images were taken.
+
+    A screenshot's content IS the interface, so a UI change can invalidate it in a way nothing
+    else notices -- drafted-patch.png sat in the README for a day showing "1 candidate(s)", a
+    plural the product had stopped producing. mtimes cannot answer this: a fresh clone gives every
+    file the same checkout time. A hash of the files that decide what the page looks like can.
+    """
+    import hashlib
+    return {f: hashlib.sha256(open(f, "rb").read()).hexdigest()[:16] for f in SHOT_SOURCES}
+
+
+def _write_fingerprint() -> None:
+    import json as _json
+    with open(FINGERPRINT, "w") as fh:
+        _json.dump(_fingerprint(), fh, indent=2, sort_keys=True)
+        fh.write("\n")
+
+
 def _clear_memory() -> None:
     import json as _json
     import urllib.request as _u
@@ -92,3 +115,6 @@ for name, query, width, height in SHOTS:
     if size < 15_000:
         sys.exit(f"{name} came back near-empty ({size} bytes) -- did the page actually run?")
     print(f"  {name}  {width}x{height}  {size // 1024}KB")
+
+_write_fingerprint()
+print(f"  fingerprinted against {', '.join(SHOT_SOURCES)}")
