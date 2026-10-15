@@ -8,14 +8,20 @@ set -euo pipefail
 redis-server \
   --loadmodule /var/lib/falkordb/bin/falkordb.so \
       RESULTSET_SIZE 1000000 TIMEOUT 0 MAX_QUEUED_QUERIES 4096 THREAD_COUNT 4 \
-  --port 6379 --daemonize no --save '' --appendonly no &
+  --port 6379 --daemonize no --save '' --appendonly no --dir /var/lib/falkordb/data &
 FALKOR_PID=$!
 
 echo "waiting for FalkorDB…"
+READY=0
 for i in $(seq 1 40); do
-  if redis-cli PING >/dev/null 2>&1; then echo "FalkorDB up after ${i}s"; break; fi
+  if redis-cli PING >/dev/null 2>&1; then echo "FalkorDB up after ${i}s"; READY=1; break; fi
   sleep 1
 done
+if [ "$READY" -ne 1 ]; then
+  echo "FalkorDB did not accept connections within 40s. Last log lines:" >&2
+  jobs -p >/dev/null 2>&1
+  exit 1
+fi
 
 # The graph is rebuilt from the committed snapshot on every boot. Nothing persists, nothing to
 # restore, and the container is identical whether it is 10 seconds or 10 days old.

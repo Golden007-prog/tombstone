@@ -62,6 +62,28 @@ curl -s -X POST https://<host>/api/tool \
 Before submitting, open the live URL **from a different network, in a private window**, and confirm
 it works with no sign-in.
 
+## Runs as a non-root UID — verified, not assumed
+
+Hugging Face Spaces runs containers as **UID 1000** with limited write access, which is a common
+way an image that works locally fails on first deploy. So it is tested both ways:
+
+```bash
+docker run --user 1000:1000 -p 8099:8099 tombstone   # how Spaces runs it
+docker run                  -p 8099:8099 tombstone   # how you run it locally
+```
+
+| | result |
+|---|---|
+| as UID 1000 | **ready in 7s**, seeded 2.26s, queries 16–46ms |
+| as root | ready in 4s |
+
+Getting there needed three fixes, each found by actually running it rather than predicting:
+every cache lives under `/app/.cache` (not `$HOME` or `/tmp`, which the platform may mount
+differently); `/var/lib/falkordb/data` is **created** in the image, because redis opens its data
+dir at startup even with RDB and AOF both disabled; and the startup wait now **exits 1 with the
+redis error** instead of hanging for 40 seconds and then failing silently — which is how the
+missing data dir was caught.
+
 ## Architecture — verified, not assumed
 
 I develop on arm64 (Apple silicon). **Every free host runs amd64**, so an image that only works on
