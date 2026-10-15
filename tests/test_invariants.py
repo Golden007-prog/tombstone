@@ -1050,3 +1050,40 @@ def test_readme_routing_scores_match_the_cases_actually_tested():
         assert claimed_pass == actual, (
             f"README claims {claimed_pass} of {claimed_total} pass; the suite requires all "
             f"{actual} to pass, so the two numbers must be equal")
+
+
+def test_the_sixty_second_box_counts_match_reality():
+    """The summary box claims 104 tests, 25 graph claims, 17 rendered states and 20 CI steps.
+
+    Those are four more numbers on a page whose whole argument is that its numbers are checked.
+    Adding them unchecked would have reintroduced, in the first fifteen lines, exactly the problem
+    the rest of the page documents fixing.
+    """
+    import re
+    import subprocess
+    import sys
+
+    readme = open("README.md").read()
+    box = re.search(r"> - \*\*Nothing here is asserted\.\*\*(.+?)which are", readme, re.S)
+    assert box, "the verification bullet is no longer in the 60-second box"
+    claimed = [int(n) for n in re.findall(r"(\d+)", box.group(1))]
+    assert len(claimed) == 4, f"expected four numbers in the bullet, found {claimed}"
+    tests_claimed, graph_claimed, states_claimed, ci_claimed = claimed
+
+    collected = subprocess.run([sys.executable, "-m", "pytest", "tests/", "--collect-only", "-q"],
+                               capture_output=True, text=True).stdout
+    actual_tests = int(re.search(r"(\d+) tests? collected", collected).group(1))
+    assert tests_claimed == actual_tests, f"box says {tests_claimed} tests, pytest collects {actual_tests}"
+
+    claims_src = open("verify_claims.py").read()
+    body = claims_src[claims_src.index("CLAIMS = ["):claims_src.index("\nfails = 0")]
+    actual_claims = len(re.findall(r'^\s{4}\("', body, re.M))
+    assert graph_claimed == actual_claims, f"box says {graph_claimed} graph claims, there are {actual_claims}"
+
+    chips = len(re.findall(r'tool:\s*"[a-z_]+"', open("web/app.js").read()))
+    actual_states = chips + 3          # scripts_check_ui adds three typed questions
+    assert states_claimed == actual_states, (
+        f"box says {states_claimed} rendered states, the UI check drives {actual_states}")
+
+    actual_steps = len(re.findall(r"^      - name:", open(".github/workflows/verify.yml").read(), re.M))
+    assert ci_claimed == actual_steps, f"box says {ci_claimed} CI steps, the workflow has {actual_steps}"

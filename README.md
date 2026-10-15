@@ -18,14 +18,20 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
+> - **Nothing here is asserted.** 105 tests, 25 graph claims, 17 rendered UI states and every
+>   benchmark re-run by **20 CI steps on each push** — including the claims I had to withdraw,
+>   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
-never a thing you could look up. *(I tried to measure that premise on this corpus and could
-not confirm it — [the measurement is here](#i-tested-this-products-own-premise-and-could-not-confirm-it),
-along with what is demonstrated instead.)* The rejected option isn't a document — it's a 200-word subsection
+never a thing you could look up. The rejected option isn't a document — it's a 200-word subsection
 buried inside a 4,000-word proposal about something else. It has no identity, so you can't count how
 often an idea was refused, you can't ask who refused it, and you can't find out whether anyone who
 knows why is still around.
+
+> That first sentence is a premise, so I measured it rather than assume it — and **could not
+> confirm it on this corpus.** [The measurement is here](#i-tested-this-products-own-premise-and-could-not-confirm-it),
+> with the weaker claim that *is* demonstrated. It is the first of several numbers on this page
+> that did not survive being checked.
 
 Tombstone makes the rejected alternative a first-class node, attaches the person who killed it, and
 answers questions that are each a traversal, not a lookup:
@@ -498,7 +504,7 @@ Adding a key (copy `.env.example` to `.env` — Anthropic, OpenAI, Gemini or Gro
 swaps the router for a model. It changes *who picks the tool*. It does not change what runs.
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q     # 104 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 105 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 
