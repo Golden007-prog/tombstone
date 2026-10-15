@@ -58,7 +58,7 @@ ownership files.*
 >
 > Yes. KEP-6061 considered pulling profile artifacts into the kubelet and rejected it — and here is
 > the recorded reason, in the author's own words. It also tells me whether anyone who made that call
-> still approves anything in this project. Because a rationale with no living owner is a different
+> still approves anything in this project. Because a rationale whose authors no longer hold authority over it is a different
 > kind of risk."
 
 ### 1:33–1:58 — The answer no search engine can give

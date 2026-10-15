@@ -10,7 +10,7 @@ fully public, and it has been accumulating for years.
 
 I parsed all 585 `OWNERS` files in `kubernetes/kubernetes`. **138 of them (23.6%) declare emeritus
 approvers — 298 entries covering 111 distinct people.** Then I asked the question the field exists
-to support and nobody asks: how many of those departed owners have no current approver role
+to support and nobody asks: how many of those people hold no approval authority
 anywhere in the repository?
 
 **83 of 111. Seventy-five percent.**
