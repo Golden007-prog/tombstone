@@ -61,3 +61,28 @@ curl -s -X POST https://<host>/api/tool \
 
 Before submitting, open the live URL **from a different network, in a private window**, and confirm
 it works with no sign-in.
+
+## Architecture — verified, not assumed
+
+I develop on arm64 (Apple silicon). **Every free host runs amd64**, so an image that only works on
+arm64 would fail on the first deploy — and the Python dependencies here include `onnxruntime` via
+`fastembed`, which ships native wheels and is exactly the kind of thing that breaks across
+architectures.
+
+So I built and ran it:
+
+```bash
+docker buildx build --platform linux/amd64 -t tombstone:amd64 --load .
+docker run --platform linux/amd64 -p 8111:8099 tombstone:amd64
+```
+
+| | result |
+|---|---|
+| base image `falkordb/falkordb:v4.22.1` | publishes **linux/amd64 and linux/arm64** |
+| amd64 build | **succeeds**, including the baked-in embedding model |
+| amd64 cold start | **12s** under emulation (faster on a real amd64 host) |
+| seed | 2.25s — 679 decisions, 753 named options, 959 vectors |
+| `has_this_been_tried` (exercises the embedding path) | `ANSWERED_WITH_PATH`, 62ms emulated |
+| `stale_knowledge` | `ANSWERED_WITH_PATH`, 28ms emulated |
+
+Deploy to an amd64 host with no architecture surprises.
