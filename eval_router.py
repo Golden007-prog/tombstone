@@ -134,10 +134,41 @@ def main() -> int:
         for q, got in kept:
             print(f"  {q!r} -> {got}")
 
+    # The README prints these numbers in a table. Nothing checked that it agreed with this
+    # script, which is how every other number in this repo has gone stale -- three times in two
+    # days. Assert it here, where the numbers are actually produced.
+    import re as _re
+    readme = open("README.md").read()
+    start = readme.find("I measured that router on language it had never seen")
+    if start < 0:
+        print("\nFAIL: the README no longer has the section that quotes these numbers.")
+        return 1
+    table = readme[start:readme.find("\n## ", start + 10)]
+    stated = {
+        "answered, correct tool": len(right),
+        "routed to a \\*different\\* tool": len(wrong),
+        "declined": len(refused),
+        "of those, the right tool was among the candidates offered": recoverable,
+        "reachable — answered, or one click away": reach,
+        "not a question about this graph, correctly refused": len(held),
+    }
+    drift = []
+    for label, actual in stated.items():
+        row = _re.search(rf"\|\s*{label}\s*\|\s*\*?\*?(\d+)(?: of (\d+))?\*?\*?\s*\|", table)
+        if not row:
+            drift.append(f"README has no row for {label!r}")
+            continue
+        if int(row.group(1)) != actual:
+            drift.append(f"README says {row.group(1)} for {label!r}; this run measured {actual}")
+    if drift:
+        print("\nThe README disagrees with this eval:")
+        for d in drift:
+            print("  -", d)
+
     # The bar: anything out of domain that gets answered is a correctness failure, so that half
     # must be perfect. Routing a real question to the wrong tool is worse than refusing it, since
     # a refusal says so and a wrong tool looks like an answer.
-    ok = not kept and len(wrong) <= 3 and len(right) >= int(0.70 * n)
+    ok = (not kept and not drift and len(wrong) <= 3 and len(right) >= int(0.70 * n))
     print("\n" + ("PASS" if ok else "FAIL") + f": {len(right)}/{n} held-out, "
           f"{len(held)}/{len(OUT_OF_DOMAIN)} refusals.")
     return 0 if ok else 1

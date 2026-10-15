@@ -188,6 +188,29 @@ def main() -> int:
     print("The text baseline sees every word the graph does. Where a question is a lookup it")
     print("competes; where the answer is a path, an absence, or a whole-graph property, there is")
     print("no document for it to find — because the answer was never written down anywhere.")
+
+    # This score is quoted in the README's 60-second box and in the submission copy, and until now
+    # nothing connected those sentences to this run. Every other number in this repo that was
+    # typed into prose rather than derived from the thing it describes has gone stale, several of
+    # them within a day, so this one is asserted where it is produced.
+    import re as _re
+    drift = []
+    for doc, pattern in (("README.md", r"\*\*(\d+)/(\d+) vs (\d+)/(\d+)\*\*"),
+                         ("SUBMISSION.md", r"\*\*(\d+)/(\d+) versus (\d+)/(\d+)\*\*")):
+        m = _re.search(pattern, open(doc).read())
+        if not m:
+            drift.append(f"{doc} no longer states this score in the form the check looks for")
+            continue
+        said_g, said_gn, said_t, said_tn = (int(x) for x in m.groups())
+        if (said_g, said_gn, said_t, said_tn) != (gw, n, tw, n):
+            drift.append(f"{doc} says {said_g}/{said_gn} vs {said_t}/{said_tn}; "
+                         f"this run measured {gw}/{n} vs {tw}/{n}")
+    if drift:
+        print()
+        for d in drift:
+            print("  FAIL ", d)
+        return 1
+    print(f"\nThe README and the submission copy both state {gw}/{n} vs {tw}/{n}, and so does this run.")
     return 0
 
 
