@@ -10,104 +10,121 @@ sentence is the problem.
 Record the voiceover **separately** from the screen capture and lay them together. Narrating live
 while driving the UI is the single biggest cause of ten retakes at midnight.
 
+**Every beat below is written to a word budget**, because an earlier draft of this script was not.
+It held 767 spoken words in 180 seconds — 4.3 words per second, which is not a narration, it is a
+countdown. Read aloud it ran about 4:35, so the 3:00 cap would have been discovered at midnight
+during take nine. Comfortable narration is **2.8 words per second**, and visuals need room to
+breathe, so the budget for 3:00 is **about 500 spoken words.** This script now holds **464**, at
+2.6 w/s, with no beat above 2.9. Each heading carries its own budget, and
+`python scripts_check_demo_timing.py` fails if the beats stop being contiguous, stop summing to
+180 seconds, drift above 3.0 w/s, or stop matching the word counts in their headings.
+
 ---
 
-### 0:00–0:18 — The problem, over a real screen
+### 0:00–0:16 — The problem, over a real screen · 46 words
 
 > *[Screen: the Kubernetes enhancements repo on GitHub, scrolling a long KEP README, landing on an
-> "Alternatives" section.]*
+> Alternatives section.]*
 >
-> "This is a design proposal in Kubernetes. Four thousand words. Buried in it is a section called
-> Alternatives — the things they considered and rejected, and why.
+> "A Kubernetes design proposal. Four thousand words. Buried inside: the options they rejected,
+> and why.
 >
-> There are seven hundred of these documents. That rejected option is not a document, so it is not
-> in any search index. Which means when someone proposes the same idea three years later, nobody
-> can find out that it was already refused, or who refused it."
+> There are seven hundred of these. A rejected option isn't a document, so no search index holds
+> it. Propose it again three years later and nobody can find out it was refused."
 
-### 0:18–0:38 — The shallow answer, and the silence
+### 0:16–0:34 — The shallow answer, and the silence · 43 words
 
-> *[Screen: Tombstone. Click "Who owns staging/src/k8s.io/apiserver/pkg/endpoints/metrics? (shallow)".]*
+> *[Screen: Tombstone. Click the shallow who-owns chip for
+> staging/src/k8s.io/apiserver/pkg/endpoints/metrics.]*
 >
-> "So let's ask an ordinary question. Who owns this part of the codebase?
+> "So: who owns this part of the codebase?
 >
-> Nothing. Zero rows. And notice what it says instead of guessing — it tells you what it actually
-> searched, and that an empty result is not proof. A plausible wrong name here would be worse than
-> no answer."
+> Nothing. And notice what it does instead of guessing — it tells you what it searched, and that
+> an empty result is not proof. A plausible wrong name here would be worse than no answer."
 
 *On screen the badge reads `NOT_IN_GRAPH`, and the coverage line names 679 decisions and 585
 ownership files.*
 
-### 0:38–1:05 — The same question, four hops deep
+### 0:34–0:58 — The same question, four hops deep · 59 words
 
-> *[Click "…now ask the graph properly (4 hops)". The SVG path draws.]*
+> *[Click the 4-hop chip. The SVG path draws.]*
 >
 > "Same question. Four hops.
 >
-> It is orphaned — no recorded owner still holds approval authority. And now it can tell you who they were, and what
-> they decided elsewhere. gmarek shaped KEP-383, and personally rejected this alternative:
-> *Leaving Current Dedup Mechanism but Improve Backoff Behavior*.
+> Nobody named on that file still holds approval authority. But now it can tell you who they were,
+> and what they decided elsewhere. gmarek shaped KEP-383, and personally rejected an alternative
+> titled Leaving Current Dedup Mechanism but Improve Backoff Behavior.
 >
-> That is the path the answer came from. Not a summary a model wrote afterwards — the nodes and
-> edges the query actually walked."
+> That's the path the answer came from — the nodes the query walked, not a summary written after."
 
-### 1:05–1:33 — The question you cannot ask a search box
+### 0:58–1:22 — The question you cannot ask a search box · 62 words
 
-> *[Click "Has anyone tried moving this into the kubelet?"]*
+> *[Click the kubelet chip.]*
 >
-> "Here is the question this whole thing exists for. Has anyone tried this before?
+> "This is the question the whole thing exists for. Has anyone tried this before?
 >
-> Yes. KEP-6061 considered pulling profile artifacts into the kubelet and rejected it — and here is
-> the recorded reason, in the author's own words. It also tells me whether anyone who made that call
-> still approves anything in this project. Because a rationale whose authors no longer hold authority over it is a different
-> kind of risk."
+> Yes. KEP-6061 considered pulling profile artifacts into the kubelet, and rejected it. Here's the
+> recorded reason, in the author's own words.
+>
+> It also tells me whether anyone who made that call still approves anything here. A rationale
+> whose authors hold no authority is a different kind of risk."
 
-### 1:33–1:58 — The answer no search engine can give
+### 1:22–1:40 — The answer no search engine can give · 41 words
 
-> *[Click "Whose departure cost the most knowledge?"]*
+> *[Click the whose-departure-cost-most chip.]*
 >
-> "And this one is my favourite, because no amount of search can produce it.
+> "This one no amount of search can produce.
 >
-> This is not who owned the most files. It is **betweenness centrality** — who was the structural
-> bridge between groups that otherwise did not talk. lavalamp scores highest and left thirty-one
-> areas behind. Losing a bridge costs more than losing a maintainer.
+> Not who owned the most files — betweenness centrality. Who bridged groups that otherwise didn't
+> talk. lavalamp scores highest, and left thirty-one areas behind.
 >
-> That number is a whole-graph property. There is no SQL query and no embedding that produces it.
-> It took under twenty milliseconds, inside the request."
+> A whole-graph property. Under twenty milliseconds, inside the request."
 
-### 1:58–2:14 — The honest negative
+### 1:40–2:14 — It drafts the fix, and refuses two of them · 96 words
 
-> *[Click "Ask something it cannot know".]*
+> *[Click the draft-the-fix chip.]*
 >
-> "One more. Something it genuinely cannot know.
+> "Everything so far was the agent answering. This is it doing.
 >
-> It says so. It tells me what it searched, and it says an empty traversal is not proof it never
-> happened. An agent that only ever answers is an agent you cannot trust when it matters."
+> Kubernetes writes down when someone steps back: emeritus approvers. Three people are recorded
+> that way — while another file still lists them as an active approver.
+>
+> So it drafts the patch. A real diff.
+>
+> But the refusals are the point. The strongest signal here — emeritus in twenty files, approver
+> in one — it won't touch: that file is vendored, synced from another repo.
+>
+> This one it can't patch at all: his handle isn't in the file. An alias expands to him.
+>
+> Patching all three would be wrong twice."
 
-### 2:14–2:32 — It remembers, and the memory is in the graph
+*On screen: `2 OWNERS patches drafted from the graph, 1 candidate refused with a reason`. Both
+drafts are committed under `docs/patches/`, so a judge can read them without running anything.*
 
-> *[Click "Has this graph been asked this before?"]*
->
-> "Everything I just asked got written back into the same graph — not as text, but as a node that
-> cites the exact records the answer came from. So a new session, asking it differently, finds it.
->
-> And because the memory lives in the graph, one query can start in memory and end in facts.
-> A cache cannot do that."
+### 2:14–2:28 — It remembers, and the memory is in the graph · 37 words
 
-### 2:32–2:52 — Remove the database
-
-> *[Terminal, side by side with the browser: `docker stop falkordb`. Refresh the page.]*
+> *[Click the asked-before chip.]*
 >
-> "The rules say if the product still works without the graph, the graph was decoration. So:
+> "Everything I asked got written back into the same graph — as a node citing the exact records the
+> answer came from. A new session, asking differently, finds it.
 >
-> *[FalkorDB down. The header goes red. Ask a question — `DEGRADED`.]*
+> One query can start in memory and end in facts."
+
+### 2:28–2:46 — Remove the database · 37 words
+
+> *[Terminal beside the browser: stop the falkordb container, then refresh the page.]*
 >
-> There is no in-memory mirror and no cached answer anywhere in this repo. It stops, and it says why.
-> There is a test that asserts exactly this."
+> "The rules say if it still works without the graph, the graph was decoration.
+>
+> No in-memory mirror, no cached answer anywhere in this repo. It stops, and it says why. There is
+> a test asserting exactly this."
 
-### 2:52–3:00 — Close
+*The header goes red and the next question returns `DEGRADED`.*
 
-> "Seven hundred real decisions, Kubernetes' own public record. Every number in the README has a
-> script that re-checks it against the live graph.
+### 2:46–3:00 — Close · 33 words
+
+> "Seven hundred real decisions, from Kubernetes' own public record. Every number in the README has
+> a script that re-checks it against the live graph.
 >
 > Tombstone. The decisions your org already made, and forgot."
 
@@ -117,7 +134,7 @@ ownership files.*
 
 - Browser at 1280×800, **dark mode**, zoom 110% so text is legible after compression.
 - Hide bookmarks bar, close other tabs, clear notifications.
-- Pre-click every chip once before recording so nothing is cold.
+- Pre-click every chip once before recording so nothing is cold — including "Draft the fix", which loads the committed snapshot on first call.
 - The `docker stop` beat needs a second terminal already open and positioned.
 - Export at 1080p. **Do not** ship a watermarked export — finish in iMovie (free, preinstalled) if
   the editor would stamp it.
@@ -130,3 +147,8 @@ ownership files.*
 - No stack list. It is in the README.
 - No multi-tenancy benchmark. It is a strong result but it is not what Track 3 asks for, and it
   would cost 20 seconds this script does not have.
+- **No standalone "honest negative" beat.** It used to sit at 1:58 and it was cut to make room for
+  the drafting action. Nothing was lost: the 0:18 beat already shows `NOT_IN_GRAPH` with the
+  coverage line, and the two refusals in the drafting beat make the same argument on a harder
+  case — refusing to patch the single strongest signal in the corpus is a better demonstration of
+  restraint than refusing to answer a question about COBOL.

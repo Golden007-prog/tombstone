@@ -89,6 +89,9 @@ jobs:
       - name: Graph vs a text baseline on the same corpus
         run: python eval_graph_vs_text.py
 
+      - name: The demo script can actually be spoken in 3 minutes
+        run: python scripts_check_demo_timing.py
+
       - name: README's stated test count matches reality
         run: |
           python - <<'PY'
