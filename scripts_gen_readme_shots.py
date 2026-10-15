@@ -18,6 +18,33 @@ import tempfile
 import urllib.request
 
 APP = os.environ.get("APP", "http://localhost:8099")
+
+
+# The README's screenshots must show what a judge sees on a freshly deployed Space, which is an
+# EMPTY memory and so ANSWERED_WITH_PATH. Regenerating these after an afternoon of testing
+# captured ANSWERED_FROM_MEMORY instead -- true, and not the first thing a reader should meet.
+# The walkthrough builder has cleared memory before capture for exactly this reason; the shots
+# did not, which is how the two drifted apart.
+def _clear_memory() -> None:
+    import json as _json
+    import urllib.request as _u
+    try:
+        _u.urlopen(_u.Request(f"{APP}/api/tool", method="POST",
+                              data=_json.dumps({"tool": "forget_everything", "args": {}}).encode(),
+                              headers={"content-type": "application/json"}), timeout=30)
+    except Exception:
+        pass
+    try:
+        sys.path.insert(0, "src")
+        from graphkit.ingest import connect as _connect
+        _connect().select_graph(os.environ.get("GRAPH", "tomb:k8s")).query(
+            "MATCH (a:Answer) DETACH DELETE a")
+        print("  cleared remembered answers, so the shots show a first visit")
+    except Exception as exc:
+        print(f"  WARNING: could not clear memory ({exc}); shots may show ANSWERED_FROM_MEMORY")
+
+
+_clear_memory()
 OUT = "docs/img"
 
 SHOTS = [
