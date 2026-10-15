@@ -51,8 +51,10 @@ It runs on **Kubernetes' own governance record** — a real organisation of thou
 publishes its decision history, its ownership map and its own attrition. 681 decisions, 958
 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic.
 
-And it does not only answer. It **acts**: it finds places where the project's own record
-contradicts itself — someone recorded as having stepped back from several areas while one other
+And it does not only answer. It **acts** — and then stops. Nothing is applied, nothing is sent
+anywhere, and every draft is addressed to a human with both readings of the evidence on its face;
+there is a test that walks the AST and fails if the drafting path imports a network module. It
+finds places where the project's own record contradicts itself — someone recorded as having stepped back from several areas while one other
 file still lists them as an active approver — and drafts the OWNERS patch that fixes it. The part
 worth looking at is what it refuses to draft: the strongest-looking candidate in the whole corpus
 is excluded because that file is vendored from another repository, and a second is refused because
