@@ -236,6 +236,8 @@ jobs:
           # came back ModuleNotFoundError on a clean clone. Run exactly what the README prints.
           PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q
           PYTHONPATH=src ./.venv/bin/python verify_claims.py
+          PYTHONPATH=src ./.venv/bin/python verify_action.py
+          PYTHONPATH=src ./.venv/bin/python verify_memory.py
 
       - name: It serves and answers, not just starts
         run: |

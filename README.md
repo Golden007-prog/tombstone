@@ -572,7 +572,7 @@ Fair. This page carried a comparison answering that for most of the project's li
 script behind it**, quoting a graph of "3,300 nodes / 39,987 edges" — which is not this product's
 graph. So I wrote the benchmark against the real one and ran it.
 
-`PYTHONPATH=src ./.venv/bin/python bench_vs_networkx.py` — the product's own seeded graph, **3,087 nodes,
+`PYTHONPATH=src ./.venv/bin/python bench_vs_networkx.py` — needs `pip install networkx scipy` first, a comparison-only dependency the product itself never imports, which is why it is not in `requirements.txt`; the script says so rather than failing with an import error — the product's own seeded graph, **3,087 nodes,
 15,735 edges**, both engines cross-checked to agree on the result before being timed. Median of
 three runs:
 

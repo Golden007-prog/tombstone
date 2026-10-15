@@ -231,6 +231,15 @@ for _cmd in ("PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q",
 if re.search(r"PYTHONPATH=src python[3]? ", _rm):
     problems.append("the README still documents a bare `python`, which has no dependencies "
                     "after ./run.sh builds the venv")
+# bench_vs_networkx is the one documented script that needs something requirements.txt does not
+# install. The script handles it well -- it names the install command and explains why -- but a
+# reader should know before they paste, not after.
+if "bench_vs_networkx.py" in _rm and not re.search(
+        r"bench_vs_networkx\.py`[^\n]{0,120}networkx scipy", _rm):
+    problems.append("the README runs bench_vs_networkx.py without saying it needs "
+                    "`pip install networkx scipy` first")
+else:
+    checked += 1
 print("  the README's check-me commands are the ones CI runs")
 
 print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
