@@ -238,3 +238,40 @@ jobs:
           assert typed["shape"] in answered, typed
           assert typed.get("headline"), "a typed answer came back with no headline"
           PY
+
+  # The README says Python 3.11-3.14. That became a claim the moment it was written, and an
+  # unverified claim is how the quickstart came to be broken on 3.15 in the first place: CI pins
+  # one version, so it cannot see a range break by construction. This installs at both ends of
+  # the stated range on a clean checkout and imports what the product actually needs.
+  #
+  # It does not run the suite -- that is the verify job's work on one version. This answers a
+  # narrower question: can someone at either edge of the range follow the quickstart at all.
+  supported-pythons:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "${{ matrix.python }}"
+
+      - name: The quickstart's install line, on Python ${{ matrix.python }}
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install -q -r requirements.txt
+          ./.venv/bin/python -c "import falkordb, fastembed, fastapi, uvicorn, yaml, numpy, pytest"
+          echo "  $(./.venv/bin/python --version): $(./.venv/bin/pip list | wc -l) packages, imports clean"
+
+      - name: And the version guard accepts it
+        run: |
+          # run.sh refuses anything outside 3.11-3.14; it must not refuse the ends of the range.
+          out="$(PY=./.venv/bin/python ./run.sh 2>&1 | head -3 || true)"
+          echo "$out"
+          if printf '%s' "$out" | grep -q "needs Python 3.11-3.14"; then
+            echo "the guard rejected Python ${{ matrix.python }}, which the README promises"
+            exit 1
+          fi
