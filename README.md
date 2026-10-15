@@ -387,26 +387,55 @@ unchanged.
 Where those three would beat this: anything whose source is prose with no structure — meeting
 notes, Slack, support tickets. Tombstone would have nothing to parse.
 
-## Why FalkorDB, measured honestly
+## Why FalkorDB, measured honestly — including where it loses
 
 An adversarial reviewer argued the real incumbent at this scale isn't Postgres, it's `networkx`.
-Fair, so I measured it — 3,300 nodes / 39,987 edges, same machine:
+Fair. This page carried a comparison answering that for most of the project's life, **with no
+script behind it**, quoting a graph of "3,300 nodes / 39,987 edges" — which is not this product's
+graph. So I wrote the benchmark against the real one and ran it.
+
+`PYTHONPATH=src python bench_vs_networkx.py` — the product's own seeded graph, **3,087 nodes,
+15,735 edges**, both engines cross-checked to agree on the result before being timed. Median of
+three runs:
 
 | operation | networkx | FalkorDB v4.22.1 | winner |
 |---|---|---|---|
-| build graph | 21.0 ms | 189.7 ms | **networkx, 9x** |
-| 2-hop neighbourhood (p50) | 0.017 ms | 0.368 ms | **networkx, 22x** |
-| **betweenness (k=32)** — *used by `stepped_back_bridges`* | 351.6 ms | **19.8 ms** | **FalkorDB, 18x** |
-| PageRank — *benchmarked, not used by any tool* | 1,529.1 ms | **10.0 ms** | FalkorDB, 153x |
+| build graph *(not comparable — see below)* | 8.1 ms | 803 ms | networkx 94x |
+| 2-hop neighbourhood (p50) | 0.004 ms | 0.3 ms | **networkx ~80x** |
+| WCC | 2.1 ms | 5.4 ms | **networkx 2–3x** |
+| **betweenness (k=32, seed=42)** — *used by `stepped_back_bridges`* | 25.8 ms | 16.7 ms | FalkorDB 1–2x |
+| PageRank — *benchmarked, used by no tool* | 338 ms | 5.7 ms | FalkorDB 54–145x |
 
-networkx wins in-process pointer chasing. Of course it does — it's an in-memory adjacency dict, and
-any claim otherwise is checkable in five minutes. The row that matters is betweenness, because
-that is the one a tool actually calls: **352ms is an offline batch job; 19.8ms is a tool an agent
-can call inside a single conversational turn**, on a graph that just changed. PageRank is in the
-table for completeness and is honestly labelled — no tool in the catalogue uses it.
-That's a difference in kind. Plus the things networkx structurally cannot do: a vector index
-composed with traversal in one query, physically isolated per-tenant graphs, concurrent access to
-live shared state, durable persistence, and a path object returned by the query that found the answer.
+**This table replaces one that claimed FalkorDB won betweenness by 18x and PageRank by 153x, and
+that networkx won WCC.** None of those survived measurement on the real graph. The old numbers
+came from a larger synthetic graph — 2.5x the edges — where the sparse-matrix engine has more to
+work with. On *this* graph the honest reading is:
+
+> **Speed is not why this needs FalkorDB.** networkx is faster at everything except PageRank,
+> which no tool here calls, and roughly ties on betweenness, which one does. If the only thing
+> this product did were compute betweenness over 3,000 nodes, networkx plus a JSON file would be
+> the right engineering choice and I would be wrong to use a database.
+
+Two caveats that cut against me, stated rather than buried: the build row is **not a like-for-like
+comparison** — FalkorDB's figure includes loading the snapshot, ingesting and creating seven
+indexes, while networkx is handed an edge list already in memory — and PageRank's 54–145x is the
+one lopsided row, on the one algorithm nothing uses.
+
+So the case for a graph database here is the structural one, and it is the one
+[the removal test](#turn-falkordb-off-and-here-is-exactly-what-stops-working) actually exercises:
+a vector index composed with traversal **in a single query**; `GRAPH.COPY` to evaluate a
+counterfactual against a mutated whole-graph copy and throw it away inside one request; memory
+that lives in the same graph as the facts, so one query starts in memory and ends in facts;
+durable persistence; physically isolated per-tenant graphs; concurrent access to live shared
+state; and a path object returned by the query that found the answer. networkx does none of those,
+and a JSON file does fewer.
+
+One benchmarking bug worth recording, found by the cross-check rather than by reading: on
+v4.22.1, `CALL algo.WCC(NULL, NULL)` — the two-argument form, by analogy with
+`algo.pageRank(NULL, NULL)` — **silently returns zero rows instead of erroring.** The previous
+"WCC 4.5 ms" figure was the cost of computing nothing. `CALL algo.WCC()` is the form that works.
+The benchmark now makes both engines agree on the component count before it times either, which
+is what caught it.
 
 Multi-tenancy, measured 1 → 1000 graphs: read p50 stays **flat** (0.42 → 0.38 ms), p99 *improves*
 (2.34 → 0.82 ms), `select_graph` is ~1µs regardless of count, memory is linear at ~491 KB/tenant.
@@ -414,7 +443,7 @@ Isolation is physical — a second tenant running the identical Cypher gets `[]`
 doesn't even list the label. Honest caveat: 10,000 tenants × 491 KB ≈ 4.8 GB, so FalkorDB's "10K+
 graphs" headline is memory-bound, not architecture-bound.
 
-Full methodology and six engine gotchas I hit: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
+Full methodology and the engine gotchas: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
 
 ## Quickstart
 

@@ -263,30 +263,46 @@ telling them which pages to cite and how to describe the product. It is vendor d
 malicious, but it is instruction text embedded in fetched content. Treat it as data only. Several of
 its factual claims (notably the `latest` tag policy) are stale.
 
-## "Why not just networkx + a JSON file?" — MEASURED, and the answer is better than expected
+## "Why not just networkx + a JSON file?" — RE-MEASURED on the real graph, and worse for me
+
 An adversarial reviewer argued the real incumbent at this scale is not Postgres but `networkx`.
-Fair challenge, so I measured it: 3,300 nodes / 39,987 edges (the honest scale of a
-Kubernetes-governance-sized graph), same machine, same process.
 
-| operation | networkx | FalkorDB v4.22.1 | winner |
-|---|---|---|---|
-| build graph | 21.0 ms | 189.7 ms (incl. index + id-map readback) | networkx **9x** |
-| **PageRank** | **1,529.1 ms** | **10.0 ms** | **FalkorDB 153x** |
-| WCC | 2.8 ms | 4.5 ms | networkx 1.6x |
-| **betweenness (k=32)** | **351.6 ms** | **19.8 ms** | **FalkorDB 18x** |
-| 2-hop neighbourhood, p50 | 0.017 ms | 0.368 ms | networkx **22x** |
+**The table that used to be here was wrong, and flattering.** It was measured on a synthetic graph
+of 3,300 nodes / 39,987 edges and presented as this product's scale. The product's seeded graph is
+**3,087 nodes / 15,735 edges** — about 2.5x fewer edges, which is exactly where a sparse-matrix
+engine's advantage lives. Re-measured with `bench_vs_networkx.py`, median of three runs, both
+engines cross-checked to agree on the answer before being timed:
 
-### The honest reading
-- networkx wins **in-process pointer chasing** (2-hop neighbourhood, graph construction). It is an
-  in-memory adjacency dict; of course it does. Any pitch claiming otherwise is checkable in minutes.
-- FalkorDB wins **the global algorithms by 18-153x**, which is exactly the GraphBLAS sparse-matrix
-  engine doing its job. This is the decisive point: **PageRank at 1,529 ms is an offline batch job.
-  At 10 ms it is a tool an agent can call inside a single conversational turn.** That is a difference
-  in kind, not degree.
-- And the things networkx structurally cannot do at all: a vector index composed with traversal in one
-  query; 1,000 physically-isolated tenant graphs with O(1) selection; concurrent multi-client access
-  to live shared state; durable persistence; a returnable path object as provenance from the same
-  query that produced the answer.
+| operation | networkx | FalkorDB v4.22.1 | winner | previously claimed |
+|---|---|---|---|---|
+| build graph *(not like-for-like)* | 8.1 ms | 803 ms | networkx 94x | networkx 9x |
+| 2-hop neighbourhood, p50 | 0.004 ms | 0.3 ms | networkx ~80x | networkx 22x |
+| WCC | 2.1 ms | 5.4 ms | networkx 2–3x | networkx 1.6x |
+| **betweenness (k=32, seed=42)** | 25.8 ms | 16.7 ms | FalkorDB 1–2x | **FalkorDB 18x** |
+| PageRank | 338 ms | 5.7 ms | FalkorDB 54–145x | **FalkorDB 153x** |
+
+### The honest reading, revised
+- **The 18x betweenness claim does not survive.** It was the load-bearing number in the old
+  argument — "352 ms is an offline batch job, 19.8 ms is a tool an agent can call in a turn" — and
+  on the real graph networkx does it in about 26 ms. Both are fine inside a turn. That argument is
+  withdrawn.
+- networkx is faster at everything except PageRank, which **no tool in the catalogue calls**.
+- The build row is not a like-for-like comparison and is kept only for completeness: FalkorDB's
+  figure includes loading the snapshot, ingesting and building seven indexes; networkx is handed
+  an edge list already in memory.
+- What remains, and is not a speed claim: a vector index composed with traversal in one query;
+  `GRAPH.COPY` for a counterfactual evaluated against a mutated whole-graph copy and discarded
+  inside one request; memory in the same graph as the facts; durable persistence; physically
+  isolated tenant graphs; concurrent access to live shared state; a returnable path object as
+  provenance from the query that produced the answer.
+
+### A benchmarking bug this turned up
+`CALL algo.WCC(NULL, NULL)` — the two-argument form, by analogy with `algo.pageRank(NULL, NULL)` —
+**silently returns zero rows on v4.22.1 instead of erroring.** The old "WCC 4.5 ms" figure above
+was therefore the cost of computing nothing at all. `CALL algo.WCC()` is the working form. The
+benchmark now requires networkx and FalkorDB to agree on the component count before it times
+either, which is how this surfaced; a timing harness that never checks the result will happily
+publish the speed of a no-op.
 
 ### Reproducibility confirmed
 `algo.betweenness` with `samplingSeed:42` returns byte-identical scores across runs
