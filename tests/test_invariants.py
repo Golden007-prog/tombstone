@@ -266,3 +266,47 @@ def test_agent_fails_loudly_without_the_database():
             os.environ.pop("FALKORDB_PORT", None)
         else:
             os.environ["FALKORDB_PORT"] = old
+
+
+# ---------------- the model-routing loop, with no API key needed ----------------
+
+class _StubProvider:
+    """Stands in for a real model so routing is testable in CI and without a key."""
+
+    def __init__(self, reply: str):
+        self.reply = reply
+        self.provider = "stub"
+        self.model = "stub-1"
+
+    def choose_tool(self, system, question, catalogue):
+        from tombstone.llm import Provider
+        return Provider._parse(self.reply)
+
+
+@pytest.mark.parametrize(
+    "reply,expect_tool",
+    [
+        ('{"tool":"orphaned_ownership","args":{}}', "orphaned_ownership"),
+        ('```json\n{"tool":"orphaned_ownership","args":{}}\n```', "orphaned_ownership"),
+        ('Sure! Here you go:\n{"tool": "orphaned_ownership", "args": {}}', "orphaned_ownership"),
+    ],
+)
+def test_router_survives_the_shapes_models_actually_emit(agent, reply, expect_tool):
+    agent._provider = _StubProvider(reply)
+    out = agent.ask("which areas have nobody left?")
+    assert out["routed_to"] == expect_tool
+    assert out["shape"] == "ANSWERED_WITH_PATH"
+
+
+def test_a_hallucinated_tool_is_refused_not_guessed(agent):
+    agent._provider = _StubProvider('{"tool":"summarise_everything","args":{}}')
+    out = agent.ask("summarise the whole project")
+    assert out["shape"] == "UNKNOWN_ENTITY"
+    assert "not a tool in this catalogue" in out["answer"]
+
+
+def test_unparseable_model_output_degrades_cleanly(agent):
+    agent._provider = _StubProvider("I think you should look at the kubelet.")
+    out = agent.ask("who owns the kubelet?")
+    assert out["shape"] == "DEGRADED"
+    assert "routing failed" in out["answer"].lower()
