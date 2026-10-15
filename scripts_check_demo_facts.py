@@ -96,4 +96,43 @@ check("beat 7: recall finds the earlier question after the demo's own beats",
 
 print(f"\n{'FAILED' if fails else 'OK'}: the demo script "
       f"{'does not match' if fails else 'matches'} what the app returns")
+
+# Every chip the script tells a presenter to click must exist, by its exact label. The directions
+# used to be descriptive -- "the whose-departure-cost-most chip" -- which survives a rename and
+# leaves somebody hunting through fourteen buttons while recording. A label is quoted now, so a
+# rename breaks this instead of the recording.
+import re as _re
+
+_script = open("docs/DEMO-SCRIPT.md").read()
+_js = open("web/app.js").read()
+_i = _js.index("const CHIPS = [")
+_d = 0
+for _n, _c in enumerate(_js[_i:], _i):
+    if _c == "[":
+        _d += 1
+    elif _c == "]":
+        _d -= 1
+        if _d == 0:
+            _block = _js[_i:_n + 1]
+            break
+def _unesc(raw: str) -> str:
+    """Only unescape when there IS an escape.
+
+    `.encode().decode("unicode_escape")` turns a literal "…" into "â¦": encode gives three UTF-8
+    bytes and unicode_escape reads each as latin-1. The chip labels mix both forms, so this check
+    reported a chip as missing when the only thing wrong was how it had read the file.
+    """
+    if "\\" not in raw:
+        return raw
+    return raw.encode("latin-1", "backslashreplace").decode("unicode_escape")
+
+
+_labels = [_unesc(m.group(1))
+           for m in _re.finditer(r'label:\s*"((?:[^"\\]|\\.)*)"', _block)]
+for _m in _re.finditer(r'\*\[Click [^]]*?"([^"]+)"', _script):
+    _want = _m.group(1)
+    check(f'the script tells you to click "{_want[:42]}" and that chip exists',
+          any(_want == lab for lab in _labels),
+          "no chip with that label" if not any(_want == lab for lab in _labels) else "")
+
 sys.exit(1 if fails else 0)

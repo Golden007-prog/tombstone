@@ -51,7 +51,7 @@ ownership files.*
 
 ### 0:32–0:56 — The same question, four hops deep · 61 words
 
-> *[Click the 4-hop chip. The SVG path draws.]*
+> *[Click chip **2**, "…now ask the graph properly (4 hops)". The SVG path draws.]*
 >
 > "Same question. Four hops.
 >
@@ -74,7 +74,7 @@ ownership files.*
 
 ### 1:14–1:25 — Fork the graph and ask what breaks · 25 words
 
-> *[Click the what-if-they-all-stepped-back chip. Let the picture draw.]*
+> *[Click "What if the apiserver reviewers all stepped back?". Let the picture draw.]*
 >
 > "Now the forward-looking one. Fork the graph, delete their approvals, re-run, drop the copy.
 >
@@ -82,7 +82,7 @@ ownership files.*
 
 ### 1:25–1:43 — The answer no search engine can give · 52 words
 
-> *[Click the whose-departure-cost-most chip.]*
+> *[Click "Whose stepping back cost the most connective authority?".]*
 >
 > "This one no amount of search can produce.
 >
@@ -94,7 +94,7 @@ ownership files.*
 
 ### 1:43–2:17 — It drafts the fix, and refuses two of them · 100 words
 
-> *[Click the draft-the-fix chip.]*
+> *[Click chip **3**, "Draft the fix — don't just report it".]*
 >
 > "It answered. Now it acts - and then stops.
 >
@@ -115,7 +115,7 @@ drafts are committed under `docs/patches/`, so a judge can read them without run
 
 ### 2:17–2:31 — It remembers, and the memory is in the graph · 39 words
 
-> *[Click the asked-before chip.]*
+> *[Click "Has this graph been asked this before?".]*
 >
 > "Everything I asked got written back into the same graph — as a node citing the exact records the
 > answer came from. A new session, asking differently, finds it.
