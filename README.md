@@ -57,6 +57,7 @@ PYTHONPATH=src python verify_claims.py        # re-checks every number in this R
 
 ```bash
 PYTHONPATH=src python eval_retrieval.py       # 12 paraphrases + 3 negative controls
+PYTHONPATH=src python eval_graph_vs_text.py   # graph vs a TF-IDF baseline on the same corpus
 ```
 
 `verify_claims.py` exists so you can falsify any factual claim here in one command. It queries the
@@ -403,6 +404,37 @@ test pass, which is precisely the failure the rules describe.
 Recall is semantic, so it survives rewording: ask a fresh session *"who currently owns the podgc
 controller"* and it finds the earlier *"who owns pkg/controller/podgc?"*, with its citations intact.
 There is a test for each of these.
+
+## Does the graph actually do work a text search cannot? Measured.
+
+The hackathon's one published judging lens is whether the graph does work the agent could not do
+without it. Asserting that is cheap, so here it is measured — same corpus, same questions, against
+a TF-IDF index built over **every document the graph was built from** (2,224 of them: KEP titles,
+statuses, the alternatives prose, OWNERS paths and the handles in them). The baseline sees every
+word the graph does.
+
+```
+question                                          graph   text   what it needs
+has anyone proposed a feature gate to opt in?      PASS   PASS   lookup — text should do fine
+find the KEP about coscheduling                     --    PASS   title lookup — text SHOULD win
+which areas lost every dedicated approver?         PASS    --    a tree walk to the nearest live ancestor
+who should inherit lavalamp's areas?               PASS    --    co-ownership counted across two edge types
+who held the most connective authority?            PASS    --    betweenness — a whole-graph property
+which cited decision records do not exist?         PASS    --    inbound edges to a node that is ABSENT
+what knowledge here is going stale?                PASS    --    age + citations + authority, joined
+who owns the apiserver metrics endpoint, really?   PASS    --    inheritance resolved, not just read
+                                                   7/8    2/8
+```
+
+**The graph loses one, and that is the point.** Where a question is a lookup, a text index
+competes or wins, and pretending otherwise would make the other seven worthless. Where the answer
+is a path, an absence, or a whole-graph property, there is no document to find — **because the
+answer was never written down anywhere.** Nobody ever wrote "one person is the entire review
+capacity for the apiserver metrics endpoints". It is only true as a consequence of the structure.
+
+```bash
+PYTHONPATH=src python eval_graph_vs_text.py     # re-run it
+```
 
 ## Why FalkorDB, measured honestly
 

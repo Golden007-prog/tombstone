@@ -391,7 +391,7 @@ LIMIT $limit
 CATALOGUE = {
     "has_this_been_tried": "Search recorded rejected design alternatives by meaning, and report whether anyone who made that call is still around. Args: idea_text.",
     "ownership_dilution": "Which areas lost every approver with dedicated authority, and which broader group inherits them now? Walks the OWNERS tree. Args: none.",
-    "stepped_back_bridges": "Rank departed people by how much CONNECTIVE knowledge left with them (betweenness centrality). Args: min_areas.",
+    "stepped_back_bridges": "Rank people by how much CONNECTIVE authority was concentrated in them before they stepped back from approving (betweenness centrality). Args: min_areas.",
     "successor_for": "Suggest who should inherit a departed person's areas, from co-ownership overlap. Args: handle.",
     "broken_lineage": "List decision records that other decisions cite but which do not exist. Args: min_cites.",
     "who_owns": "Who owns an area. depth=1 gives the approver list; depth=4 adds what the departed owner decided elsewhere. Args: path, depth.",

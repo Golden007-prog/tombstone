@@ -250,7 +250,7 @@ def render(a: Answer) -> str:
                 f"• “{idea}” — rejected in KEP-{kep} ({status}, {sig}, {when})\n"
                 f"  reason: {str(rationale)[:220]}\n"
                 f"  decided by: {', '.join(deciders) if deciders else 'unrecorded'} "
-                f"[{'no one who made this call still approves anything' if own == 'NO_LIVING_OWNER' else 'at least one decider is still active'}]\n"
+                f"[{'no one who made this call still holds approval authority' if own == 'NO_LIVING_OWNER' else 'at least one decider still holds approval authority'}]\n"
                 f"  source: {url}"
             )
         return f"Yes — {n} recorded rejection(s) of something close to this:\n\n" + "\n\n".join(lines)
