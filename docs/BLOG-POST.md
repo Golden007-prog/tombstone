@@ -87,8 +87,7 @@ volumes:
 
 — shadows the symlink, FalkorDB writes its snapshot to container-local storage, and **every graph
 silently vanishes on `docker compose down && up`**. It survives `docker restart`, which is what makes
-it so easy to miss. I would bet real money this is why several hackathon demos will be empty when a
-judge clicks them.
+it so easy to miss, and so easy to ship.
 
 ```yaml
 volumes:

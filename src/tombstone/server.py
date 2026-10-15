@@ -105,10 +105,14 @@ def ask(q: Ask):
         return JSONResponse(
             status_code=503,
             content={
-                "shape": "DEGRADED",
+                # NOT one of the four answer shapes. Those describe what the GRAPH said; this is
+                # a routing capability that is switched off, with the graph perfectly healthy.
+                # Reusing DEGRADED here would give a documented term a fifth meaning.
+                "shape": "ROUTING_UNAVAILABLE",
+                "graph": "healthy",
                 "answer": "No LLM key is configured on this instance, so free-text routing is "
-                          "off. The buttons below call the same tools directly and run the same "
-                          "Cypher against the same graph.",
+                          "off — the graph itself is fine. The buttons below call the same tools "
+                          "directly and run the same Cypher against the same graph.",
                 "catalogue": CATALOGUE,
             },
         )

@@ -2,7 +2,17 @@
 
 **The decisions your org already made and forgot. Asked as a graph.**
 
+*A tombstone is what a database writes to record that something is gone.*
+
 Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
+
+> **If you have 60 seconds**
+> - **One finding:** one person is the entire review capacity for the Kubernetes apiserver's
+>   metrics endpoints. Nobody wrote that down — it is only true as a consequence of the structure.
+> - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account.**
+> - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
+>   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
+> - **The graph loses one of those eight on purpose.** See why below.
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
 never a thing you could look up. The rejected option isn't a document — it's a 200-word subsection
@@ -11,7 +21,7 @@ often an idea was refused, you can't ask who refused it, and you can't find out 
 knows why is still around.
 
 Tombstone makes the rejected alternative a first-class node, attaches the person who killed it, and
-answers four questions that are each a traversal:
+answers questions that are each a traversal, not a lookup:
 
 | question | what comes back |
 |---|---|
@@ -40,7 +50,7 @@ fully public. Every number below is checkable with one `git clone`.
 ## Quickstart
 
 ```bash
-git clone <this repo> tombstone && cd tombstone
+git clone https://github.com/aviralgarg05/tombstone && cd tombstone
 python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 ./run.sh
 ```
@@ -56,7 +66,7 @@ To enable free-text questions, copy `.env.example` to `.env` and add one key (An
 Gemini or Groq — it auto-detects).
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q     # 18 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 37 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 
@@ -67,6 +77,12 @@ PYTHONPATH=src python eval_graph_vs_text.py   # graph vs a TF-IDF baseline on th
 
 `verify_claims.py` exists so you can falsify any factual claim here in one command. It queries the
 live graph and compares against the number printed in this file.
+
+**What it does and does not prove.** It checks this README against a graph built from the committed
+snapshot — that is internal consistency, not external truth. The external check is different and
+cheaper: every row the product returns carries a `github.com` URL, so you can click through to the
+`OWNERS` file or the KEP and read it yourself. `eval_graph_vs_text.py` is the one that tests a
+claim about the world: that these answers are not recoverable from the text alone.
 
 Age-dependent claims are checked against a **live clock**, not a frozen one — an earlier version
 hard-coded a timestamp, which meant the staleness numbers could never go stale themselves, which
@@ -451,12 +467,14 @@ Fair, so I measured it — 3,300 nodes / 39,987 edges, same machine:
 |---|---|---|---|
 | build graph | 21.0 ms | 189.7 ms | **networkx, 9x** |
 | 2-hop neighbourhood (p50) | 0.017 ms | 0.368 ms | **networkx, 22x** |
-| **PageRank** | 1,529.1 ms | **10.0 ms** | **FalkorDB, 153x** |
-| **betweenness (k=32)** | 351.6 ms | **19.8 ms** | **FalkorDB, 18x** |
+| **betweenness (k=32)** — *used by `stepped_back_bridges`* | 351.6 ms | **19.8 ms** | **FalkorDB, 18x** |
+| PageRank — *benchmarked, not used by any tool* | 1,529.1 ms | **10.0 ms** | FalkorDB, 153x |
 
 networkx wins in-process pointer chasing. Of course it does — it's an in-memory adjacency dict, and
-any claim otherwise is checkable in five minutes. The point is the other row: **PageRank at 1.5s is
-an offline batch job; at 10ms it's a tool an agent can call inside a single conversational turn.**
+any claim otherwise is checkable in five minutes. The row that matters is betweenness, because
+that is the one a tool actually calls: **352ms is an offline batch job; 19.8ms is a tool an agent
+can call inside a single conversational turn**, on a graph that just changed. PageRank is in the
+table for completeness and is honestly labelled — no tool in the catalogue uses it.
 That's a difference in kind. Plus the things networkx structurally cannot do: a vector index
 composed with traversal in one query, physically isolated per-tenant graphs, concurrent access to
 live shared state, durable persistence, and a path object returned by the query that found the answer.
