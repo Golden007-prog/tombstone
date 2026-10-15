@@ -346,6 +346,25 @@ braces, so it failed six innocent constants, including both `WHO_OWNS` depths. T
 the claim directly rather than by proxy: the query text the tool reports back must appear verbatim
 in the source, which a templated or assembled query cannot.
 
+**A DOM parser that lost any element containing another element.** The rendered-state check
+tracks a handful of ids and counts nesting depth to know when each one closes. It incremented the
+depth of only the innermost open frame, so when a tracked element contained another tracked
+element — `#graphwrap` holds `#cy`, `#headline` holds `#hstat` — the parent was left permanently
+one level deep and never closed, and was therefore never captured at all. `visible()` then read
+"absent" as "hidden". Consequences: the headline rule had been silently dead, and a chip that drew
+its reasoning path perfectly was reported as drawing nothing, which sent me to debug app code that
+was already correct. Depth is now counted on every open frame, void elements are excluded because
+no end tag is coming for them, and an id the parser fails to capture is reported as a parse failure
+in the script rather than as a finding about the page.
+
+**A remembered answer that refused to draw its own path.** The client drew the reasoning path only
+when the shape was `ANSWERED_WITH_PATH`, and a remembered answer carries `ANSWERED_FROM_MEMORY` —
+so the headline chip stopped showing its four-hop picture the *second* time anyone clicked it. That
+is what a judge does, and what the video capture does against a warm instance. The shape is not a
+different kind of answer: the tool was re-run, the rows are the rows it just returned, and the
+label changed only because the citations still resolve. Found by a check that asserted the chips
+which advertise a path actually render one — nothing had ever verified that.
+
 **A regex that matched nothing and passed.** The check on "preflight runs N checks" counted
 preflight's `ok` lines with the pattern `r"\033\[32mok"`. In a regex `\033` is an octal escape
 for the ESC byte; the shell script holds those four characters as *text*, so the pattern matched

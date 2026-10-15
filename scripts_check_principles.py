@@ -168,8 +168,9 @@ if m:
     check("the drawn-path count in the table is the number of chips that draw one",
           drawn_claimed == len(drawn), f"table says {drawn_claimed}, app draws {len(drawn)}")
     named = re.findall(r'tool:\s*"(\w+)"', "".join(drawn))
-    check("and they are the ownership and successor questions the table names",
-          set(named) == {"who_owns", "successor_for"}, ", ".join(sorted(set(named))))
+    check("and they are the questions the table names",
+          set(named) == {"who_owns", "successor_for", "what_if_they_go"},
+          ", ".join(sorted(set(named))))
 
 # ---------------------------------------------------------------- row: built-in algorithms
 claimed_algos = set(re.findall(r"algo\.(\w+)", body))

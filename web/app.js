@@ -39,7 +39,8 @@ const CHIPS = [
     tool: "sole_approver_risk", args: {} },
   { label: "What if the apiserver reviewers all stepped back?",
     tool: "what_if_they_go",
-    args: { handles: ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"] } },
+    args: { handles: ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"] },
+    graph: { from: "answer" } },
   { label: "What knowledge here is going stale?",
     tool: "stale_knowledge", args: { min_years: 3 } },
   // Deliberately a REWORDING of chip 1, not a new subject. The point of this chip is that recall
@@ -182,6 +183,11 @@ function cyRan(data) {
   return (data.cypher || "").trim() && Array.isArray(data.rows);
 }
 
+// Returns the promise for the graph panel, so a caller can wait until the answer is FULLY
+// rendered. It used to call drawGraph and drop the promise, which made `data-autorun="done"`
+// mean "the answer text is in" while the SVG was still a fetch in flight. Anything snapshotting
+// the DOM on that signal -- the rendered-state check, and the walkthrough video's frame capture
+// -- could photograph the moment before the path appeared.
 function show(data, graphArgs) {
   $("result").classList.remove("hidden");
   $("shape").textContent = data.shape || "?";
@@ -220,13 +226,21 @@ function show(data, graphArgs) {
   $("cypher").textContent = cy;
   $("sha").textContent = data.query_sha || "";
 
-  if (graphArgs && data.shape === "ANSWERED_WITH_PATH") drawGraph(graphArgs);
+  // ANSWERED_FROM_MEMORY belongs here as much as ANSWERED_WITH_PATH does. A remembered answer
+  // is not a cached string: the tool was re-run, the rows are the rows it just returned, and the
+  // shape changed only because the citations still resolve. Drawing the path for one and not the
+  // other meant the headline chip stopped showing its four-hop picture the second time anyone
+  // clicked it -- which is what a judge does, and what the video capture does on a warm instance.
+  const drawable = data.shape === "ANSWERED_WITH_PATH" || data.shape === "ANSWERED_FROM_MEMORY";
+  let drawing = Promise.resolve();
+  if (graphArgs && drawable) drawing = drawGraph(graphArgs);
   else $("graphwrap").classList.add("hidden");
   // In focus mode the answer is already at the top, and scrolling to it pushes the typed
   // question off-screen -- which hides the thing a capture of this view is meant to show.
   if (!document.body.classList.contains("focus")) {
     $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
+  return drawing;
 }
 
 // A chip's label is written for the eye; what memory stores has to be a QUESTION, because recall
@@ -245,7 +259,8 @@ async function runTool(c, btn) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ tool: c.tool, args: c.args, question: c.question || c.label }),
     });
-    show(await r.json(), c.graph);
+    const d = await r.json();
+    await show(d, graphArgsFor(c, d));
   } catch (e) {
     show({ shape: "DEGRADED", answer: "Request failed: " + e });
   } finally {
@@ -270,10 +285,25 @@ async function ask() {
     // and this read a field one of them never set, so a typed question never drew its path).
     const ra = d.routed_args || (d.routing && d.routing.args) || {};
     const g = ra.path ? { path: ra.path } : ra.handle ? { handle: ra.handle } : null;
-    show(d, g);
+    await show(d, g);
   } catch (e) {
     show({ shape: "DEGRADED", answer: "Request failed: " + e });
   }
+}
+
+// Most chips carry their graph arguments statically. The counterfactual cannot: which areas a
+// cohort strands is decided by a GRAPH.COPY on the server, so the picture has to be built from the
+// answer the user is looking at rather than from anything known in advance. If the run came back
+// DEGRADED, or stranded nothing, this returns null and no panel opens -- an empty picture would
+// read as "no answer" rather than "nothing breaks".
+function graphArgsFor(c, d) {
+  if (!c.graph) return null;
+  if (c.tool === "what_if_they_go") {
+    const row = (d.rows && d.rows[0]) || null;
+    if (!row || !Array.isArray(row[1]) || !row[1].length) return null;
+    return { handles: (row[0] || []).join(","), stranded: row[1].join(",") };
+  }
+  return c.graph;
 }
 
 async function drawGraph(args) {
@@ -288,7 +318,7 @@ async function drawGraph(args) {
 // deliberate left-to-right layering is far more legible than a physics simulation, it renders
 // identically every time (which matters when recording), and there is no library to misbehave.
 // The full graph is never drawn: a hairball would be decoration, and the path is the evidence.
-const LANE = { person_gone: 0, person_live: 0, area: 1, decision: 2, rejected: 3 };
+const LANE = { person_gone: 0, person_live: 0, area: 1, area_stranded: 1, decision: 2, rejected: 3 };
 const LANE_LABEL = ["people", "area", "decision", "rejected ideas"];
 
 function renderPath(d) {
@@ -321,7 +351,8 @@ function renderPath(d) {
   });
 
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const col = { person_gone: P.gone, person_live: P.live, area: P.area, decision: P.dec, rejected: P.rej };
+  const col = { person_gone: P.gone, person_live: P.live, area: P.area, decision: P.dec,
+                rejected: P.rej, area_stranded: P.gone };
 
   let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="The path behind this answer">`;
   svg += `<defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="${P.edge}"/></marker></defs>`;
@@ -353,7 +384,12 @@ function renderPath(d) {
   Object.entries(pos).forEach(([, n]) => {
     const c = col[n.kind] || P.muted;
     const gone = n.kind === "person_gone";
-    if (n.kind === "decision") {
+    if (n.kind === "area_stranded") {
+      // Same square as any other area, in the colour of what has been lost, struck through. The
+      // shape says "this is an area"; the mark says "nobody is left on it".
+      svg += `<rect x="${n.x - 10}" y="${n.y - 8}" width="20" height="16" rx="3" fill="${c}"/>`;
+      svg += `<path d="M${n.x - 6} ${n.y - 5} L${n.x + 6} ${n.y + 5}" stroke="${P.panel}" stroke-width="1.8"/>`;
+    } else if (n.kind === "decision") {
       svg += `<rect x="${n.x - 9}" y="${n.y - 7}" width="18" height="14" rx="3" fill="${c}"/>`;
     } else if (n.kind === "rejected") {
       svg += `<path d="M${n.x} ${n.y - 8} L${n.x + 8} ${n.y} L${n.x} ${n.y + 8} L${n.x - 8} ${n.y} z" fill="${c}"/>`;

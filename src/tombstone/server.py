@@ -137,7 +137,8 @@ def ask(q: Ask):
 
 
 @app.get("/api/subgraph")
-def subgraph(path: str = "", handle: str = "", limit: int = 40):
+def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str = "",
+             limit: int = 40):
     """Only the reasoning path for one answer. Never the whole graph."""
     a = agent()
     if a.g is None:
@@ -189,6 +190,73 @@ def subgraph(path: str = "", handle: str = "", limit: int = 40):
                     link(d, k, "SHAPED")
                     if alttitle and sum(1 for n in nodes.values() if n["kind"] == "rejected") < 6:
                         link(k, add(f"{knum}:{alttitle}", alttitle, "rejected"), "REJECTED")
+    elif handles:
+        # The counterfactual's picture. `stranded` is the verdict from the answer the user is
+        # looking at, not a fresh computation: deciding which areas a cohort strands needs a
+        # GRAPH.COPY, and re-running one here would both double the cost of the chip and risk
+        # drawing a different conclusion than the text beside it. A picture that contradicts the
+        # answer is worse than no picture. Each supplied path is still matched against the graph,
+        # so a value that names no real area draws nothing.
+        #
+        # The first version of this drew the stranded area beside three areas the cohort also
+        # emptied, in the ordinary colour, with nothing to say why those survived -- because they
+        # survive by INHERITING coverage from an ancestor that still has an approver, which is the
+        # cascade the counterfactual exists to compute. A reader would have asked why one is struck
+        # through and the others are not, and the picture had no answer. So a surviving area is
+        # drawn WITH the ancestor it falls back to and the person still approving there, and the
+        # stranded one is the area where that walk finds nobody.
+        hs = [h.strip().lstrip("@").lower() for h in handles.split(",") if h.strip()]
+        strand = [x.strip() for x in stranded.split(",") if x.strip()]
+        if not hs:
+            return {"nodes": [], "edges": [], "note": "no handles supplied"}
+
+        def area_of(apath, is_strand):
+            return add(apath, apath.replace("/OWNERS", ""),
+                       "area_stranded" if is_strand else "area", {"stranded": is_strand})
+
+        drawn_strand = 0
+        for apath in strand[:2]:
+            rows = a.g.ro_query(
+                "MATCH (p:Person)-[:APPROVES]->(o:OwnersFile {path: $p}) WHERE p.key IN $hs "
+                "RETURN collect(DISTINCT p.key)[0..4]",
+                params={"p": apath, "hs": hs},
+            ).result_set
+            if not rows or not rows[0][0]:
+                continue
+            drawn_strand += 1
+            area = area_of(apath, True)
+            for who in rows[0][0]:
+                link(add(who, who, "person_gone"), area, "APPROVES")
+
+        # Two areas the same cohort empties that survive anyway, each with the ancestor that
+        # carries them. This is the contrast that makes the struck-through one mean something.
+        fallbacks = a.g.ro_query(
+            """
+            MATCH (p:Person)-[:APPROVES]->(o:OwnersFile)
+            WHERE p.key IN $hs AND NOT o.path IN $strand
+            WITH o, collect(DISTINCT p.key) AS leaving
+            OPTIONAL MATCH (x:Person)-[:APPROVES]->(o) WHERE NOT x.key IN $hs
+            WITH o, leaving, count(DISTINCT x) AS others
+            WHERE others = 0
+            MATCH (o)-[:INHERITS_FROM*1..8]->(anc:OwnersFile)<-[:APPROVES]-(keeps:Person)
+            WHERE NOT keeps.key IN $hs
+            RETURN o.path, leaving[0..3] AS leaving, anc.path, collect(DISTINCT keeps.key)[0..2]
+            ORDER BY o.path LIMIT 2
+            """,
+            params={"hs": hs, "strand": strand},
+        ).result_set
+        for apath, leaving, ancpath, keeps in fallbacks:
+            area = area_of(apath, False)
+            for who in leaving:
+                link(add(who, who, "person_gone"), area, "APPROVES")
+            anc = area_of(ancpath, False)
+            link(area, anc, "INHERITS_FROM")
+            for who in keeps:
+                link(add(who, who, "person_live"), anc, "STILL APPROVES")
+
+        if not drawn_strand and not fallbacks:
+            return {"nodes": [], "edges": [],
+                    "note": "nothing to draw: this cohort strands no area"}
     elif handle:
         # Deliberately narrow. The full overlap is dozens of people against dozens of areas, and
         # drawing all of it produces exactly the hairball this panel exists to avoid. Show the
