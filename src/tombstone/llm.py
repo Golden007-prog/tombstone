@@ -119,16 +119,48 @@ class Provider:
 
     @staticmethod
     def _parse(text: str) -> dict:
+        """Turn a model's reply into {"tool": str, "args": dict}, or refuse clearly.
+
+        Models do not reliably obey "no prose, no markdown fence", so this is written for what
+        they actually send. Three cases were found by probing it rather than by reasoning:
+
+        * prose containing braces -- "I think {this} is right: {...}" -- made the old
+          first-brace-to-last-brace slice produce invalid JSON and raise a raw JSONDecodeError
+          out of the provider, rather than the LLMError the caller handles;
+        * `args` arriving as a STRING ("path=foo") passed straight through to the dispatcher,
+          which calls .get() on it;
+        * `tool` arriving as a LIST passed through to be compared against tool names.
+
+        The last two never reach a query -- the dispatcher refuses an unknown tool -- but they
+        surface as an internal error instead of as the clear refusal the product promises.
+        """
         t = (text or "").strip()
         if t.startswith("```"):
-            t = t.split("```")[1]
+            parts = t.split("```")
+            t = parts[1] if len(parts) > 1 else t
             if t.startswith("json"):
                 t = t[4:]
-        start, end = t.find("{"), t.rfind("}")
-        if start < 0 or end < 0:
-            raise LLMError(f"model did not return JSON: {text[:200]!r}")
-        obj = json.loads(t[start : end + 1])
-        if "tool" not in obj:
-            raise LLMError(f"model response has no 'tool' key: {obj}")
-        obj.setdefault("args", {})
-        return obj
+
+        # Try every `{` from the left; the first one that yields a dict with a tool wins. A single
+        # first-brace-to-last-brace slice breaks on any prose that happens to contain a brace.
+        obj = None
+        for start in (i for i, c in enumerate(t) if c == "{"):
+            try:
+                candidate = json.loads(t[start:t.rfind("}") + 1])
+            except Exception:
+                continue
+            if isinstance(candidate, dict) and "tool" in candidate:
+                obj = candidate
+                break
+        if obj is None:
+            raise LLMError(f"model did not return a JSON object with a tool: {text[:200]!r}")
+
+        tool = obj.get("tool")
+        if not isinstance(tool, str) or not tool.strip():
+            raise LLMError(f"model gave a tool name that is not a string: {tool!r}")
+        args = obj.get("args")
+        if not isinstance(args, dict):
+            # Not an error worth refusing over: every tool either has defaults or says what it
+            # needs. Dropping a malformed args object is better than handing it to the dispatcher.
+            args = {}
+        return {"tool": tool.strip(), "args": args}

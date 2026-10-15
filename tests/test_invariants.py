@@ -972,3 +972,58 @@ def test_both_ask_paths_return_the_same_response_shape(agent):
     assert keyed["headline"] == keyless["headline"], "headline differs between the two paths"
     assert keyed["routed_by"] == "llm" and keyless["routed_by"] == "local-embedding"
     assert keyed["routed_args"] == keyless["routed_args"]
+
+
+# ---------------- the keyed path: what models actually send ----------------
+#
+# These exist because the keyed path had only ever been exercised with a stub that returned
+# perfect JSON. Models do not. Each case below was found by probing the parser, not by reasoning
+# about it, and three of them were genuinely mishandled.
+
+PARSES = [
+    ("bare json", '{"tool":"sole_approver_risk","args":{}}', "sole_approver_risk", {}),
+    ("fenced json", '```json\n{"tool":"sole_approver_risk","args":{}}\n```', "sole_approver_risk", {}),
+    ("fenced plain", '```\n{"tool":"sole_approver_risk","args":{}}\n```', "sole_approver_risk", {}),
+    ("prose before", 'Sure! Here you go:\n{"tool":"sole_approver_risk","args":{}}', "sole_approver_risk", {}),
+    ("prose after", '{"tool":"sole_approver_risk","args":{}}\nHope that helps!', "sole_approver_risk", {}),
+    # the first-brace-to-last-brace slice used to raise a raw JSONDecodeError out of the provider
+    ("prose containing braces", 'I think {this} is it: {"tool":"sole_approver_risk","args":{}}',
+     "sole_approver_risk", {}),
+    ("args omitted", '{"tool":"sole_approver_risk"}', "sole_approver_risk", {}),
+    # args as a STRING used to pass straight through to a dispatcher that calls .get() on it
+    ("args as a string", '{"tool":"who_owns","args":"path=foo"}', "who_owns", {}),
+    ("nested args", '{"tool":"who_owns","args":{"path":"a/b/OWNERS","depth":4}}',
+     "who_owns", {"path": "a/b/OWNERS", "depth": 4}),
+]
+
+
+@pytest.mark.parametrize("label,text,tool,args", PARSES)
+def test_model_reply_parses_the_way_models_actually_reply(label, text, tool, args):
+    from tombstone.llm import Provider
+    got = Provider._parse(text)
+    assert got["tool"] == tool, label
+    assert got["args"] == args, label
+
+
+@pytest.mark.parametrize("text", [
+    "I am not sure which tool to use.",
+    "",
+    '{"tool":["sole_approver_risk"],"args":{}}',   # a list where a name belongs
+    '{"args":{}}',                                  # no tool at all
+])
+def test_unusable_model_replies_are_refused_not_guessed(text):
+    from tombstone.llm import LLMError, Provider
+    with pytest.raises(LLMError):
+        Provider._parse(text)
+
+
+def test_a_hallucinated_tool_name_is_refused_by_the_dispatcher(agent):
+    """The parser deliberately does not validate tool names against the catalogue -- that belongs
+    to the dispatcher, which already refuses unknown names and says so. What must never happen is
+    an invented name reaching a query."""
+    from tombstone.tools import CATALOGUE
+    assert "delete_everything" not in CATALOGUE
+    ans = agent.dispatch("delete_everything", {})
+    assert ans.shape == "UNKNOWN_ENTITY"
+    assert "not a tool in this catalogue" in ans.note
+    assert not ans.cypher, "a refused tool must not carry Cypher"
