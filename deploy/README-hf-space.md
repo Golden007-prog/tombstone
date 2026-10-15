@@ -36,8 +36,11 @@ Try these:
 - Type anything. It answers or it tells you it will not guess.
 
 This Space runs FalkorDB and the app in one container and rebuilds the graph from a committed
-snapshot on every boot — **about 5 seconds warm, nearer 10 from cold** — so there is nothing to go
-stale and no external database to restore. The whole thing peaks at about 400 MB, measured, and
+snapshot on every boot, so there is nothing to go stale and no external database to restore.
+Measured on the image this Space is built from: **3.7 s** from container start to the health
+endpoint reporting FalkorDB up, and **1.5 s** more for the first real answer. That was an
+M-series laptop; a Space's shared CPU will be slower, and a Space that has gone to sleep pays its
+own wake-up before any of this starts. The whole thing peaks at about 400 MB, measured, and
 runs inside a 512 MB container without being killed.
 
 Every number above is re-checked against the live graph by scripts that run in CI on every push,

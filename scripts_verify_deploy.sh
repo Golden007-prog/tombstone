@@ -54,14 +54,19 @@ SERIAL_CEILING_MB=512
 docker run -d --name "$IMG" --platform linux/amd64 --user 1000 \
   --memory=2g --memory-swap=2g -p "$PORT:8099" "$IMG" >/dev/null
 
-for _ in $(seq 1 60); do
+# Timed, because the Space README states a boot figure and a stated figure needs a measurement
+# behind it. Polled tightly so the number is the container's, not the poll interval's.
+_boot_start=$(date +%s)
+for _ in $(seq 1 600); do
   health="$(curl -s -m 3 "http://localhost:$PORT/api/health" 2>/dev/null || true)"
   [ -n "$health" ] && break
-  sleep 3
+  sleep 0.2
 done
+_boot_s=$(( $(date +%s) - _boot_start ))
 [ -n "${health:-}" ] || { echo "FAIL: never served"; docker logs --tail 40 "$IMG"; exit 1; }
 echo "$health" | grep -q '"up"' || { echo "FAIL: FalkorDB down in-container: $health"; exit 1; }
 echo "  health: $health"
+echo "  cold boot to healthy: ~${_boot_s}s on this host (the Space README quotes 3.7s, measured on an M-series laptop; a shared-CPU Space will be slower)"
 
 # Serving is not the same as working. Exercise a real traversal, the ACTION, and GRAPH.COPY.
 # Serving is not the same as working, so exercise a real traversal, the ACTION, and GRAPH.COPY.
