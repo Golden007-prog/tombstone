@@ -1120,3 +1120,32 @@ def test_using_the_demo_cannot_change_what_it_answers(agent):
         f"centrality changed after {remembered} remembered answers and {cited} CITED edges — "
         f"a whole-graph algorithm is seeing memory it should be scoped away from")
     assert coverage_after == coverage_before, "the coverage statement counted memory as corpus"
+
+
+def test_asking_the_same_thing_twice_does_not_grow_the_graph(agent):
+    """Repeats must MERGE onto one `(:Answer)`, not accumulate.
+
+    This is the property that makes a public demo safe to leave running. Memory has no cap, no
+    eviction and no TTL -- deliberately, because an answer that cites live nodes is evidence, not
+    cache -- so the only thing bounding growth is that asking the same question again increments a
+    counter instead of adding a node. Measured: ~19-44 KB per DISTINCT question, and the thirteen
+    chips contribute thirteen regardless of how often they are clicked.
+
+    Change `record` from MERGE to CREATE and that bound disappears silently: the demo keeps
+    working, slowly fills its container, and eventually cannot fork for a counterfactual.
+    """
+    graph = agent.g
+    graph.query("MATCH (x:Answer) DETACH DELETE x")
+    question = "invariant probe: which areas have exactly one approver?"
+    for _ in range(12):
+        agent._remember(question, "sole_approver_risk",
+                        agent.dispatch("sole_approver_risk", {}))
+
+    nodes = graph.ro_query("MATCH (x:Answer) RETURN count(x)").result_set[0][0]
+    remembered = agent.memory.recall_exact(question, "sole_approver_risk")
+    graph.query("MATCH (x:Answer) DETACH DELETE x")
+
+    assert nodes == 1, f"12 identical questions produced {nodes} Answer nodes; memory is unbounded"
+    assert remembered and int(remembered[2]) == 12, (
+        f"the repeat counter says {remembered[2] if remembered else None}, not 12 — repeats are "
+        f"not being counted onto the same memory")

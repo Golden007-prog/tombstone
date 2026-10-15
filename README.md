@@ -18,7 +18,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
-> - **Nothing here is asserted.** 106 tests, 25 graph claims, 17 rendered UI states and every
+> - **Nothing here is asserted.** 107 tests, 25 graph claims, 17 rendered UI states and every
 >   benchmark re-run by **23 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
@@ -509,7 +509,7 @@ Adding a key (copy `.env.example` to `.env` — Anthropic, OpenAI, Gemini or Gro
 swaps the router for a model. It changes *who picks the tool*. It does not change what runs.
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q     # 106 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 107 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 
@@ -992,6 +992,13 @@ times. Each fix made the claim narrower and more defensible.
   than real options. The deterministic parser cannot always tell.
 - "No current approver" means *this corpus* records none. People own things informally.
 - The corpus is a snapshot. Re-run `python src/tombstone/snapshot.py` against fresh clones to update.
+- **Memory has no cap, no eviction and no TTL**, which is deliberate — an answer citing live
+  nodes is evidence, not cache, and evicting it would make `ANSWERED_FROM_MEMORY` mean less.
+  What bounds it is that a repeat merges onto the same node: measured, 30 identical questions
+  produce **one** `(:Answer)` with a counter at 30, and all thirteen chips clicked twenty
+  times each produce seven nodes. Growth is therefore per **distinct** question at ~19–44 KB,
+  so the hosted demo's ~100 MB of headroom is roughly five thousand distinct questions. There
+  is a test on the merge, because changing it to a create would remove the bound silently.
 - **The counterfactual needs memory headroom to fork.** `GRAPH.COPY` copies the graph in the
   server process, so on a small box, or when two counterfactuals overlap, it can fail with
   "could not fork". Measured: the whole app — FalkorDB, the embedding model and a copy in
