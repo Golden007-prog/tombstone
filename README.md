@@ -293,13 +293,16 @@ RETURN a.question, p.key, count(DISTINCT f) AS areas_they_left
 "which areas have nobody left?" -> vishh       left 14 areas
 ```
 
+(Those rows exist only once those questions have actually been asked — memory starts empty, which
+is why a fresh instance returns nothing here and the recall chip answers "never asked".)
+
 That query **starts in memory and ends in facts**. A separate memory store — a vector DB, a Redis
 cache — structurally cannot answer it, and would also quietly make the "works without FalkorDB"
 test pass, which is precisely the failure the rules describe.
 
 Recall is semantic, so it survives rewording: ask a fresh session *"who currently owns the podgc
 controller"* and it finds the earlier *"who owns pkg/controller/podgc?"*, with its citations intact.
-There is a test for each of these.
+There is a test for each of these, and `PYTHONPATH=src python verify_memory.py` re-checks every number in this section against a live run, in CI.
 
 ## Turn FalkorDB off and here is exactly what stops working
 
@@ -831,7 +834,7 @@ cluster/gce/windows               lost yujuhong, yliaog, pjh, mtaufen, ibabou
 `test_no_directory_is_actually_unowned` now fails loudly if the wrong claim ever creeps back.
 Of 585 OWNERS files, 57 set `no_parent_owners`; none of those is left without a live approver.
 
-## Two more claims I stress-tested after finding the first error
+## Three more claims I stress-tested, and one that was simply false
 
 Having got the ownership claim wrong, I assumed others were wrong too and went looking.
 
@@ -846,6 +849,26 @@ Partly the latter, and my first number was inflated. Two references point at leg
 `.md` records that still exist, and one used `/kep/` instead of `/keps/` — a typo whose target is
 unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 55/358 (15.4%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
 snapshot so a snapshot build and a live build cannot disagree.
+**"It remembers what it learns" — did I ever check that on the demo people actually use?**
+No, and it was false there. The section above has been in this README for most of the project's
+life. It was true on the path a model routes, and silently did nothing on the keyless path —
+which is the hosted configuration, the one a judge opens. `ask_locally` called a memory method
+that **does not exist**, inside a bare `except Exception: pass`, so every question recorded
+nothing and no repeat ever came back remembered. Underneath that, **seven of thirteen tools were
+never wired into the citation linker**, so they recorded zero citations — and since the gate for
+returning an answer from memory is that its citations still resolve, a tool with none can never
+fire. And `who_owns` records itself as `who_owns(depth=4)` while the lookup used the bare name,
+so those two never matched either.
+
+All three are fixed and the claims above are now verified live: a repeat keyless ask returns
+`ANSWERED_FROM_MEMORY` citing 42, 22 and 6 real nodes depending on the tool. The structural cause
+was duplication — the keyless flow was re-implemented from memory and got it wrong — so both
+paths now go through one `Agent._remember`, and a test asserts that *every* answering tool cites
+the nodes it returned, which is the invariant whose absence hid seven of them.
+
+It is the same bare-except failure that fabricated a missing record for KEP-5075, described
+further down this page, committed again in new code by the person who wrote that paragraph.
+
 ## What "stepped back" means here, precisely
 
 `emeritus_approvers` is Kubernetes' own field, and

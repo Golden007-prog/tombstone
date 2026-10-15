@@ -83,6 +83,9 @@ jobs:
       - name: The action's own claims, re-checked against a live run
         run: python verify_action.py
 
+      - name: The README's memory claims, re-checked against a live run
+        run: python verify_memory.py
+
       - name: Retrieval eval + negative controls
         run: python eval_retrieval.py
 
