@@ -87,14 +87,14 @@ ownership files.*
 >
 > A whole-graph property. Under twenty milliseconds, inside the request."
 
-### 1:42–2:16 — It drafts the fix, and refuses two of them · 105 words
+### 1:42–2:16 — It drafts the fix, and refuses two of them · 100 words
 
 > *[Click the draft-the-fix chip.]*
 >
-> "So far it answered. Now it acts - and then stops.
+> "It answered. Now it acts - and then stops.
 >
-> Kubernetes writes down when someone steps back: emeritus approvers. Three people are recorded
-> that way — while another file still lists them as an active approver.
+> Kubernetes writes down when someone steps back: emeritus approvers. Three are recorded that
+> way, while another file still calls them an active approver.
 >
 > So it drafts the patch. A real diff. It does not apply it.
 >

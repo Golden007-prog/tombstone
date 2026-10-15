@@ -12,6 +12,7 @@ failure in the submission: a video that has to be re-shot.
 """
 from __future__ import annotations
 
+import re
 import sys
 
 sys.path.insert(0, "src")
@@ -59,7 +60,12 @@ check("beat 5 says the top left five", "left five" in script and top_areas == 5,
 # Beat 6 — the drafting action: three candidates, two drafted, one refused.
 drafted = agent.dispatch("draft_owners_patch", {})
 patches = sum(1 for r in drafted.rows if r[3] == "patch")
-check("beat 6: three candidates", "Three people are recorded" in script and len(drafted.rows) == 3,
+# Matched on the claim, not on one phrasing of it. Tightening the beat for its word budget
+# changed "Three people are recorded" to "Three are recorded" and this went red -- the narration
+# still said three and the graph still found three, so the only thing wrong was the literal string
+# this was looking for.
+_says_three = re.search(r"\bThree\b[^.\n]{0,40}\brecorded\b", script)
+check("beat 6: three candidates", bool(_says_three) and len(drafted.rows) == 3,
       f"{len(drafted.rows)} candidates")
 check("beat 6: two drafted, one refused", patches == 2 and len(drafted.rows) - patches == 1,
       f"{patches} drafted, {len(drafted.rows) - patches} refused")
