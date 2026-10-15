@@ -134,6 +134,14 @@ keyless demo mode, (d) pre-baked read-only demo sessions so judges need no key.
 (200 nodes + 199 edges per tenant graph, local Docker, 11 CPU / 8GB. Nobody in the ~110-repo field has
 published this; third-party reviewers call FalkorDB's multi-tenancy "claimed, not measured".)
 
+> **Run 1 of 2. Read the latency columns below with the re-run underneath this table, not on their
+> own.** The memory column reproduces; **the latency columns do not**, and the conclusion
+> originally drawn from them — that tenant count does not degrade per-query performance — is
+> withdrawn. The table is kept as measured rather than quietly edited, because what it shows is
+> a real run; what was wrong was treating one run as a trend.
+
+### Run 1
+
 | tenants | read p50 | read p99 | write p50 | total mem | mem/tenant | select_graph |
 |---|---|---|---|---|---|---|
 | 1 | 0.42ms | 2.34ms | 0.28ms | 3.7MB | 537.0KB | 2.2us |
@@ -146,7 +154,7 @@ published this; third-party reviewers call FalkorDB's multi-tenancy "claimed, no
 
 Creation: 1000 tenant graphs in 1.86s = **539 tenants/sec**.
 
-### Re-run, 15 Oct, different machine — and it does NOT reproduce
+### Run 2 — 15 Oct, different machine, and the latency does NOT reproduce
 
 | tenants | read p50 | read p99 | mem/tenant |
 |---|---|---|---|
