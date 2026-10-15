@@ -15,6 +15,7 @@ number is not actually stable this is where it will say so rather than the READM
 wrong.
 """
 import sys
+import time
 
 sys.path.insert(0, "src")
 from graphkit.ingest import connect          # noqa: E402
@@ -30,8 +31,14 @@ CITATIONS = {                    # tool -> citations the README states
 fails = 0
 a = Agent(graph_name=GRAPH)
 
-# 1. the keyless path earns ANSWERED_FROM_MEMORY on a repeat
-q = "verify_memory: which areas are held alone by one approver?"
+# 1. the keyless path earns ANSWERED_FROM_MEMORY on a repeat.
+#
+# The question carries a timestamp so each run starts genuinely unasked. Without that, the second
+# time this script ever ran the FIRST ask already came back remembered -- memory persists across
+# runs, which is the whole point of it -- and the check reported a failure for the feature
+# working correctly. The invariant is the fresh -> remembered transition, so the probe has to be
+# fresh.
+q = f"verify_memory: which areas are held alone by one approver? [{time.time_ns()}]"
 first, second = a.ask_locally(q), a.ask_locally(q)
 ok = first["shape"] == "ANSWERED_WITH_PATH" and second["shape"] == "ANSWERED_FROM_MEMORY"
 fails += not ok
@@ -39,7 +46,7 @@ print(f"  {'PASS' if ok else 'FAIL'}  keyless repeat    {first['shape']} -> {sec
 
 # 2. the citation counts the README prints
 for (tool, args), want in CITATIONS.items():
-    probe = f"verify_memory: citations for {tool}"
+    probe = f"verify_memory: citations for {tool} [{time.time_ns()}]"
     ans = a.dispatch(tool, dict(args))
     a._remember(probe, tool, ans)
     rec = a.memory.recall_exact(probe, ans.tool or tool)
