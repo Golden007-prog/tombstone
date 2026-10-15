@@ -773,8 +773,13 @@ Findings that fall straight out of it, each checkable:
   `/keps/sig-api-machinery/0006-apply.md`, is cited by **four** separate decisions.
 - **83 of 111 people listed as emeritus hold no approval authority anywhere.**
 - **7 areas lost every *dedicated* approver** — see the correction below; they are not unowned.
-- `lavalamp` is emeritus in **31** ownership files and has the highest betweenness of any departed
-  contributor (196.1, sampled, seed pinned).
+- `lavalamp` is emeritus in **31** ownership files — more than anyone else — and is only **third**
+  by betweenness among departed contributors (115.97, sampled, seed pinned). `logicalhan` is first
+  at **156.46**, having left just five areas behind. That gap is the finding: counting the files
+  someone walked away from ranks them by volume, and the question worth asking is how much
+  *connective* authority left with them. This line previously said lavalamp had the highest
+  betweenness, at 196.1 — wrong on both the ranking and the number, and contradicted by the demo
+  script standing beside it, which has always narrated lavalamp as third.
 
 ## The agent
 

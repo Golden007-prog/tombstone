@@ -63,6 +63,25 @@ check("the drafting block's counts match a live run",
       and int(printed.group(2)) == len(drafted) - patches,
       f"{patches} drafted, {len(drafted) - patches} refused")
 
+# 4. the betweenness ranking stated in PROSE, not in a code block
+#
+# The README claimed lavalamp had the highest betweenness of any departed contributor, at 196.1.
+# Both halves were wrong -- lavalamp is third at 115.97, logicalhan is first at 156.46 -- and the
+# demo script a few files away had always narrated lavalamp as third. Two documents disagreed
+# about a named person for days because only one of them was ever checked against a run.
+_rows = agent.dispatch("stepped_back_bridges", {"min_areas": 3}).rows
+_first, _first_b, _ = _rows[0]
+_lava = next((r for r in _rows if r[0] == "lavalamp"), None)
+_lava_rank = [r[0] for r in _rows].index("lavalamp") + 1 if _lava else 0
+_ORDINAL = {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth"}
+
+check(f"the README names {_first} as the top departed contributor by betweenness",
+      f"`{_first}` is first" in readme, _first)
+check(f"...at the measured {_first_b}", f"**{_first_b}**" in readme, str(_first_b))
+check(f"the README places lavalamp {_ORDINAL.get(_lava_rank, _lava_rank)}",
+      f"only **{_ORDINAL.get(_lava_rank)}**" in readme, f"rank {_lava_rank}")
+check(f"...at the measured {_lava[1]}", f"({_lava[1]}, sampled" in readme, str(_lava[1]))
+
 print(f"\n{'FAILED' if fails else 'OK'}: the README's printed output "
       f"{'does not match' if fails else 'matches'} the app")
 sys.exit(1 if fails else 0)
