@@ -81,6 +81,37 @@ class Agent:
             self._corpus = load()
         return self._corpus
 
+    def _payload(self, question: str, tool: str, args: dict, ans, routed_by: str,
+                 extra: dict | None = None) -> dict:
+        """The response body, built in ONE place for both ask paths.
+
+        They used to build it separately and had drifted. The model path omitted `headline`
+        entirely, so with an API key configured a typed question lost the one number the UI leads
+        with; and the two disagreed on where the chosen arguments live -- `routed_args` against
+        `routing.args` -- which the front end had been papering over by reading both. That is the
+        same shape of bug as the memory one: two hand-written copies of something that should
+        exist once.
+        """
+        out = {
+            "question": question,
+            "tool": ans.tool,
+            "routed_to": tool,
+            "routed_by": routed_by,
+            "routed_args": args,
+            "shape": ans.shape,
+            "answer": render(ans),
+            "headline": headline(ans),
+            "rows": ans.rows,
+            "coverage": ans.coverage,
+            "note": ans.note,
+            "ms": round(ans.ms, 2),
+            "cypher": ans.cypher.strip(),
+            "query_sha": query_sha(ans.cypher),
+        }
+        if extra:
+            out.update(extra)
+        return out
+
     def _remember(self, question: str, tool: str, ans):
         """Upgrade an answer to ANSWERED_FROM_MEMORY if it is earned, then record it.
 
@@ -155,14 +186,10 @@ class Agent:
                     "routed_by": "local-embedding", "near": choice.get("near", []),
                     "catalogue": CATALOGUE}
         ans = self._remember(question, choice["tool"], self.dispatch(choice["tool"], choice["args"]))
-        out = {"shape": ans.shape, "question": question, "tool": ans.tool,
-               "routed_to": choice["tool"], "routed_by": "local-embedding",
-               "routing": {"score": choice["score"], "runner_up": choice["runner_up"],
-                           "args": choice["args"]},
-               "answer": render(ans), "headline": headline(ans), "rows": ans.rows,
-               "coverage": ans.coverage, "note": ans.note, "ms": round(ans.ms, 2),
-               "cypher": ans.cypher.strip(), "query_sha": query_sha(ans.cypher)}
-        return out
+        return self._payload(
+            question, choice["tool"], choice["args"], ans, "local-embedding",
+            extra={"routing": {"score": choice["score"], "runner_up": choice["runner_up"],
+                               "args": choice["args"]}})
 
     def provider(self):
         if self._provider is None:
@@ -324,19 +351,7 @@ class Agent:
         # re-run rather than serve it.
         ans = self._remember(question, tool, self.dispatch(tool, args))
 
-        return {
-            "question": question,
-            "routed_to": choice["tool"],
-            "routed_args": choice.get("args", {}),
-            "shape": ans.shape,
-            "answer": render(ans),
-            "rows": ans.rows,
-            "coverage": ans.coverage,
-            "note": ans.note,
-            "ms": ans.ms,
-            "query_sha": query_sha(ans.cypher),
-            "cypher": ans.cypher,
-        }
+        return self._payload(question, tool, args, ans, "llm")
 
 
     # ---------------- the one action ----------------

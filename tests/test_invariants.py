@@ -941,3 +941,34 @@ def test_every_answering_tool_cites_the_nodes_it_returned(agent, tool, args):
     assert recorded[5] > 0, (
         f"{tool} answered with {len(ans.rows)} rows but cited 0 nodes, so it can never be "
         f"returned from memory")
+
+
+def test_both_ask_paths_return_the_same_response_shape(agent):
+    """A keyed instance and a keyless one must answer with the same contract.
+
+    They did not. The two paths built their response dicts separately and drifted: the model path
+    omitted `headline`, so with an API key configured a typed question lost the one number the UI
+    leads with, and the two disagreed on whether the chosen arguments live under `routed_args` or
+    `routing.args`. Nothing caught it because nothing compared them. Both now go through
+    `Agent._payload`; this is the test that keeps them there.
+    """
+    question = "which areas have exactly one approver?"
+
+    class StubProvider:
+        def choose_tool(self, system, q, catalogue):
+            return {"tool": "sole_approver_risk", "args": {}}
+
+    keyless = agent.ask_locally(question)
+    agent._provider = StubProvider()
+    try:
+        keyed = agent.ask(question)
+    finally:
+        agent._provider = None
+
+    missing = set(keyless) - set(keyed) - {"routing"}   # `routing` is keyless-only detail
+    extra = set(keyed) - set(keyless)
+    assert not missing, f"the keyed path is missing {sorted(missing)}"
+    assert not extra, f"the keyed path returns {sorted(extra)} that the keyless one does not"
+    assert keyed["headline"] == keyless["headline"], "headline differs between the two paths"
+    assert keyed["routed_by"] == "llm" and keyless["routed_by"] == "local-embedding"
+    assert keyed["routed_args"] == keyless["routed_args"]

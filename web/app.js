@@ -233,9 +233,9 @@ async function ask() {
       body: JSON.stringify({ question: q }),
     });
     const d = await r.json();
-    // The server reports the chosen arguments under `routing.args`; this read `routed_args`,
-    // which never existed, so a typed question never drew its reasoning path.
-    const ra = (d.routing && d.routing.args) || d.routed_args || {};
+    // Both ask paths now return the chosen arguments under `routed_args` (they used to disagree,
+    // and this read a field one of them never set, so a typed question never drew its path).
+    const ra = d.routed_args || (d.routing && d.routing.args) || {};
     const g = ra.path ? { path: ra.path } : ra.handle ? { handle: ra.handle } : null;
     show(d, g);
   } catch (e) {
