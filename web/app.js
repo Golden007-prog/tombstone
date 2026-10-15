@@ -27,6 +27,8 @@ const CHIPS = [
   { label: "Ask something it cannot know",
     tool: "has_this_been_tried",
     args: { idea_text: "rewrite the control plane in COBOL on a mainframe", max_dist: 0.15 } },
+  { label: "Has this graph been asked this before?",
+    tool: "recall", args: { question: "who currently owns the podgc controller" } },
 ];
 
 // Resolve the palette ONCE, to plain hex strings. Cytoscape style values must be concrete:

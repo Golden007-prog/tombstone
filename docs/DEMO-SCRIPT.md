@@ -21,7 +21,7 @@ while driving the UI is the single biggest cause of ten retakes at midnight.
 > in any search index. Which means when someone proposes the same idea three years later, nobody
 > can find out that it was already refused, or who refused it."
 
-### 0:18–0:40 — The shallow answer, and the silence
+### 0:18–0:38 — The shallow answer, and the silence
 
 > *[Screen: Tombstone. Click "Who owns pkg/controller/podgc? (shallow)".]*
 >
@@ -34,7 +34,7 @@ while driving the UI is the single biggest cause of ten retakes at midnight.
 *On screen the badge reads `NOT_IN_GRAPH`, and the coverage line names 679 decisions and 585
 ownership files.*
 
-### 0:40–1:10 — The same question, four hops deep
+### 0:38–1:05 — The same question, four hops deep
 
 > *[Click "…now ask the graph properly (4 hops)". The SVG path draws.]*
 >
@@ -47,7 +47,7 @@ ownership files.*
 > That is the path the answer came from. Not a summary a model wrote afterwards — the nodes and
 > edges the query actually walked."
 
-### 1:10–1:40 — The question you cannot ask a search box
+### 1:05–1:33 — The question you cannot ask a search box
 
 > *[Click "Has anyone tried moving this into the kubelet?"]*
 >
@@ -58,7 +58,7 @@ ownership files.*
 > still approves anything in this project. Because a rationale with no living owner is a different
 > kind of risk."
 
-### 1:40–2:05 — The answer no search engine can give
+### 1:33–1:58 — The answer no search engine can give
 
 > *[Click "Whose departure cost the most knowledge?"]*
 >
@@ -71,7 +71,7 @@ ownership files.*
 > That number is a whole-graph property. There is no SQL query and no embedding that produces it.
 > It took twelve milliseconds, inside the request."
 
-### 2:05–2:25 — The honest negative
+### 1:58–2:14 — The honest negative
 
 > *[Click "Ask something it cannot know".]*
 >
@@ -80,7 +80,17 @@ ownership files.*
 > It says so. It tells me what it searched, and it says an empty traversal is not proof it never
 > happened. An agent that only ever answers is an agent you cannot trust when it matters."
 
-### 2:25–2:50 — Remove the database
+### 2:14–2:32 — It remembers, and the memory is in the graph
+
+> *[Click "Has this graph been asked this before?"]*
+>
+> "Everything I just asked got written back into the same graph — not as text, but as a node that
+> cites the exact records the answer came from. So a new session, asking it differently, finds it.
+>
+> And because the memory lives in the graph, one query can start in memory and end in facts.
+> A cache cannot do that."
+
+### 2:32–2:52 — Remove the database
 
 > *[Terminal, side by side with the browser: `docker stop falkordb`. Refresh the page.]*
 >
@@ -91,7 +101,7 @@ ownership files.*
 > There is no in-memory mirror and no cached answer anywhere in this repo. It stops, and it says why.
 > There is a test that asserts exactly this."
 
-### 2:50–3:00 — Close
+### 2:52–3:00 — Close
 
 > "Seven hundred real decisions, Kubernetes' own public record. Every number in the README has a
 > script that re-checks it against the live graph.
