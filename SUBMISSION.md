@@ -121,11 +121,34 @@ See the AI assistance disclosure section of the README.
 
 ## Pre-submit checklist
 
-- [ ] `./scripts_verify_deploy.sh` first — builds the image for linux/amd64 and runs it as a
-      non-root user exactly as a Space does, then asserts the product actually answers
-- [ ] `./deploy_hf.sh` and paste the Space URL above, in the README, and `gh repo edit --homepage`
-- [ ] Record the narrated video (`docs/DEMO-SCRIPT.md` — 464 words, 2.6 w/s, verified speakable)
-- [ ] Upload unlisted, then **open it in a private window** to confirm it plays without a sign-in
-- [ ] Flip the README's Rule 10 table rows for video and deployment to done
-- [ ] Register on the panel early; do not discover a required field at 23:30
-- [ ] Name every track you are entering (Rule 5)
+**Do this one first, today, before anything else:**
+
+- [ ] **Register on wemakedevs.org now.** Not on Sunday. The FAQ says *"Your team and your
+      submission are managed from the same panel"* — so **the submission form is behind
+      registration**, and neither the event page nor the rules publishes its fields. Nobody can
+      tell you what it will ask for. Registering now turns that from a deadline-night surprise
+      into something you can see, screenshot, and fill in at leisure. It also surfaces anything
+      that needs an account, a profile, or a verification step while there is time to fix it.
+      No late-submission policy is stated anywhere, so assume the 11:59 PM IST cutoff is hard.
+- [ ] Once inside the panel, **check what it asks for** against this document. If it wants
+      something not written here — a tagline, a category, a screenshot, a specific video host —
+      add it here while it is cheap.
+
+**Then, in order:**
+
+- [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a
+      512 MB container exactly as a Space does, then checks it answers, forks, embeds in an
+      iframe and survives concurrent use
+- [ ] `export HF_TOKEN=hf_...` then `./deploy_hf.sh` — it sets the repo homepage, writes the live
+      URL into this file, and arms the keep-awake workflow by itself
+- [ ] Open the Space **in a private window** and click chip 1, to confirm it works for someone who
+      is not signed in to Hugging Face. That is every judge.
+- [ ] Paste the Space URL into the README's Rule 10 table (deployment row)
+- [ ] Record the video — `docs/DEMO-SCRIPT.md`, **keyless**, 3:00. The script is checked in CI
+      against the live app, so what it says is what the screen shows.
+- [ ] Upload unlisted, then **open the link in a private window** to confirm it plays without a
+      sign-in
+- [ ] Publish the blog post if you want the side prize, and add its link above
+- [ ] Submit, naming **every** track you are entering (Rule 5)
+
+Aim to submit by **18:00 IST Sunday**. The deadline is 11:59 PM IST, and panels get slow.
