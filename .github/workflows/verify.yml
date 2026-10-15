@@ -133,6 +133,9 @@ jobs:
       - name: The README's printed output blocks match a live run
         run: python scripts_check_readme_examples.py
 
+      - name: The principles table describes this build, not a build like it
+        run: python scripts_check_principles.py
+
       - name: The demo script narrates what the app actually returns
         run: python scripts_check_demo_facts.py
 

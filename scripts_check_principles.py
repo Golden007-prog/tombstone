@@ -26,15 +26,38 @@ tools_src = open("src/tombstone/tools.py").read()
 appjs = open("web/app.js").read()
 fails: list[str] = []
 
-# Arguments that let each tool run far enough to report its query. Deliberately the same values the
-# chips use, so this fails if a chip's arguments stop being valid.
-SAMPLE_ARGS = {
-    "who_owns": {"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", "depth": 4},
-    "successor_for": {"handle": "deads2k"},
-    "what_if_they_go": {"handles": ["deads2k", "liggitt"]},
-    "has_this_been_tried": {"idea": "move cluster state into a relational database"},
-    "recall": {"question": "who owns the apiserver metrics endpoint"},
-}
+# Arguments come from the chips themselves rather than being retyped here. A hand-written copy
+# drifted immediately the first time: it said idea="..." where the tool takes idea_text, the tool
+# correctly answered "No idea text supplied", and the checker recorded that as a tool with no query
+# to check. Reading the real chips means this also proves every chip's arguments still dispatch.
+def chip_args() -> dict[str, dict]:
+    src = open("web/app.js").read()
+    i = src.index("const CHIPS = [")
+    d = 0
+    for n, ch in enumerate(src[i:], i):
+        if ch == "[":
+            d += 1
+        elif ch == "]":
+            d -= 1
+            if d == 0:
+                block = src[i:n + 1]
+                break
+    out: dict[str, dict] = {}
+    for m in re.finditer(r'tool:\s*"(\w+)",\s*args:\s*\{([^}]*)\}', block):
+        tool, raw = m.group(1), m.group(2)
+        args: dict = {}
+        for k, v in re.findall(r'(\w+)\s*:\s*("(?:[^"\\]|\\.)*"|[\d.]+|\[[^\]]*\])', raw):
+            if v.startswith('"'):
+                args[k] = v[1:-1].encode().decode("unicode_escape")
+            elif v.startswith("["):
+                args[k] = [x.strip().strip('"') for x in v[1:-1].split(",") if x.strip()]
+            else:
+                args[k] = float(v) if "." in v else int(v)
+        out.setdefault(tool, args)
+    return out
+
+
+SAMPLE_ARGS = chip_args()
 
 
 def check(label: str, ok: bool, detail: str = "") -> None:

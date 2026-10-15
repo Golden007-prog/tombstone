@@ -110,6 +110,19 @@ else:
     checked += 1
     print(f"  preflight runs {_total} checks and the checklist says {_said}")
 
+# Same for the CI step count, which sits in the README's 60-second box -- the single most-read line
+# in the repo -- and in the submission copy. It was typed in both places and checked in neither.
+_steps = sum(1 for _l in open(".github/workflows/verify.yml") if re.match(r"^\s*- name:", _l))
+for _doc in ("README.md", "SUBMISSION.md"):
+    _said = re.findall(r"(\d+) CI steps", open(_doc).read())
+    if not _said:
+        problems.append(f"{_doc}: no CI step count found where one is expected")
+    elif any(int(x) != _steps for x in _said):
+        problems.append(f"{_doc}: says {', '.join(_said)} CI steps, the workflow has {_steps}")
+    else:
+        checked += len(_said)
+print(f"  the workflow has {_steps} named steps and both docs say so")
+
 print(f"  scanned {len(files)} markdown files, checked {checked} count claims")
 for label, (live, _) in COUNTS.items():
     print(f"    {label:<24} {live:,}")
