@@ -42,7 +42,7 @@ breathe, so the budget for 3:00 is **about 500 spoken words.** This script now h
 > Nothing. And notice what it does instead of guessing — it tells you what it searched, and that
 > an empty result is not proof. A plausible wrong name here would be worse than no answer."
 
-*On screen the badge reads `NOT_IN_GRAPH`, and the coverage line names 679 decisions and 585
+*On screen the badge reads `NOT_IN_GRAPH`, and the coverage line names 681 decisions and 585
 ownership files.*
 
 ### 0:32–0:56 — The same question, four hops deep · 61 words

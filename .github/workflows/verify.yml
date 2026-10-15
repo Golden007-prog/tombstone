@@ -119,6 +119,9 @@ jobs:
       - name: The premise measurement still matches what the README claims
         run: python measure_repeat_rejections.py
 
+      - name: Corpus counts quoted in any doc still match the graph
+        run: python scripts_check_doc_counts.py
+
       - name: The README renders cleanly on GitHub (tables, images, anchors)
         env:
           GITHUB_TOKEN: ${{ github.token }}

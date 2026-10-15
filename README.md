@@ -19,7 +19,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
 > - **The graph loses one of those eight on purpose.** See why below.
 > - **Nothing here is asserted.** 107 tests, 26 graph claims, 17 rendered UI states and every
->   benchmark re-run by **23 CI steps on each push** — including the claims I had to withdraw,
+>   benchmark re-run by **24 CI steps on each push** — including the claims I had to withdraw,
 >   which are [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
@@ -767,7 +767,7 @@ LIMIT $limit
 
 ### `broken_lineage` — Which cited decision records do not exist?
 
-*Why a graph:* Inbound edges to a node that stands for something MISSING. Finding it requires resolving references across 679 decisions and counting arrivals at the gap.
+*Why a graph:* Inbound edges to a node that stands for something MISSING. Finding it requires resolving references across 681 decisions and counting arrivals at the gap.
 
 ```cypher
 MATCH (k:Kep)-[:CITES_MISSING]->(m:MissingRecord)

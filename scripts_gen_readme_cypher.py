@@ -25,7 +25,7 @@ ORDER = [
     ("broken_lineage", "BROKEN_LINEAGE",
      "Which cited decision records do not exist?",
      "Inbound edges to a node that stands for something MISSING. Finding it requires resolving "
-     "references across 679 decisions and counting arrivals at the gap."),
+     "references across 681 decisions and counting arrivals at the gap."),
     ("who_owns", "WHO_OWNS_DEPTH1",
      "Who owns this area? (depth 1 — what any database serves)",
      "A single join. Included deliberately as the control arm of the depth contrast."),
