@@ -172,6 +172,13 @@ Corrected successor ranking for lavalamp's 31 abandoned areas:
 Also filter bots (`kubernetes-prow[bot]` is the single top committer in the git history).**
 
 ## FINAL graph numbers (after excluding template files)
+
+> **These drifted and were corrected on 16 Oct.** The table said 679 Kep, 959 Alternative (753
+> titled) and 52 MissingRecord, against a graph that builds 681, 958 (752) and 47. The counts
+> moved as the corpus and resolver changed and nothing re-checked this page, which is the same
+> failure the README documents elsewhere. The numbers that matter are asserted in
+> `verify_claims.py` and re-run in CI; this file is a narrative of how the corpus was understood
+> and is corrected rather than maintained.
 The KEP templates themselves (`NNNN-kep-template`, `0000-cloud-provider-template`) were being
 ingested as decisions. They carry placeholder metadata (`kep-number: NNNN`,
 `creation-date: 'yyyy-mm-dd'`) and showed up as a decision with no date and no author — which
@@ -179,11 +186,11 @@ rendered as "55y ago" because an unparsed date became epoch 0. Both now excluded
 
 | | count |
 |---|---|
-| Kep | **679** |
-| Alternative | 959 (753 titled `:NamedOption`, 206 untitled prose) |
+| Kep | **681** |
+| Alternative | 958 (752 titled `:NamedOption`, 206 untitled prose) |
 | Person | 794 (alias-expanded, bots filtered) |
 | OwnersFile | 585 |
-| MissingRecord | 52 |
+| MissingRecord | 47 |
 | Sig | 23 |
 | -[:APPROVES]-> | 2,584 |
 | -[:EMERITUS_OF]-> | 298 |
