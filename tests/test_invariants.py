@@ -1093,7 +1093,14 @@ def test_the_sixty_second_box_counts_match_reality():
     assert graph_claimed == actual_claims, f"box says {graph_claimed} graph claims, there are {actual_claims}"
 
     chips = len(re.findall(r'tool:\s*"[a-z_]+"', open("web/app.js").read()))
-    actual_states = chips + 3          # scripts_check_ui adds three typed questions
+    # The typed cases are COUNTED out of the UI check rather than written here as "+ 3". That
+    # constant was already stale the moment a fourth typed case landed, and a number in a test
+    # that has to be kept in step by hand is the same hazard as a number in prose.
+    ui_src = open("scripts_check_ui.py").read()
+    extra = ui_src[ui_src.index("cases = chips() + ["):ui_src.index("]", ui_src.index("cases = chips() + ["))]
+    typed = len(re.findall(r'^\s{8}\("', extra, re.M))
+    assert typed, "could not count the typed cases in scripts_check_ui.py"
+    actual_states = chips + typed
     assert states_claimed == actual_states, (
         f"box says {states_claimed} rendered states, the UI check drives {actual_states}")
 

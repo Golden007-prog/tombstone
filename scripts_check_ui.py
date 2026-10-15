@@ -141,7 +141,8 @@ def dom(url: str, attempts: int = 4) -> dict:
         # with no autorun flag at all, treating "never started" as "nothing to wait for".
         if 'data-autorun="done"' in out:
             probe = Probe(set(PANELS) | set(PANELS.values())
-                  | {"shape", "answer", "graphwrap", "provenance", "cypher", "cywrap"})
+                  | {"shape", "answer", "graphwrap", "provenance", "cypher", "cywrap",
+                     "choices"})
             probe.feed(out)
             return probe.found
         budget += 10000
@@ -232,6 +233,12 @@ def main() -> int:
         ("typed:answerable", "ask=" + urllib.parse.quote("which areas have exactly one approver?")),
         ("typed:refused", "ask=" + urllib.parse.quote("write me a poem about kubernetes")),
         ("typed:needs-arg", "ask=" + urllib.parse.quote("who owns this?")),
+        # A near-tie: the router ranks sole_approver_risk first but inside MIN_MARGIN of
+        # successor_for, so it declines and offers both. The point of this case is that the
+        # candidates reach the screen -- the server has always returned them, and the client
+        # dropped them on the floor, which made the refusal a dead end.
+        ("typed:near-tie",
+         "ask=" + urllib.parse.quote("show me the areas that depend on one person")),
     ]
 
     failures = []
@@ -268,6 +275,16 @@ def main() -> int:
         shape = (found.get("shape") or {}).get("text", "")
         answer = (found.get("answer") or {}).get("text", "")
         print(f"  {label:<28} {shape or '(no shape)'}")
+
+        if label == "typed:near-tie":
+            if shape != "UNSURE_WHICH_TOOL":
+                failures.append(f"{label}: expected a declined near-tie, got {shape}")
+            elif not visible(found.get("choices")):
+                failures.append(
+                    f"{label}: the router named the tools it could not choose between and the "
+                    f"page offered none of them -- a refusal with nowhere to go")
+            elif (found.get("choices") or {}).get("text", "") in EMPTYISH:
+                failures.append(f"{label}: the candidate buttons rendered empty")
 
         absent = sorted(REQUIRED_IDS - set(found))
         if absent:
