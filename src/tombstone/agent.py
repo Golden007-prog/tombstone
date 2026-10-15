@@ -27,6 +27,28 @@ from tombstone.counterfactual import Counterfactual
 from tombstone.memory import Memory
 from tombstone.tools import CATALOGUE, Answer, Tools
 
+def _n(count, singular: str, plural: str | None = None) -> str:
+    """"1 area", "2 areas" -- written out, because "1 area(s)" reads as unfinished.
+
+    Every answer this product gives is formatted from rows rather than written by a model, which
+    is the argument it makes about itself. "(s)" is the one place that showed, and it showed on
+    the headline of the strongest beat in the demo.
+    """
+    try:
+        n = int(count)
+    except (TypeError, ValueError):
+        n = 0
+    return f"{n} {singular if n == 1 else (plural or singular + 's')}"
+
+
+def _noun(count, singular: str, plural: str | None = None) -> str:
+    """The noun alone, for headlines where the number lives in its own field."""
+    try:
+        n = int(count)
+    except (TypeError, ValueError):
+        n = 0
+    return singular if n == 1 else (plural or singular + "s")
+
 SYSTEM = """You route questions about an engineering organisation's decision history to exactly one tool.
 
 The graph holds Kubernetes' own governance record: enhancement proposals (decisions), the rejected
@@ -319,13 +341,19 @@ class Agent:
                 text = args.get("question") or args.get("idea_text") or ""
                 if not text.strip():
                     return Answer("UNKNOWN_ENTITY", "recall", note="No question supplied.")
+                # Timed like every other tool. Without this recall was the one answer in the UI
+                # that reported 0ms, which reads as "nothing ran" for the tool whose whole claim
+                # is that recall is a traversal over what those answers cited, not a cache.
+                _t0 = time.perf_counter()
                 qvec = list(self.embedder().embed([text]))[0].tolist()
                 rows = self.memory.recall(qvec)
+                _ms = round((time.perf_counter() - _t0) * 1000, 2)
                 if not rows:
-                    return Answer("NOT_IN_GRAPH", "recall",
+                    return Answer("NOT_IN_GRAPH", "recall", ms=_ms,
                                   note="Nothing like this has been asked of this graph before.",
                                   cypher=Memory.RECALL)
-                return Answer("ANSWERED_WITH_PATH", "recall", rows=rows, cypher=Memory.RECALL)
+                return Answer("ANSWERED_WITH_PATH", "recall", rows=rows, ms=_ms,
+                              cypher=Memory.RECALL)
             if tool == "who_owns":
                 return self.tools.who_owns(args.get("path") or "", depth=num(args.get("depth", 4), 4))
         except Exception as e:
@@ -431,7 +459,7 @@ class Agent:
         refused = len(rows) - drafted
         return Answer("ANSWERED_WITH_PATH", "draft_owners_patch", rows=rows, ms=found.ms,
                       cypher=found.cypher, coverage=found.coverage,
-                      note=(f"{drafted} patch(es) drafted, {refused} candidate(s) deliberately "
+                      note=(f"{_n(drafted, 'patch', 'patches')} drafted, {_n(refused, 'candidate')} deliberately "
                             f"not patched with the reason given on each. Nothing was sent "
                             f"anywhere." + (f" Written to {write_to}." if written else "")))
 
@@ -447,7 +475,7 @@ RETURN anc.path AS inherits_from, approvers LIMIT 1
         if not rows:
             return "no ancestor with approvers -- it would be genuinely unowned"
         anc, approvers = rows[0]
-        return f"`{anc}` ({len(approvers)} approver(s): {', '.join(approvers[:4])})"
+        return f"`{anc}` ({_n(len(approvers), 'approver')}: {', '.join(approvers[:4])})"
 
 
 def headline(a: Answer) -> dict | None:
@@ -467,7 +495,7 @@ def headline(a: Answer) -> dict | None:
             drafted = sum(1 for r in a.rows if r[3] == "patch")
             return {"stat": str(drafted),
                     "label": f"OWNERS patches drafted from the graph, "
-                             f"{len(a.rows) - drafted} candidate(s) refused with a reason"}
+                             f"{_n(len(a.rows) - drafted, 'candidate')} refused with a reason"}
         if t == "stepped_back_but_still_listed":
             return {"stat": str(n), "label": "people whose ownership record contradicts itself"}
         if t == "sole_approver_risk":
@@ -508,9 +536,9 @@ def headline(a: Answer) -> dict | None:
                              f"approval fell back to the parent"}
         if t == "who_owns(depth=1)":
             live = a.rows[0][0] if a.rows else None
-            return {"stat": str(n), "label": "approver(s) named directly on this file"}
+            return {"stat": str(n), "label": f"{_noun(n, 'approver')} named directly on this file"}
         if t == "recall":
-            return {"stat": str(n), "label": "prior answer(s), citations still live"}
+            return {"stat": str(n), "label": f"prior {_noun(n, 'answer')}, citations still live"}
     except (IndexError, TypeError, ValueError):
         return None
     return None
@@ -554,7 +582,7 @@ def render(a: Answer) -> str:
                 f"[{'no one who made this call still holds approval authority' if own == 'NO_LIVING_OWNER' else 'at least one decider still holds approval authority'}]\n"
                 f"  source: {url}"
             )
-        return f"Yes — {n} recorded rejection(s) of something close to this:\n\n" + "\n\n".join(lines)
+        return f"Yes — {_n(n, 'recorded rejection')} of something close to this:\n\n" + "\n\n".join(lines)
     if t == "ownership_dilution":
         lines = []
         for area, departed, nd, fallback, levels, n_fb, _url in a.rows:
@@ -562,13 +590,13 @@ def render(a: Answer) -> str:
                 f"• {area}\n"
                 f"    every dedicated approver has stepped back: {', '.join(departed[:4])}"
                 + (f" (+{len(departed)-4} more)" if len(departed) > 4 else "") + "\n"
-                f"    approval now falls back {levels} level(s) up to {fallback} — "
-                f"{n_fb} approver(s) who never specifically owned this"
+                f"    approval now falls back {_n(levels, 'level')} up to {fallback} — "
+                f"{_n(n_fb, 'approver')} who never specifically owned this"
             )
         return ("They are not unowned — Kubernetes OWNERS inherit — but approval has silently "
                 "widened to people who never signed up for this code:\n\n" + "\n".join(lines))
     if t == "stepped_back_bridges":
-        lines = [f"• {r[0]} — betweenness {r[1]}, left {r[2]} area(s) behind" for r in a.rows]
+        lines = [f"• {r[0]} — betweenness {r[1]}, left {_n(r[2], 'area')} behind" for r in a.rows]
         return ("Ranked by how much CONNECTIVE authority was concentrated in people who have since stepped back (betweenness centrality "
                 "over the co-authorship graph, sampled, seed pinned):\n\n" + "\n".join(lines))
     if t == "successor_for":
@@ -612,14 +640,14 @@ def render(a: Answer) -> str:
                else f"{', '.join(cohort[:-1])} and {cohort[-1]} all")
         head = f"If {who} stopped approving:\n\n"
         if stranded:
-            body = (f"• {len(stranded)} area(s) would be left with NO live owner anywhere, "
+            body = (f"• {_n(len(stranded), 'area')} would be left with NO live owner anywhere, "
                     f"not even by inheritance:\n"
                     + "\n".join(f"    {s}" for s in stranded))
         else:
             body = ("• nothing would be left without an owner — every area they hold is also "
                     "covered further up the OWNERS tree.")
         return (head + body
-                + f"\n\nBaseline before the change: {before} area(s) stranded. "
+                + f"\n\nBaseline before the change: {_n(before, 'area')} stranded. "
                   f"Evaluated on a copy of the graph in {ms}ms; the live graph was untouched.")
     if t == "stale_knowledge":
         lines = []
@@ -636,7 +664,7 @@ def render(a: Answer) -> str:
                 who.append(f"{unknown} whose status this corpus does not record")
             lines.append(
                 f"• KEP-{kep} “{str(title)[:60]}”\n"
-                f"    {status} for {years} years, still cited by {cited} other decision(s), {sig}\n"
+                f"    {status} for {years} years, still cited by {_n(cited, 'other decision')}, {sig}\n"
                 f"    {'; '.join(who)}"
             )
         return ("Knowledge going stale — still load-bearing, still undecided, and in some cases "
@@ -658,7 +686,7 @@ def render(a: Answer) -> str:
                 + "\n\nRecall is a traversal over what those answers cited, not a cached string — "
                   "every citation above still points at a live node.")
     if t == "broken_lineage":
-        lines = [f"• {r[0]} — cited by {r[1]} decision(s): {', '.join(str(x) for x in r[2])}"
+        lines = [f"• {r[0]} — cited by {_n(r[1], 'decision')}: {', '.join(str(x) for x in r[2])}"
                  for r in a.rows]
         return "\n".join(lines)
     if t == "who_owns(depth=1)":
@@ -677,7 +705,7 @@ def render(a: Answer) -> str:
             _, _, departed, ndec, decisions, ideas, sigs, _ = r
             if not departed:
                 continue
-            bit = f"• {departed} (no longer approves here) shaped {ndec} decision(s)"
+            bit = f"• {departed} (no longer approves here) shaped {_n(ndec, 'decision')}"
             if decisions:
                 bit += f": KEP-{', KEP-'.join(str(d) for d in decisions)}"
             if ideas:
@@ -686,4 +714,4 @@ def render(a: Answer) -> str:
                 bit += f"\n    reaching into: {', '.join(sigs)}"
             lines.append(bit)
         return head + ("\n\n" + "\n".join(lines) if lines else "")
-    return f"{n} row(s): " + "; ".join(str(r) for r in a.rows[:5])
+    return f"{_n(n, 'row')}: " + "; ".join(str(r) for r in a.rows[:5])

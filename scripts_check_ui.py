@@ -18,6 +18,7 @@ Usage:  ./run.sh    (in another shell)
 from __future__ import annotations
 
 import os
+import json
 import re
 import shutil
 import subprocess
@@ -170,6 +171,30 @@ def chips() -> list[tuple[str, str]]:
     return out
 
 
+def chip_calls() -> list[tuple[str, dict]]:
+    """(tool, args) for every chip, read from app.js so these cannot drift from the UI."""
+    js = open("web/app.js").read()
+    block = js[js.index("const CHIPS = ["):js.index("];", js.index("const CHIPS = ["))]
+    out = []
+    for chunk in re.split(r"\n  \{", block):
+        m = re.search(r'tool:\s*"(\w+)"', chunk)
+        if not m:
+            continue
+        args: dict = {}
+        am = re.search(r"args:\s*\{(.*?)\}\s*(?:,|\n)", chunk, re.S)
+        if am:
+            for k, v in re.findall(r'(\w+)\s*:\s*("(?:[^"\\]|\\.)*"|\[[^\]]*\]|[\d.]+)',
+                                   am.group(1)):
+                if v.startswith('"'):
+                    args[k] = v[1:-1]
+                elif v.startswith("["):
+                    args[k] = [x.strip().strip('"') for x in v[1:-1].split(",") if x.strip()]
+                else:
+                    args[k] = float(v) if "." in v else int(v)
+        out.append((m.group(1), args))
+    return out
+
+
 def chips_that_draw() -> set[str]:
     """The chips that claim a drawn reasoning path, by the same label chips() uses.
 
@@ -210,6 +235,34 @@ def main() -> int:
     ]
 
     failures = []
+    # Two defects that no rendered-state rule could ever catch, because the panel is present and
+    # the text is non-empty -- they are just wrong to read. Both were found by pulling a frame out
+    # of the walkthrough and looking at it: a counterfactual that reported "0ms" beside its own
+    # text saying 404ms, and a headline reading "1 areas". Cheap to assert over the API, so there
+    # is no reason to rely on noticing them again.
+    for tool, args in chip_calls():
+        try:
+            req = urllib.request.Request(
+                f"{APP}/api/tool", method="POST",
+                data=json.dumps({"tool": tool, "args": args}).encode(),
+                headers={"content-type": "application/json"})
+            d = json.load(urllib.request.urlopen(req, timeout=180))
+        except Exception as e:
+            failures.append(f"{tool}: /api/tool failed ({e})")
+            continue
+        body = (d.get("answer") or "") + " " + json.dumps(d.get("headline") or {})
+        if "(s)" in body or "(es)" in body:
+            failures.append(f'{tool}: still writes a "(s)" plural, which reads as unfinished')
+        if str(d.get("shape", "")).startswith("ANSWERED") and d.get("ms") in (None, 0, 0.0):
+            failures.append(
+                f"{tool}: reports {d.get('ms')}ms for a query that answered -- the one number on "
+                f"screen should not make the work look like it never happened")
+        head = d.get("headline") or {}
+        if str(head.get("stat", "")).strip() == "1":
+            first = str(head.get("label", "")).strip().split()
+            if first and first[0].endswith("s") and not first[0].endswith("ss"):
+                failures.append(f'{tool}: headline reads "1 {first[0]}"')
+
     for label, query in cases:
         found = dom(f"{APP}/?{query}")
         shape = (found.get("shape") or {}).get("text", "")
