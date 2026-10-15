@@ -301,8 +301,18 @@ def headline(a: Answer) -> dict | None:
             stranded = a.rows[0][1]
             return ({"stat": str(len(stranded)), "label": "areas would be left with no owner anywhere"}
                     if stranded else {"stat": "0", "label": "nothing would be left unowned"})
-        if t.startswith("who_owns"):
-            return {"stat": str(n), "label": "row(s) — see the path below"}
+        if t == "who_owns(depth=4)":
+            live = a.rows[0][1] or []
+            gone = {r[2] for r in a.rows if r[2]}
+            if live:
+                return {"stat": str(len(live)),
+                        "label": f"current approver{'s' if len(live) != 1 else ''}"}
+            return {"stat": "0",
+                    "label": f"of its named owners still approve — {len(gone)} stepped back, "
+                             f"approval fell back to the parent"}
+        if t == "who_owns(depth=1)":
+            live = a.rows[0][0] if a.rows else None
+            return {"stat": str(n), "label": "approver(s) named directly on this file"}
         if t == "recall":
             return {"stat": str(n), "label": "prior answer(s), citations still live"}
     except (IndexError, TypeError, ValueError):
@@ -409,9 +419,10 @@ def render(a: Answer) -> str:
             gone, live, unknown = int(gone or 0), int(live or 0), int(unknown or 0)
             who = []
             if gone:
-                who.append(f"{gone} author{'s' if gone > 1 else ''} no longer hold approval authority")
+                who.append(f"{gone} author{'s' if gone > 1 else ''} "
+                           f"{'no longer hold' if gone > 1 else 'no longer holds'} approval authority")
             if live:
-                who.append(f"{live} still hold an approver role")
+                who.append(f"{live} still {'hold' if live > 1 else 'holds'} an approver role")
             if unknown:
                 who.append(f"{unknown} whose status this corpus does not record")
             lines.append(
