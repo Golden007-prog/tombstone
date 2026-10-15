@@ -29,6 +29,14 @@ ORDER = [
     ("who_owns", "WHO_OWNS_DEPTH1",
      "Who owns this area? (depth 1 — what any database serves)",
      "A single join. Included deliberately as the control arm of the depth contrast."),
+    ("draft_owners_patch", "STEPPED_BACK_BUT_STILL_LISTED",
+     "Whose ownership record is lopsided — and can it be safely patched?",
+     "The query behind the one ACTION this agent takes. It needs a whole-repository view of one "
+     "person's ROLE in 585 separate files: recorded as stepped back in many, still named an "
+     "active approver in one. grep finds every file containing the handle; it cannot tell "
+     "approver from emeritus from reviewer, and cannot rank by the lopsidedness. The vendored-"
+     "tree exclusion is in the query because the strongest-looking candidate in this corpus is "
+     "a vendored file that must not be patched."),
     ("who_owns", "WHO_OWNS_DEPTH4",
      "Who owns this area? (depth 4 — what the graph serves)",
      "Four hops: area → the owner who stepped back → decisions they shaped → alternatives "

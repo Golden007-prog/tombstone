@@ -36,6 +36,8 @@ const CHIPS = [
     args: { handles: ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"] } },
   { label: "What knowledge here is going stale?",
     tool: "stale_knowledge", args: { min_years: 3 } },
+  { label: "Draft the fix \u2014 don't just report it",
+    tool: "draft_owners_patch", args: { min_stepped_back: 3 } },
   { label: "Has this graph been asked this before?",
     tool: "recall", args: { question: "who currently owns the podgc controller" } },
 ];

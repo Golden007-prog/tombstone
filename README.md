@@ -11,6 +11,8 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > **If you have 60 seconds**
 > - **One finding:** one person is the entire review capacity for the Kubernetes apiserver's
 >   metrics endpoints. Nobody wrote that down — it is only true as a consequence of the structure.
+> - **It acts, not just answers:** it drafts a real OWNERS patch for the inconsistency it
+>   finds — and refuses to patch the strongest-looking case, because that file is vendored.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account.**
 > - **Check me:** `PYTHONPATH=src python verify_claims.py` re-verifies every number below against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **7/8 vs 2/8**.
@@ -52,7 +54,7 @@ It runs on **Kubernetes' own governance record** — a real organisation of thou
 publishes its decision history, its ownership map, and, unusually, its own attrition. Apache-2.0,
 fully public. Every number below is checkable with one `git clone`.
 
-**Jump to:** [what it found](#which-group-is-hollowing-out) · [why a graph](#turn-falkordb-off-and-here-is-exactly-what-stops-working) · [measured vs text search](#does-the-graph-actually-do-work-a-text-search-cannot-measured) · [run it](#quickstart) · [the data model](#the-graph-data-model) · [the Cypher](#the-cypher-this-product-depends-on) · [what I got wrong](#a-correction-i-made-and-why-it-is-in-the-readme)
+**Jump to:** [it drafts the fix](#it-does-not-just-report-the-problem-it-drafts-the-fix) · [what it found](#which-group-is-hollowing-out) · [why a graph](#turn-falkordb-off-and-here-is-exactly-what-stops-working) · [measured vs text search](#does-the-graph-actually-do-work-a-text-search-cannot-measured) · [run it](#quickstart) · [the data model](#the-graph-data-model) · [the Cypher](#the-cypher-this-product-depends-on) · [what I got wrong](#a-correction-i-made-and-why-it-is-in-the-readme)
 
 
 ## Every submission requirement, and exactly where it is
@@ -81,6 +83,68 @@ Two rules beyond the checklist:
   ```bash
   git log --format='%at' | awk '$1 < 1760466660' | wc -l   # commits before the start; prints 0
   ```
+
+## It does not just report the problem. It drafts the fix.
+
+Track 3's prize is for the agent that "understands how a company works **and gets work done**",
+and the brief asks for one that **acts** on connected data. Everything else here answers
+questions. This is the part that acts.
+
+The finding it acts on is an inconsistency the organisation created itself. `emeritus_approvers`
+is Kubernetes' explicit, written way of saying *this person stepped back from this area*. Three
+people are recorded that way in several files while one other file still names them an **active
+approver** — so reviews still route to them there.
+
+```
+$ open http://localhost:8099  ->  "Draft the fix — don't just report it"
+
+2 OWNERS patches drafted from the graph, 1 candidate refused with a reason
+```
+
+The drafted patch is a real one:
+
+```diff
+--- a/hack/jenkins/OWNERS
++++ b/hack/jenkins/OWNERS
+@@ -1,6 +1,7 @@
+ approvers:
+   - bentheelder
+   - cblecker
+-  - spiffxp
+ reviewers:
+   - sig-testing-reviewers
++emeritus_approvers:
++  - spiffxp
+```
+
+Both drafts are committed as artifacts: [`docs/patches/`](docs/patches). **Nothing is sent
+anywhere** — there is an AST-walking test asserting the drafting path imports no network module.
+
+### The interesting part is what it refuses to do
+
+A tool that emitted a patch for every candidate would be wrong three times over, and each refusal
+is a thing the graph knows and a text search does not:
+
+| candidate | what a naive tool would do | what it actually does |
+|---|---|---|
+| `stewart-yu` — emeritus in **20** files, active approver in exactly **1** | patch it; it is by far the strongest signal in the corpus | **refuse.** That one file is `vendor/k8s.io/utils/ptr/OWNERS`. `vendor/` is synced from another repository, so the edit would be reverted by the next sync. The exclusion is in the Cypher, not bolted on after. |
+| `fabriziopandini` — emeritus in 3, active approver in `cluster-bootstrap` | remove his handle from that file | **refuse.** His handle *is not in that file.* Approval arrives by expanding the alias `sig-cluster-lifecycle-leads`. No edit to the file removes it; the only real fix is to `OWNERS_ALIASES`, which this tool will not draft unasked. |
+| a file where the straggler is the **only** approver — *no live case in this corpus hits this; both real drafts leave other approvers behind, so this guard is covered by a synthetic test rather than by data* | remove them, leaving `approvers:` empty | **patch, and say the consequence.** An empty `approvers` list does not make a file unowned — it makes it silently *inherit*. The draft names the ancestor that would take over and how many approvers it has. That consequence lives in the OWNERS tree, so only a traversal can state it. |
+
+Each refusal is returned, not dropped: a tool that quietly skipped what it could not handle would
+look more capable and be less useful. There is a test asserting the candidate count coming out
+equals the candidate count going in.
+
+And it never claims the straggler is a mistake. Stepping back from nine areas and deliberately
+keeping a tenth is normal and correct, so every draft carries both readings and is addressed to a
+human to confirm. The output is a patch **and the question**, which is the honest shape for this.
+
+Two caveats stated on the face of every draft: the diff is against a canonical re-serialisation of
+the *parsed* file — the committed snapshot stores parsed OWNERS structures, so upstream comments
+and key order are not preserved — and the full proposed file is appended underneath, because a
+minimal diff can reuse an identical line and read misleadingly.
+
+`PYTHONPATH=src python verify_action.py` re-checks every number in this section against a live run.
 
 ## Which *group* is hollowing out?
 
@@ -317,7 +381,7 @@ To enable free-text questions, copy `.env.example` to `.env` and add one key (An
 Gemini or Groq — it auto-detects).
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q     # 50 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 57 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 
@@ -584,6 +648,27 @@ LIMIT $limit
 ```
 `query_sha` = `3076dff4e413` — stamped on every answer this query produces.
 
+### `draft_owners_patch` — Whose ownership record is lopsided — and can it be safely patched?
+
+*Why a graph:* The query behind the one ACTION this agent takes. It needs a whole-repository view of one person's ROLE in 585 separate files: recorded as stepped back in many, still named an active approver in one. grep finds every file containing the handle; it cannot tell approver from emeritus from reviewer, and cannot rank by the lopsidedness. The vendored-tree exclusion is in the query because the strongest-looking candidate in this corpus is a vendored file that must not be patched.
+
+```cypher
+MATCH (p:Person)-[:EMERITUS_OF]->(e:OwnersFile)
+WITH p, collect(DISTINCT e.path) AS stepped_back
+WHERE size(stepped_back) >= $min_stepped_back
+MATCH (p)-[:APPROVES]->(a:OwnersFile)
+WHERE NOT a.path STARTS WITH 'vendor/' AND NOT a.path STARTS WITH 'third_party/'
+WITH p, stepped_back, collect(DISTINCT a.path) AS still_listed
+WHERE size(still_listed) <= $max_active
+RETURN p.key              AS person,
+       size(stepped_back) AS stepped_back_in,
+       stepped_back[0..5] AS stepped_back_sample,
+       still_listed       AS still_listed_in
+ORDER BY stepped_back_in DESC, person
+LIMIT $limit
+```
+`query_sha` = `5cb3370ef8a4` — stamped on every answer this query produces.
+
 ### `who_owns` — Who owns this area? (depth 4 — what the graph serves)
 
 *Why a graph:* Four hops: area → the owner who stepped back → decisions they shaped → alternatives they personally rejected → the SIGs those reached. Returns the reason depth 1 was silent.
@@ -611,7 +696,6 @@ RETURN o.path                    AS area,
 LIMIT $limit
 ```
 `query_sha` = `1174754e3277` — stamped on every answer this query produces.
-
 
 ## Where the data comes from
 

@@ -72,6 +72,15 @@ class Agent:
             self._embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
         return self._embedder
 
+    def corpus(self):
+        """The committed snapshot, loaded once. Only the drafting action needs it: a patch has to
+        be written against the file's actual declared lists, not against the graph's expanded
+        view, because alias expansion puts people in the graph who are not named in the file."""
+        if getattr(self, "_corpus", None) is None:
+            from tombstone.snapshot import load
+            self._corpus = load()
+        return self._corpus
+
     def provider(self):
         if self._provider is None:
             from tombstone.llm import Provider
@@ -157,6 +166,12 @@ class Agent:
                     min_size=max(2, num(args.get("min_size", 5), 5)))
             if tool == "sole_approver_risk":
                 return self.tools.sole_approver_risk()
+            if tool == "stepped_back_but_still_listed":
+                return self.tools.stepped_back_but_still_listed()
+            if tool == "draft_owners_patch":
+                return self._draft_owners_patch(
+                    min_stepped_back=max(1, num(args.get("min_stepped_back", 3), 3)),
+                    write_to=args.get("write_to"))
             if tool == "what_if_they_go":
                 handles = args.get("handles") or ([args["handle"]] if args.get("handle") else [])
                 if not handles:
@@ -265,6 +280,85 @@ class Agent:
         }
 
 
+    # ---------------- the one action ----------------
+
+    def _draft_owners_patch(self, min_stepped_back: int = 3, write_to: str | None = None) -> Answer:
+        """Turn the lopsided-record finding into a reviewable OWNERS patch.
+
+        Returns one row per candidate, each carrying its own verdict. Only `direct` candidates get
+        a patch; `via_alias` and `vendored` ones are returned WITH their reason so the refusal is
+        visible rather than silent. A tool that quietly dropped the cases it could not handle
+        would look more capable and be less useful.
+        """
+        import os
+        from tombstone import act
+
+        found = self.tools.stepped_back_but_still_listed(min_stepped_back=min_stepped_back)
+        if found.shape != "ANSWERED_WITH_PATH":
+            return Answer("NOT_IN_GRAPH", "draft_owners_patch", ms=found.ms,
+                          cypher=found.cypher, coverage=found.coverage,
+                          note="No lopsided ownership records at this threshold, so there is "
+                               "nothing to draft. That is a finding, not a failure.")
+
+        corpus = self.corpus()
+        rows, written = [], []
+        for person, stepped_back_in, sample, still_listed in found.rows:
+            for path in still_listed:
+                declared = corpus.owners.get(path, {})
+                kind, why = act.classify(path, person, declared, corpus.aliases)
+                if kind != "direct":
+                    rows.append([person, path, stepped_back_in, kind, why, "", ""])
+                    continue
+                after = act.retire(declared, person)
+                diff = act.unified(path, declared, after)
+                proposed = act.canonical(after)
+                note = (f"`{person}` is recorded emeritus in {stepped_back_in} other OWNERS files "
+                        f"and is still an active approver here. Either they kept this area "
+                        f"deliberately, or it was missed when they stepped back -- this patch "
+                        f"assumes the second and is for a human to confirm.")
+                if act.strand_check(after):
+                    inherits = self._inherited_by(path)
+                    note += (f" Applying it would leave `{path}` with no approvers of its own, so "
+                             f"approval would fall back to {inherits}.")
+                rows.append([person, path, stepped_back_in, "patch", note, diff, proposed])
+                if write_to:
+                    os.makedirs(write_to, exist_ok=True)
+                    fn = os.path.join(write_to, f"{person}-{path.replace('/', '_')}.patch")
+                    with open(fn, "w") as fh:
+                        fh.write(f"# Drafted from the graph. Review before applying.\n"
+                                 f"# {note}\n"
+                                 f"# The diff is against a canonical re-serialisation of the "
+                                 f"parsed file, so upstream comments and key order are not "
+                                 f"preserved. The full proposed file is appended below the "
+                                 f"diff, because a minimal diff can reuse an identical line and "
+                                 f"read misleadingly.\n{diff}\n"
+                                 f"# ---- proposed {path} in full ----\n"
+                                 + "".join(f"# {ln}\n" for ln in proposed.splitlines()))
+                    written.append(fn)
+
+        drafted = sum(1 for r in rows if r[3] == "patch")
+        refused = len(rows) - drafted
+        return Answer("ANSWERED_WITH_PATH", "draft_owners_patch", rows=rows, ms=found.ms,
+                      cypher=found.cypher, coverage=found.coverage,
+                      note=(f"{drafted} patch(es) drafted, {refused} candidate(s) deliberately "
+                            f"not patched with the reason given on each. Nothing was sent "
+                            f"anywhere." + (f" Written to {write_to}." if written else "")))
+
+    def _inherited_by(self, path: str) -> str:
+        """Who would approve `path` if it had no approvers of its own? Walks the OWNERS tree."""
+        rows = self.g.ro_query(
+            """
+MATCH (o:OwnersFile {path: $p})-[:INHERITS_FROM*1..8]->(anc:OwnersFile)
+MATCH (anc)<-[:APPROVES]-(a:Person)
+WITH anc, collect(DISTINCT a.key) AS approvers
+RETURN anc.path AS inherits_from, approvers LIMIT 1
+""", params={"p": path}).result_set
+        if not rows:
+            return "no ancestor with approvers -- it would be genuinely unowned"
+        anc, approvers = rows[0]
+        return f"`{anc}` ({len(approvers)} approver(s): {', '.join(approvers[:4])})"
+
+
 def headline(a: Answer) -> dict | None:
     """The one number a reader should take away, derived from the rows.
 
@@ -278,6 +372,13 @@ def headline(a: Answer) -> dict | None:
     n = len(a.rows)
     t = a.tool
     try:
+        if t == "draft_owners_patch":
+            drafted = sum(1 for r in a.rows if r[3] == "patch")
+            return {"stat": str(drafted),
+                    "label": f"OWNERS patches drafted from the graph, "
+                             f"{len(a.rows) - drafted} candidate(s) refused with a reason"}
+        if t == "stepped_back_but_still_listed":
+            return {"stat": str(n), "label": "people whose ownership record contradicts itself"}
         if t == "sole_approver_risk":
             held = sum(int(r[1]) for r in a.rows)
             return {"stat": str(held), "label": f"areas held alone by {n} people"}
@@ -391,6 +492,19 @@ def render(a: Answer) -> str:
                 "running community detection over who has actually worked on decisions "
                 "together:\n\n" + "\n".join(lines)
                 + "\n\n" + (a.note or ""))
+    if t == "draft_owners_patch":
+        out = []
+        for person, path, n, kind, why, diff, _proposed in a.rows:
+            if kind == "patch":
+                out.append(f"• PATCH DRAFTED for {path}\n  {why}\n\n{diff}")
+            else:
+                out.append(f"• NOT PATCHED ({kind}) — {path}\n  {why}")
+        return "\n\n".join(out) + "\n\n" + (a.note or "")
+    if t == "stepped_back_but_still_listed":
+        return "\n".join(
+            f"• {person} is recorded as having stepped back from {n} areas, yet is still an "
+            f"active approver in: {', '.join(still)}"
+            for person, n, _sample, still in a.rows) + "\n\n" + (a.note or "")
     if t == "sole_approver_risk":
         lines = [f"• {who} is the only approver of {int(cnt)} "
                  f"area{'s' if cnt != 1 else ''}: "

@@ -74,6 +74,21 @@ CLAIMS = [
      "OPTIONAL MATCH (p)-[a:APPROVES]->() OPTIONAL MATCH (p)-[e:EMERITUS_OF]->() "
      "WITH p, count(a) AS na, count(e) AS ne WHERE na = 0 AND ne = 0 "
      "RETURN count(DISTINCT p)", 428),
+    # the action's inputs, so the README's claim about it cannot drift from the graph either
+    ("lopsided ownership records (>=3 stepped back, <=2 still listed, non-vendored)",
+     "MATCH (p:Person)-[:EMERITUS_OF]->(e:OwnersFile) "
+     "WITH p, collect(DISTINCT e.path) AS sb WHERE size(sb) >= 3 "
+     "MATCH (p)-[:APPROVES]->(a:OwnersFile) "
+     "WHERE NOT a.path STARTS WITH 'vendor/' AND NOT a.path STARTS WITH 'third_party/' "
+     "WITH p, sb, collect(DISTINCT a.path) AS still WHERE size(still) <= 2 "
+     "RETURN count(DISTINCT p)", 3),
+    ("...excluded because the only straggler is a vendored file",
+     "MATCH (p:Person)-[:EMERITUS_OF]->(e:OwnersFile) "
+     "WITH p, collect(DISTINCT e.path) AS sb WHERE size(sb) >= 3 "
+     "MATCH (p)-[:APPROVES]->(a:OwnersFile) "
+     "WITH p, sb, collect(DISTINCT a.path) AS all_p "
+     "WITH p, [x IN all_p WHERE x STARTS WITH 'vendor/' OR x STARTS WITH 'third_party/'] AS v, all_p "
+     "WHERE size(v) > 0 AND size(all_p) <= 2 RETURN count(DISTINCT p)", 1),
 ]
 
 fails = 0

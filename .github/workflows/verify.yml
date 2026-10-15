@@ -80,6 +80,9 @@ jobs:
       - name: Every README claim, re-checked against the live graph
         run: python verify_claims.py
 
+      - name: The action's own claims, re-checked against a live run
+        run: python verify_action.py
+
       - name: Retrieval eval + negative controls
         run: python eval_retrieval.py
 

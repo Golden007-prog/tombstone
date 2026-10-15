@@ -321,6 +321,45 @@ LIMIT $limit
                            "resolution parameter — run it twice and boundaries may shift.")
 
     # ---------- TOOL 7: bus factor ----------
+    # ---------- the query behind the one ACTION this agent takes ----------
+    # `emeritus_approvers` is Kubernetes' explicit, written record of "this person stepped back
+    # from this area". It is PER-AREA, so stepping back from nine areas and keeping a tenth is
+    # normal. What this finds is the lopsided shape: a systematic step-back with one straggler
+    # still naming them an active approver. That is a question for a human, not a verdict, and
+    # the drafting layer in act.py refuses to patch the cases it cannot justify.
+    #
+    # Vendored trees are excluded IN THE QUERY because they are synced from other repositories.
+    # The strongest-looking signal in this corpus is excluded by exactly this line.
+    STEPPED_BACK_BUT_STILL_LISTED = """
+MATCH (p:Person)-[:EMERITUS_OF]->(e:OwnersFile)
+WITH p, collect(DISTINCT e.path) AS stepped_back
+WHERE size(stepped_back) >= $min_stepped_back
+MATCH (p)-[:APPROVES]->(a:OwnersFile)
+WHERE NOT a.path STARTS WITH 'vendor/' AND NOT a.path STARTS WITH 'third_party/'
+WITH p, stepped_back, collect(DISTINCT a.path) AS still_listed
+WHERE size(still_listed) <= $max_active
+RETURN p.key              AS person,
+       size(stepped_back) AS stepped_back_in,
+       stepped_back[0..5] AS stepped_back_sample,
+       still_listed       AS still_listed_in
+ORDER BY stepped_back_in DESC, person
+LIMIT $limit
+"""
+
+    def stepped_back_but_still_listed(self, min_stepped_back: int = 3,
+                                      max_active: int = 2, limit: int = 10) -> Answer:
+        """Whose ownership record is lopsided: stepped back from many areas, still listed in one?
+
+        This is the finding the `draft_owners_patch` action turns into a reviewable change. On its
+        own it asserts nothing: a person may have kept one area deliberately.
+        """
+        rows, ms = self._run("stepped_back_but_still_listed", self.STEPPED_BACK_BUT_STILL_LISTED,
+                             {"min_stepped_back": min_stepped_back, "max_active": max_active,
+                              "limit": limit})
+        shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
+        return Answer(shape, "stepped_back_but_still_listed", rows=rows, ms=ms,
+                      cypher=self.STEPPED_BACK_BUT_STILL_LISTED, coverage=self._coverage())
+
     SOLE_APPROVER = """
 MATCH (p:Person)-[:APPROVES]->(o:OwnersFile)
 WITH o, collect(DISTINCT p.key) AS approvers
@@ -475,4 +514,6 @@ CATALOGUE = {
     "what_if_they_go": "Simulate a group stepping back from approving all at once, and report which areas would be left with no live owner anywhere. Args: handles (list).",
     "stale_knowledge": "What does this graph know that is going stale? Decisions still cited by others, still undecided years later, whose authors have stepped back. Args: min_years.",
     "recall": "Has this graph been asked something like this before, and what did that answer cite? Args: question.",
+    "stepped_back_but_still_listed": "Whose ownership record is lopsided — recorded as having stepped back from many areas, yet still named an active approver in one or two? Args: min_stepped_back.",
+    "draft_owners_patch": "ACT: turn that finding into a reviewable OWNERS patch that retires the straggler entry, refusing the cases it cannot justify (vendored trees, approval held via an alias) and saying why. Drafts only; sends nothing. Args: min_stepped_back, write_to.",
 }

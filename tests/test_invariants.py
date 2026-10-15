@@ -675,3 +675,124 @@ def test_counterfactual_degrades_when_the_host_cannot_fork(agent):
     # and the live graph is still intact afterwards
     ok = agent.dispatch("what_if_they_go", {"handles": ["deads2k"]})
     assert ok.shape in ANSWERED or ok.shape == "DEGRADED"
+
+
+# ---------------- the action: drafting an OWNERS patch ----------------
+#
+# These exist because every one of them is a way the action could produce a WRONG patch, and a
+# wrong patch is worse than no patch: it looks authoritative and it edits governance.
+
+def test_drafted_patch_parses_as_yaml_and_actually_retires_the_handle():
+    import yaml
+    from tombstone import act
+    before = {"approvers": ["alice", "bob", "carol"], "reviewers": ["carol"],
+              "options": {"no_parent_owners": True}}
+    after = act.retire(before, "carol")
+    parsed = yaml.safe_load(act.canonical(after))
+    assert parsed["approvers"] == ["alice", "bob"]
+    assert "carol" not in (parsed.get("reviewers") or [])
+    assert parsed["emeritus_approvers"] == ["carol"]
+    assert parsed["options"] == {"no_parent_owners": True}, "unrelated keys must survive"
+
+
+def test_drafted_patch_never_invents_a_name(agent):
+    """The patch may only ever remove and relabel. A handle appearing in the proposal that was
+    not in the original file would be this tool putting words in a project's mouth."""
+    ans = agent.dispatch("draft_owners_patch", {})
+    assert ans.shape == "ANSWERED_WITH_PATH"
+    corpus = agent.corpus()
+    checked = 0
+    for _person, path, _n, kind, _why, _diff, proposed in ans.rows:
+        if kind != "patch":
+            continue
+        import yaml
+        original = {n for v in corpus.owners[path].values() if isinstance(v, list) for n in v}
+        after = {n for v in (yaml.safe_load(proposed) or {}).values()
+                 if isinstance(v, list) for n in v}
+        assert after <= original, f"{path}: invented {after - original}"
+        checked += 1
+    assert checked > 0, "no patch was drafted, so this invariant tested nothing"
+
+
+def test_vendored_trees_are_never_patched():
+    """vendor/ and third_party/ are synced from other repositories, so a patch here is reverted
+    by the next sync. The single strongest signal in this corpus lives in vendor/."""
+    from tombstone import act
+    kind, why = act.classify("vendor/k8s.io/utils/ptr/OWNERS", "stewart-yu",
+                             {"approvers": ["stewart-yu"]}, {})
+    assert kind == "vendored", "a vendored OWNERS file was offered as patchable"
+    assert "synced" in why
+
+
+def test_approval_held_through_an_alias_is_refused_with_the_alias_named():
+    """An APPROVES edge can come from alias expansion, so the person is not named in the file and
+    no edit to it removes them. Drafting one would be a patch that does nothing."""
+    from tombstone import act
+    kind, why = act.classify("staging/OWNERS", "fabriziopandini",
+                             {"approvers": ["sig-cluster-lifecycle-leads"]},
+                             {"sig-cluster-lifecycle-leads": ["fabriziopandini", "neolit123"]})
+    assert kind == "via_alias"
+    assert "sig-cluster-lifecycle-leads" in why
+    assert "OWNERS_ALIASES" in why
+
+
+def test_the_action_shows_its_refusals_rather_than_dropping_them(agent):
+    """A tool that silently skipped what it could not handle would look more capable than it is.
+    Every candidate must come back, patched or with a stated reason."""
+    ans = agent.dispatch("draft_owners_patch", {})
+    found = agent.dispatch("stepped_back_but_still_listed", {})
+    candidates = sum(len(r[3]) for r in found.rows)
+    assert len(ans.rows) == candidates, "a candidate was dropped instead of explained"
+    kinds = {r[3] for r in ans.rows}
+    assert "patch" in kinds and len(kinds) > 1, "expected both drafted and refused cases"
+    for _p, _path, _n, kind, why, _d, _prop in ans.rows:
+        if kind != "patch":
+            assert why.strip(), f"{kind} refusal carried no reason"
+
+
+def test_a_patch_that_would_strand_a_file_says_so(agent):
+    """Removing the last approver does not leave the file unowned -- it makes it silently inherit.
+    That consequence lives in the OWNERS tree, so only the graph can state it."""
+    from tombstone import act
+    sole = {"approvers": ["only-one"], "reviewers": ["only-one"]}
+    assert act.strand_check(act.retire(sole, "only-one")) is True
+    assert act.strand_check(act.retire({"approvers": ["a", "b"]}, "a")) is False
+    # and the agent can name what would inherit a real path
+    who = agent._inherited_by("hack/jenkins/OWNERS")
+    assert isinstance(who, str) and who
+
+
+def test_the_action_sends_nothing_anywhere():
+    """This product drafts. It must never acquire a side effect outside the repo.
+
+    Checked by walking the AST for imports rather than grepping for substrings: the first version
+    of this test matched the letters "gh " inside the word "through" in a comment, which is the
+    kind of false positive that teaches people to delete tests.
+    """
+    import ast
+    import pathlib
+
+    NETWORK = {"requests", "urllib", "urllib3", "httpx", "http", "socket", "smtplib",
+               "subprocess", "ftplib", "telnetlib", "paramiko", "redis"}
+    src = pathlib.Path("src/tombstone/act.py").read_text()
+    tree = ast.parse(src)
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported |= {a.name.split(".")[0] for a in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module.split(".")[0])
+    assert not (imported & NETWORK), f"act.py imports {imported & NETWORK}"
+
+    # and the drafting method itself opens nothing but a local file for writing
+    agent_tree = ast.parse(pathlib.Path("src/tombstone/agent.py").read_text())
+    method = next((n for n in ast.walk(agent_tree)
+                   if isinstance(n, ast.FunctionDef) and n.name == "_draft_owners_patch"), None)
+    assert method is not None, "the action method was renamed; update this test"
+    inner = set()
+    for node in ast.walk(method):
+        if isinstance(node, ast.Import):
+            inner |= {a.name.split(".")[0] for a in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            inner.add(node.module.split(".")[0])
+    assert not (inner & NETWORK), f"the action imports {inner & NETWORK}"
