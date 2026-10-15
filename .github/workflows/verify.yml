@@ -119,6 +119,11 @@ jobs:
       - name: The premise measurement still matches what the README claims
         run: python measure_repeat_rejections.py
 
+      - name: The README renders cleanly on GitHub (tables, images, anchors)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts_check_markdown_renders.py
+
       - name: The README's printed output blocks match a live run
         run: python scripts_check_readme_examples.py
 
