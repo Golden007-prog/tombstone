@@ -55,7 +55,48 @@ api.upload_folder(
 print(f"\nhttps://huggingface.co/spaces/{repo}")
 PY
 
+LIVE="https://$(echo "$USER" | tr '[:upper:]' '[:lower:]')-${SPACE_NAME}.hf.space"
+
 echo
-echo "The Space builds the Dockerfile (several minutes on a first build), then boots in seconds."
-echo "Verify once it is running:"
-echo "  curl -s https://$(echo "$USER" | tr '[:upper:]' '[:lower:]')-${SPACE_NAME}.hf.space/api/health"
+echo "The Space builds the Dockerfile (several minutes on a first build), then boots in about ten"
+echo "seconds cold and five warm. Verify once it is running:"
+echo "  curl -s $LIVE/api/health"
+
+# Everything below removes a step from the deadline-night path. Each one is a thing that is
+# obvious now and easy to forget at 11pm with a form open in another tab.
+
+# The repo's homepage is what GitHub shows as "the project link". It points at the hackathon page
+# until this runs, which sends anyone clicking it to the wrong place.
+GH_REPO="$(git remote get-url origin 2>/dev/null \
+  | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')"
+if [ -n "$GH_REPO" ] && command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+  if gh repo edit "$GH_REPO" --homepage "$LIVE" >/dev/null 2>&1; then
+    echo
+    echo "set $GH_REPO's homepage to $LIVE"
+  else
+    echo
+    echo "could not set the repo homepage; do it with:" >&2
+    echo "  gh repo edit $GH_REPO --homepage $LIVE" >&2
+  fi
+fi
+
+# SUBMISSION.md exists to be filled in and pasted into a form. Fill the row this script knows.
+if [ -f SUBMISSION.md ] && grep -q '^| Live demo |' SUBMISSION.md; then
+  "$PY" - "$LIVE" <<'PY'
+import re, sys
+live = sys.argv[1]
+text = open("SUBMISSION.md").read()
+text = re.sub(r"^\| Live demo \|.*$", f"| Live demo | {live} |", text, count=1, flags=re.M)
+open("SUBMISSION.md", "w").write(text)
+print(f"wrote the live URL into SUBMISSION.md")
+PY
+fi
+
+cat <<MSG
+
+Left to do by hand, in order:
+  1. open $LIVE in a PRIVATE window and click one chip, to confirm it works signed out
+  2. paste $LIVE into the README's Rule 10 table (the deployment row)
+  3. record the video -- docs/DEMO-SCRIPT.md, keyless, 3:00
+  4. submit: SUBMISSION.md has the copy, deadline 11:59 PM IST Sunday 18 October
+MSG
