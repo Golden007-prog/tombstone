@@ -7,6 +7,10 @@ entries will thank you for it. Plain screen recording, product first, no archite
 no title card, no "hi everyone", no stack slide. The first frame is the product and the first
 sentence is the problem.
 
+(The silent walkthrough in `docs/video/` *does* open and close with a card. That is not an
+inconsistency: it has no narration, so nothing else can say what the thing is. Here your voice
+does that in the first eight words, and a card would spend six seconds repeating it.)
+
 Record the voiceover **separately** from the screen capture and lay them together. Narrating live
 while driving the UI is the single biggest cause of ten retakes at midnight.
 
