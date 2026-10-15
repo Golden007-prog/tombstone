@@ -93,7 +93,7 @@ function chips() {
   const box = $("chips");
   CHIPS.forEach((c) => {
     const b = document.createElement("button");
-    // Thirteen chips in a row give a visitor with three minutes no idea where to start, so the
+    // Fourteen chips in a row give a visitor with three minutes no idea where to start, so the
     // three that actually make the argument are numbered: the question answered shallowly, the
     // same question answered properly, and the agent acting on what it found. The rest are there
     // to be explored, not worked through in order.
