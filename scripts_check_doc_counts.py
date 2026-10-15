@@ -228,6 +228,29 @@ else:
     checked += 1
 print(f"  the explain-it brief's model table matches the graph ({_gap} un-named alternatives)")
 
+# "N of M nouns" -- the SUBSET rule skips a number preceded by "of", which is right for the N and
+# exactly wrong for the M. In "206 of 959 alternatives", 959 is a TOTAL and it was wrong by one;
+# the scanner had been stepping over it since the rule was added. Totals stated as denominators
+# are checked here on their own terms.
+for _path in files:
+    for _lineno, _line in enumerate(_path.read_text().split("\n"), 1):
+        if HISTORY.search(_line):
+            continue
+        for _label, (_live, _phrasings) in COUNTS.items():
+            for _ph in _phrasings:
+                # re.I, because the phrasings are written capitalised ("Alternatives") and the
+                # prose is not. Without it this rule matched nothing at all and passed -- which
+                # the negative test caught, and nothing else would have.
+                for _m in re.finditer(rf"\b[\d,]+ of ([\d,]+)\s+(?:\*\*)?{_ph}", _line, re.I):
+                    _den = int(_m.group(1).replace(",", ""))
+                    if not (0.9 * _live <= _den <= 1.1 * _live):
+                        continue
+                    checked += 1
+                    if _den != _live:
+                        problems.append(
+                            f"{_path}:{_lineno}: says 'of {_den:,} {_label}', the graph has "
+                            f"{_live:,}\n      {_line.strip()[:100]}")
+
 print(f"  scanned {len(files)} markdown files, checked {checked} count claims")
 for label, (live, _) in COUNTS.items():
     print(f"    {label:<24} {live:,}")

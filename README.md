@@ -1134,7 +1134,7 @@ times. Each fix made the claim narrower and more defensible.
 
 - **Betweenness is sampled**, not exact (`samplingSize` 32). The seed is pinned so the number is
   reproducible, but it is an approximation and the UI says so.
-- **206 of 959 alternatives are untitled prose**, not named options. They're in the graph but
+- **206 of 958 alternatives are untitled prose**, not named options. They're in the graph but
   excluded from `:NamedOption`, so they never seed a "has this been tried?" answer.
 - **7 of 681 decisions have no usable date** — 3 omit the field entirely, 2 still carry the
   template's literal `'yyyy-mm-dd'`, and 2 give a month above twelve (`2023-14-05`,
