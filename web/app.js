@@ -87,9 +87,31 @@ function chips() {
     const b = document.createElement("button");
     b.className = "chip";
     b.textContent = c.label;
+    b.dataset.tool = c.tool;
     b.onclick = () => runTool(c, b);
     box.appendChild(b);
   });
+}
+
+// `?run=<tool>` runs that chip on load, so an answer is deep-linkable: a link can land someone on
+// a RESULT rather than on an empty box they have to know what to do with. It also makes the
+// walkthrough frames capturable headlessly, which is why the build script can regenerate the
+// video instead of depending on somebody driving a mouse.
+// When several chips share a tool (who_owns runs at two depths) `&i=` picks which one.
+function runFromUrl() {
+  const p = new URLSearchParams(location.search);
+  const want = p.get("run");
+  if (!want) return;
+  const matches = CHIPS.map((c, i) => [c, i]).filter(([c]) => c.tool === want);
+  if (!matches.length) return;
+  const pick = Math.min(parseInt(p.get("i") || "0", 10) || 0, matches.length - 1);
+  const [chip, idx] = matches[pick];
+  const btn = $("chips").children[idx];
+  // `&focus=1` hides everything above the answer, so a screenshot or a demo frame is just the
+  // result. The walkthrough build depends on it; it is also the cleanest way to show one answer.
+  if (p.get("focus") === "1") document.body.classList.add("focus");
+  document.body.dataset.autorun = "pending";
+  runTool(chip, btn).finally(() => { document.body.dataset.autorun = "done"; });
 }
 
 function show(data, graphArgs) {
@@ -259,3 +281,4 @@ $("go").onclick = ask;
 $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") ask(); });
 chips();
 health();
+runFromUrl();

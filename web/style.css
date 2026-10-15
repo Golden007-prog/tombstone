@@ -106,3 +106,11 @@ a{color:var(--accent)}
   h1{font-size:23px}
   .legend{font-size:10.5px;gap:8px}
 }
+
+/* Focus mode: `?run=<tool>&focus=1` renders only the answer, with nothing above it.
+   The walkthrough frames are captured this way, and it is also the cleanest way to show a single
+   result to someone without the surrounding furniture. */
+body.focus header,
+body.focus .intro,
+body.focus .askbox { display: none !important; }
+body.focus #result { margin-top: 0; }

@@ -1,0 +1,116 @@
+"""Rebuild docs/video/walkthrough-silent.mp4 from the RUNNING app.
+
+The first version of this video was assembled by hand and the pipeline was never committed, so
+`docs/video/README.md` pointed at "the ffmpeg pipeline in the commit that added this file" and that
+commit contained only the .mp4. The video could not be regenerated, which meant it would quietly
+go stale the moment the UI or the numbers changed. This script is that missing pipeline.
+
+Every frame is a real screenshot of the live app, captured headlessly through the deep links the
+UI already supports (`?run=<tool>&focus=1`) -- not a mockup and not a reconstruction. If the app
+is not serving, this fails rather than producing a stale video.
+
+Usage:  ./run.sh          (in another shell)
+        python scripts_build_walkthrough.py
+"""
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+import urllib.request
+
+APP = os.environ.get("APP", "http://localhost:8099")
+OUT = "docs/video/walkthrough-silent.mp4"
+W, H, BAND = 1280, 860, 130          # frame, plus a caption band beneath it
+FPS = 25
+CHROME = os.environ.get("CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+FONT = next((f for f in (
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+) if os.path.exists(f)), None)
+
+# (deep-link query, seconds, caption lines). Two lines maximum: a third does not fit the band.
+BEATS = [
+    ("run=who_owns&i=0", 7, [
+        "Who owns this part of the codebase? Depth 1 returns nothing.",
+        "It says what it searched, instead of guessing a plausible wrong name."]),
+    ("run=who_owns&i=1", 9, [
+        "Same question, four hops. Nobody named on that file still holds approval authority -",
+        "and here is what they decided elsewhere, including the alternatives they rejected."]),
+    ("run=has_this_been_tried", 8, [
+        "Has this been tried before? The rejected option, its recorded reason,",
+        "and whether anyone who made that call still approves anything here."]),
+    ("run=draft_owners_patch", 9, [
+        "It does not just report the problem. It drafts the fix:",
+        "a real OWNERS patch, written to disk. Nothing is sent anywhere."]),
+    ("run=draft_owners_patch", 9, [
+        "And it refuses what it cannot justify. One handle is not in the file at all -",
+        "an alias expands to it, so no edit to that file would remove it."]),
+    ("run=stepped_back_bridges", 8, [
+        "Whose stepping back cost the most connective authority - betweenness centrality.",
+        "A whole-graph property. No search index and no embedding produces this."]),
+]
+
+
+def esc(text: str) -> str:
+    """Escape for ffmpeg drawtext.
+
+    The `%` assertion is not defensive paranoia: drawtext silently DROPS a line containing an
+    unescaped percent sign, and that is how "72%" vanished from the caption of the first cut of
+    this video without any error at all.
+    """
+    assert "%" not in text, f"drawtext silently drops lines containing %: {text!r}"
+    return text.replace("\\", r"\\").replace(":", r"\:").replace("'", r"\'")
+
+
+def require(cond, msg):
+    if not cond:
+        sys.exit(f"cannot build the walkthrough: {msg}")
+
+
+require(FONT, "no usable TTF font found for captions")
+require(shutil.which("ffmpeg"), "ffmpeg is not on PATH")
+require(os.path.exists(CHROME) or shutil.which(CHROME), f"no Chrome at {CHROME}")
+try:
+    with urllib.request.urlopen(f"{APP}/api/health", timeout=5) as r:
+        require(b'"up"' in r.read(), "the app reports FalkorDB down")
+except Exception as e:
+    sys.exit(f"cannot build the walkthrough: {APP} is not serving ({e}). Start it with ./run.sh")
+
+work = os.environ.get("WORKDIR", "build/walkthrough")
+os.makedirs(work, exist_ok=True)
+clips = []
+
+for i, (query, secs, caption) in enumerate(BEATS):
+    png = os.path.join(work, f"frame{i}.png")
+    url = f"{APP}/?{query}&focus=1"
+    subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+                    "--force-device-scale-factor=1", f"--window-size={W},{H}",
+                    "--virtual-time-budget=12000", f"--screenshot={png}", url],
+                   check=True, capture_output=True)
+    require(os.path.getsize(png) > 20_000, f"frame {i} came back blank — is {url} running?")
+
+    y0 = H + 34
+    draws = ",".join(
+        f"drawtext=fontfile={FONT}:text='{esc(line)}':x=46:y={y0 + n * 38}:"
+        f"fontsize=25:fontcolor=0xe8e6e3"
+        for n, line in enumerate(caption))
+    clip = os.path.join(work, f"clip{i}.mp4")
+    subprocess.run(["ffmpeg", "-y", "-loop", "1", "-i", png, "-t", str(secs),
+                    "-vf", f"pad={W}:{H + BAND}:0:0:color=0x121214,{draws}",
+                    "-r", str(FPS), "-pix_fmt", "yuv420p", "-c:v", "libx264",
+                    "-preset", "veryslow", "-crf", "30", clip],
+                   check=True, capture_output=True)
+    clips.append(clip)
+    print(f"  beat {i + 1}/{len(BEATS)}  {secs}s  {query}")
+
+listing = os.path.join(work, "clips.txt")
+with open(listing, "w") as fh:
+    fh.writelines(f"file '{os.path.abspath(c)}'\n" for c in clips)
+subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", listing,
+                "-c", "copy", OUT], check=True, capture_output=True)
+
+total = sum(b[1] for b in BEATS)
+print(f"\n{OUT}  —  {total}s, {len(BEATS)} beats, {os.path.getsize(OUT) // 1024}KB")
