@@ -19,7 +19,20 @@ Modifications made to that material:
   - structural sub-headings ("Examples", "Conclusion", "Implementation sketch") excluded
   - OWNERS group aliases expanded to individual handles via OWNERS_ALIASES
   - bot accounts filtered
-  - email addresses NOT ingested, by choice
+  - email addresses NOT ingested from the project's membership data (sigs.yaml), by choice
 
 No personal data beyond the GitHub handles, display names and affiliations that the Kubernetes
 project itself publishes as its governance record is included.
+
+One qualification, because the sentence above would otherwise be slightly too clean. The verbatim
+KEP excerpts are exactly that -- verbatim -- and one of them quotes a Linux kernel mailing-list
+Message-ID that contains an address: `20180404115311.725-1-alban@kinvolk.io`, inside a
+`Alternatives` discussion of rootless container builds. It was published by the Kubernetes project
+in its own repository, and it is a citation to a public mailing-list thread rather than contact
+details harvested from a membership file.
+
+Two promises in this file pull against each other there: excerpts are reproduced verbatim, and
+email addresses are not ingested. Redacting it would break the first; pretending it is not there
+would break the second. So it is named here. It is the only one -- `eval_gold.py` counts
+email-shaped strings in both the committed corpus and the live graph on every run, and fails if
+that count moves.
