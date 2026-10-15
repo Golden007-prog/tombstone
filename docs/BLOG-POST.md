@@ -315,6 +315,41 @@ honestly say nothing is there, and that is only worth anything if the claim is b
 
 ---
 
+## The checks lied to me more often than the code did
+
+I ended up writing a lot of verification — a script that re-queries every number in the README
+against the live graph, another that drives every rendered answer state through a headless browser,
+another that reads the demo script's narration and asserts the app actually returns what it claims.
+Twenty-six CI steps. The thing nobody warns you about is that **the checks fail in their own
+ways**, and a check that fails for the wrong reason costs more than the bug it was meant to catch.
+
+Three that cost me the most:
+
+**A probe with a fixed question, against a store that persists.** A test asked a question, recorded
+the answer, then asserted the next ask came back remembered. It passed, and failed on the second
+run ever — because the first ask was already remembered from the previous run. The feature working,
+reported as a failure. Anything that writes to a durable store needs a unique key per run. I fixed
+this in one file and hit it again two files later, which is its own lesson.
+
+**An assertion that was correct until I fixed a bug.** A concurrency check counted only
+`ANSWERED_WITH_PATH` as success. The moment I fixed memory to record button clicks as well as typed
+questions, repeats started coming back `ANSWERED_FROM_MEMORY`, and the check reported "0 answered"
+out of six requests that had all succeeded. That is indistinguishable from a concurrency collapse,
+and it took an hour to tell apart. Fixing a bug can invalidate a test without touching it.
+
+**A timing harness that never looked at its result.** I published `WCC 4.5ms` in a benchmark.
+`CALL algo.WCC(NULL, NULL)` returns zero rows and no error on v4.22.1 — I had written it by analogy
+with `algo.pageRank(NULL, NULL)`, which is valid. The figure was the cost of computing nothing. I
+only caught it because the replacement benchmark makes two engines agree on the answer *before* it
+times either. If you benchmark a graph algorithm, assert the result first; comparing against a
+second implementation is the cheapest way to do it.
+
+There are six more in the repo's `GROUND-TRUTH.md`, including ffmpeg silently dropping any caption
+line containing a `%`, and headless Chrome instances sharing a profile directory and handing back
+screenshots of a page that never ran. None of them are about graphs.
+
+---
+
 ## What I would change
 
 The co-authorship projection is derived data I write back into the graph. I compute it in Cypher
