@@ -44,12 +44,28 @@ src = db.select_graph(SOURCE)
 before = shape(src)
 print(f"  seeded source: {before[0]:,} nodes, {before[1]:,} edges, {before[2]} indexes")
 
+# A failed fork is an environment condition, not a wrong answer, and the product already treats
+# it that way -- it retries once and otherwise degrades honestly. This benchmark did not, so a
+# momentary contention (another copy still resident, a reseed in flight) turned into a hard red
+# in preflight. A check that fails for reasons unrelated to what it measures teaches people to
+# rerun it until it passes, which is the opposite of the point.
+def copy_once(dst: str) -> float:
+    last = None
+    for attempt in range(3):
+        start = time.perf_counter()
+        try:
+            db.connection.execute_command("GRAPH.COPY", SOURCE, dst)
+            return (time.perf_counter() - start) * 1000
+        except Exception as exc:  # noqa: BLE001 - the driver surfaces fork failures as bare errors
+            last = exc
+            time.sleep(0.5 * (attempt + 1))
+    raise RuntimeError(f"GRAPH.COPY could not fork after three attempts: {last}")
+
+
 fails, times = 0, []
 for i in range(RUNS):
     dst = f"{SOURCE}:copy{i}"
-    t0 = time.perf_counter()
-    db.connection.execute_command("GRAPH.COPY", SOURCE, dst)
-    times.append((time.perf_counter() - t0) * 1000)
+    times.append(copy_once(dst))
     copied = shape(db.select_graph(dst))
     if copied != before:
         print(f"  FAIL  copy {i} is {copied}, source is {before}")

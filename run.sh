@@ -7,7 +7,9 @@ cd "$(dirname "$0")"
 # what the README tells you to create), then python3, then python. A bare `python` is not safe --
 # plenty of systems only ship python3, and on others it resolves outside the venv you just
 # installed into, so the dependencies appear missing.
-if   [ -x ".venv/bin/python" ];      then PY=".venv/bin/python"
+if   [ -n "${PY:-}" ];              then :   # honoured so a venv kept elsewhere can be named,
+                                             # the same way preflight.sh accepts it
+elif [ -x ".venv/bin/python" ];      then PY=".venv/bin/python"
 elif [ -n "${VIRTUAL_ENV:-}" ];      then PY="$VIRTUAL_ENV/bin/python"
 elif command -v python3 >/dev/null;  then PY="$(command -v python3)"
 elif command -v python  >/dev/null;  then PY="$(command -v python)"
