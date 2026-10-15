@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 316" width="860" height="316" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+<rect width="860" height="316" rx="8" fill="#1b1a16"/>
+<defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#6b6459"/></marker></defs>
+<text x="95" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">people</text>
+<text x="310" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">area</text>
+<text x="525" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">decision</text>
+<text x="740" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">rejected ideas</text>
+<path d="M105 118 C 202 118, 202 173, 298 173" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="202" y="34" fill="#a39b8c" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">EMERITUS_OF</text>
+<path d="M105 118 C 310 118, 310 173, 513 173" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="310" y="34" fill="#a39b8c" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">SHAPED</text>
+<path d="M535 173 C 632 173, 632 80, 728 80" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<text x="632" y="34" fill="#a39b8c" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">REJECTED</text>
+<path d="M535 173 C 632 173, 632 118, 728 118" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 154, 728 154" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 192, 728 192" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 228, 728 228" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 266, 728 266" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M105 228 C 202 228, 202 173, 298 173" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<circle cx="95" cy="118" r="9" fill="#e0796c" stroke="#e0796c" stroke-opacity="0.3" stroke-width="5"/>
+<path d="M91 114 L99 122" stroke="#1b1a16" stroke-width="1.6"/>
+<text x="109" y="121" fill="#f0ece4" font-size="11" text-anchor="start">gmarek</text>
+<circle cx="95" cy="228" r="9" fill="#e0796c" stroke="#e0796c" stroke-opacity="0.3" stroke-width="5"/>
+<path d="M91 224 L99 232" stroke="#1b1a16" stroke-width="1.6"/>
+<text x="109" y="232" fill="#f0ece4" font-size="11" text-anchor="start">foxish</text>
+<circle cx="310" cy="173" r="7" fill="#d4ab5a"/>
+<text x="324" y="176" fill="#f0ece4" font-size="11" text-anchor="start">pkg/controller/podgc</text>
+<rect x="516" y="166" width="18" height="14" rx="3" fill="#7fa3d8"/>
+<text x="511" y="176" fill="#f0ece4" font-size="11" text-anchor="end">KEP-383</text>
+<path d="M740 72 L748 80 L740 88 L732 80 z" fill="#b08cc4"/>
+<text x="726" y="84" fill="#f0ece4" font-size="11" text-anchor="end">Leaving Current Dedup Mechanism b…</text>
+<path d="M740 110 L748 118 L740 126 L732 118 z" fill="#b08cc4"/>
+<text x="726" y="121" fill="#f0ece4" font-size="11" text-anchor="end">Timestamp List as a Dedup Mechani…</text>
+<path d="M740 146 L748 154 L740 162 L732 154 z" fill="#b08cc4"/>
+<text x="726" y="158" fill="#f0ece4" font-size="11" text-anchor="end">Events as an Aggregated Object</text>
+<path d="M740 184 L748 192 L740 200 L732 192 z" fill="#b08cc4"/>
+<text x="726" y="195" fill="#f0ece4" font-size="11" text-anchor="end">Using New API Group for Storing D…</text>
+<path d="M740 220 L748 228 L740 236 L732 228 z" fill="#b08cc4"/>
+<text x="726" y="232" fill="#f0ece4" font-size="11" text-anchor="end">Pivoting Towards More Machine Rea…</text>
+<path d="M740 258 L748 266 L740 274 L732 266 z" fill="#b08cc4"/>
+<text x="726" y="269" fill="#f0ece4" font-size="11" text-anchor="end">Pivoting Towards Making Events Mo…</text>
+</svg>

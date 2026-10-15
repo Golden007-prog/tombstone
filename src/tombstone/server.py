@@ -122,7 +122,14 @@ def subgraph(path: str = "", handle: str = "", limit: int = 40):
     if a.g is None:
         return {"nodes": [], "edges": [], "error": "FalkorDB unreachable"}
     nodes: dict[str, dict] = {}
-    edges: list[dict] = []
+    # Dedupe edges. One SQL-ish row per (owner, decision, alternative) means the same
+    # owner->area edge is emitted once per alternative; six alternatives produced six identical
+    # paths stacked on each other, inflating the edge count without changing the picture.
+    edge_set: dict[tuple, dict] = {}
+
+    def link(source, target, label):
+        edge_set.setdefault((source, target, label),
+                            {"source": source, "target": target, "label": label})
 
     def add(nid, label, kind, extra=None):
         key = f"{kind}:{nid}"
@@ -152,17 +159,15 @@ def subgraph(path: str = "", handle: str = "", limit: int = 40):
         area = add(path, path.replace("/OWNERS", ""), "area")
         for _p, live, dep, knum, ktitle, alttitle in rows:
             if live:
-                edges.append({"source": add(live, live, "person_live"), "target": area, "label": "APPROVES"})
+                link(add(live, live, "person_live"), area, "APPROVES")
             if dep:
                 d = add(dep, dep, "person_gone")
-                edges.append({"source": d, "target": area, "label": "EMERITUS_OF"})
+                link(d, area, "EMERITUS_OF")
                 if knum:
                     k = add(knum, f"KEP-{knum}", "decision", {"title": ktitle})
-                    edges.append({"source": d, "target": k, "label": "SHAPED"})
+                    link(d, k, "SHAPED")
                     if alttitle and sum(1 for n in nodes.values() if n["kind"] == "rejected") < 6:
-                        edges.append({"source": k,
-                                      "target": add(f"{knum}:{alttitle}", alttitle, "rejected"),
-                                      "label": "REJECTED"})
+                        link(k, add(f"{knum}:{alttitle}", alttitle, "rejected"), "REJECTED")
     elif handle:
         # Deliberately narrow. The full overlap is dozens of people against dozens of areas, and
         # drawing all of it produces exactly the hairball this panel exists to avoid. Show the
@@ -188,9 +193,9 @@ def subgraph(path: str = "", handle: str = "", limit: int = 40):
                 ar = add(areapath, areapath.replace("/OWNERS", ""), "area")
                 if areapath not in seen_area:
                     seen_area.add(areapath)
-                    edges.append({"source": who, "target": ar, "label": "LEFT BEHIND"})
-                edges.append({"source": c, "target": ar, "label": "ALREADY APPROVES"})
-    return {"nodes": list(nodes.values()), "edges": edges}
+                    link(who, ar, "LEFT BEHIND")
+                link(c, ar, "ALREADY APPROVES")
+    return {"nodes": list(nodes.values()), "edges": list(edge_set.values())}
 
 
 @app.get("/")

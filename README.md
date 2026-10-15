@@ -20,6 +20,12 @@ answers four questions that are each a traversal:
 | **Which areas have no living owner?** | 7 of them, with every recorded owner gone |
 | **Whose departure cost the most?** | ranked by **betweenness centrality**, not by file count |
 
+![The reasoning path behind one answer](docs/img/path.svg)
+
+*Asked "who owns `pkg/controller/podgc`?", Tombstone returns silence at depth 1 and this at depth 4:
+the area is orphaned, both recorded owners have left, and one of them personally rejected six
+alternatives in KEP-383. Generated from the live API by `scripts_gen_readme_figure.py`.*
+
 It runs on **Kubernetes' own governance record** — a real organisation of thousands of people that
 publishes its decision history, its ownership map, and, unusually, its own attrition. Apache-2.0,
 fully public. Every number below is checkable with one `git clone`.
