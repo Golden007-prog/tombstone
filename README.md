@@ -995,10 +995,17 @@ times. Each fix made the claim narrower and more defensible.
 - **Memory has no cap, no eviction and no TTL**, which is deliberate — an answer citing live
   nodes is evidence, not cache, and evicting it would make `ANSWERED_FROM_MEMORY` mean less.
   What bounds it is that a repeat merges onto the same node: measured, 30 identical questions
-  produce **one** `(:Answer)` with a counter at 30, and all thirteen chips clicked twenty
-  times each produce seven nodes. Growth is therefore per **distinct** question at ~19–44 KB,
-  so the hosted demo's ~100 MB of headroom is roughly five thousand distinct questions. There
-  is a test on the merge, because changing it to a create would remove the bound silently.
+  produce **one** `(:Answer)` with a counter at 30, and all thirteen chips clicked twenty times
+  each produce seven nodes. So growth is per **distinct** question, at **~48 KB** — dominated by
+  the node and its 384-float embedding rather than by its citations, since a tool citing 42 nodes
+  and one citing few both cost about the same. Against the hosted demo's ~100 MB of headroom that
+  is roughly **two thousand** distinct questions. The stored question text is itself capped at 400
+  characters, so a padded one costs no more than a short one. There is a test on the merge,
+  because changing it to a create would remove the bound silently.
+- **The hosted demo is not rate-limited.** It needs no key by design, so there is nothing to meter
+  by. Normal use cannot approach the bound above — the thirteen chips contribute thirteen
+  questions however often they are pressed — but a determined crawler sending thousands of
+  *distinct* free-text questions could. Said plainly rather than discovered.
 - **The counterfactual needs memory headroom to fork.** `GRAPH.COPY` copies the graph in the
   server process, so on a small box, or when two counterfactuals overlap, it can fail with
   "could not fork". Measured: the whole app — FalkorDB, the embedding model and a copy in
