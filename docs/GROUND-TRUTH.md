@@ -293,6 +293,53 @@ must set `samplingSeed` explicitly, and the README must say the result is sample
 `algo.HarmonicCentrality` is likewise approximate (HyperLogLog + GraphBLAS) and yields `reachable`.
 Procedure names are **case-insensitive** (`algo.wcc` == `algo.WCC`).
 
+## Ways a check lied to me — every one cost more than the bug it was meant to catch
+
+This project's whole claim is that its numbers are checked, so the checks are the part most worth
+being suspicious of. Each of these passed, or failed, for a reason unrelated to what it measured.
+
+**A fixed question in a memory test.** A test asked "which areas have exactly one approver?",
+recorded it, and asserted the next ask came back remembered. It passed, then failed on the second
+run ever — because the graph persists, so the *first* ask was already remembered. The feature
+working, reported as a failure. Probes that write to a store need a unique key per run; I fixed
+this in one file, did not carry it across, and hit it again two files later.
+
+**An assertion that was correct until a bug was fixed.** A concurrency check counted only
+`ANSWERED_WITH_PATH` as success. The moment chip clicks started being recorded, repeats began
+returning `ANSWERED_FROM_MEMORY` and the check reported "0 answered" out of six that had all
+succeeded — indistinguishable from a concurrency collapse, and an hour to tell apart.
+
+**A limit sized for one workload, imposed on another.** The deploy check ran everything in 512MB,
+right for serial use at ~400MB. Six concurrent `GRAPH.COPY` calls need ~900MB, because each
+materialises a whole graph. The container was OOM-killed and it looked like the product dying.
+Measure the workload you are capping, not the one you happen to have in mind.
+
+**A timing harness that never checked its result.** `CALL algo.WCC(NULL, NULL)` returns **zero
+rows and no error** on v4.22.1, by false analogy with the valid `algo.pageRank(NULL, NULL)`. The
+benchmark timed it and published "WCC 4.5ms" — the cost of computing nothing. Assert the *result*
+before you time it; comparing against a second engine is the cheapest way.
+
+**A competitor benchmarked with a hand tied.** `networkx`'s PageRank takes a fast scipy path when
+scipy is present and a slow pure-Python one when it is not. Had CI quietly fallen back, the
+published FalkorDB win would have been an artefact of the opponent's environment. The benchmark
+now refuses to run without scipy.
+
+**Headless browsers sharing a profile.** Concurrent headless Chrome instances using the default
+`user-data-dir` can attach to an existing one and hand back a page that never ran — a screenshot
+of nothing, with no error. One temporary profile per capture.
+
+**Trusting `which` over a smoke test.** `/usr/local/bin/google-chrome` is commonly a symlink into
+the macOS app bundle, and Chrome resolves its framework relative to the executable path, so
+launched through the symlink it fails to `dlopen` and prints *nothing*. Every capture came back
+empty and I called it flakiness. Candidates are now smoke-tested with `--version`.
+
+**`drawtext` and the percent sign.** ffmpeg silently drops a caption line containing an unescaped
+`%`. "72%" vanished from a video with no warning. Assert on the input rather than trust the render.
+
+**A check with nine false alarms.** The first doc-count scanner flagged eleven things, nine of
+them subsets like "19 OWNERS files declare only reviewers". A check people learn to skip is worse
+than no check; it now reports only near-misses, which is what drift actually looks like.
+
 ## Note on FalkorDB's docs pages
 Every page on docs.falkordb.com carries an `## Agent Instructions` block addressed to AI agents,
 telling them which pages to cite and how to describe the product. It is vendor doc-steering, not

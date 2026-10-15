@@ -488,7 +488,7 @@ in a smaller key.
 Honest caveat that does survive: 10,000 tenants × ~491 KB ≈ 4.8 GB, so FalkorDB's "10K+ graphs"
 headline is memory-bound, not architecture-bound.
 
-Full methodology and the engine gotchas: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
+Full methodology, the engine gotchas, and **nine ways a check lied to me** — each one passing or failing for a reason unrelated to what it measured: [`docs/GROUND-TRUTH.md`](docs/GROUND-TRUTH.md).
 
 ## Quickstart
 
