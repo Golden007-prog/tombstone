@@ -1,0 +1,61 @@
+name: keep the demo awake
+
+# A free Hugging Face Space sleeps when idle, and a judge who clicks a sleeping one waits through
+# a cold boot -- measured at about ten seconds here, longer if the image has to be pulled -- or
+# sees Hugging Face's "this Space is sleeping" screen first. That is a bad first impression of a
+# product whose whole pitch is that you can click it and it answers.
+#
+# So this pings it. The URL is read from the repository's homepage field, which deploy_hf.sh sets
+# the moment the Space exists, so there is nothing to configure and nothing to keep in step: no
+# homepage means no deploy yet, and the job says so and exits clean rather than failing a repo
+# that simply has not been deployed.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find the deployed Space, if there is one
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url="$(gh api "repos/${{ github.repository }}" --jq '.homepage // ""')"
+          case "$url" in
+            *hf.space*|*huggingface.co/spaces*)
+              echo "url=$url" >> "$GITHUB_OUTPUT"
+              echo "found $url" ;;
+            *)
+              echo "no Space in the homepage field yet — nothing to keep awake" ;;
+          esac
+
+      - name: Wake it and check it actually answers
+        if: steps.find.outputs.url != ''
+        run: |
+          url="${{ steps.find.outputs.url }}"
+          # A sleeping Space can take a while to come back, so this is patient rather than strict.
+          for attempt in $(seq 1 10); do
+            body="$(curl -sf -m 60 "$url/api/health" || true)"
+            if printf '%s' "$body" | grep -q '"up"'; then
+              echo "awake: $body"
+              # Serving is not the same as working. One real traversal, every time.
+              shape="$(curl -sf -m 90 -X POST "$url/api/tool" \
+                        -H 'content-type: application/json' \
+                        -d '{"tool":"sole_approver_risk","args":{}}' \
+                      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("shape"))')"
+              echo "answered: $shape"
+              [ "$shape" = "ANSWERED_WITH_PATH" ] || { echo "the Space is up but not answering"; exit 1; }
+              exit 0
+            fi
+            echo "attempt $attempt: still waking…"
+            sleep 30
+          done
+          echo "the Space did not wake within five minutes"
+          exit 1

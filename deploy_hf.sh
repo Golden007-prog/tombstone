@@ -73,6 +73,7 @@ if [ -n "$GH_REPO" ] && command -v gh >/dev/null && gh auth status >/dev/null 2>
   if gh repo edit "$GH_REPO" --homepage "$LIVE" >/dev/null 2>&1; then
     echo
     echo "set $GH_REPO's homepage to $LIVE"
+    echo "  (the keep-the-demo-awake workflow reads that field, so it starts pinging on its own)"
   else
     echo
     echo "could not set the repo homepage; do it with:" >&2
