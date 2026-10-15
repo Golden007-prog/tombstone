@@ -32,6 +32,11 @@ fails: list[str] = []
 # to check. Reading the real chips means this also proves every chip's arguments still dispatch.
 def chip_args() -> dict[str, dict]:
     src = open("web/app.js").read()
+    if "const CHIPS = [" not in src:
+        raise SystemExit(
+            "web/app.js no longer contains `const CHIPS = [`. This parser is "
+            "reading the wrong thing, and every check below it would be "
+            "measuring a chip set that is not the one the UI ships.")
     i = src.index("const CHIPS = [")
     d = 0
     for n, ch in enumerate(src[i:], i):

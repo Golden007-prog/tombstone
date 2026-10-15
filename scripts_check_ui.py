@@ -162,6 +162,11 @@ REQUIRED_IDS = {"shape", "answer", "headline", "graphwrap", "cywrap", "covwrap"}
 def chips() -> list[tuple[str, str]]:
     """(label, query) for every chip, read from app.js so this cannot drift from the UI."""
     js = open("web/app.js").read()
+    if "const CHIPS = [" not in js:
+        raise SystemExit(
+            "web/app.js no longer contains `const CHIPS = [`. This parser is "
+            "reading the wrong thing, and every check below it would be "
+            "measuring a chip set that is not the one the UI ships.")
     block = js[js.index("const CHIPS = ["):js.index("];", js.index("const CHIPS = ["))]
     seen: dict[str, int] = {}
     out = []
@@ -175,6 +180,11 @@ def chips() -> list[tuple[str, str]]:
 def chip_calls() -> list[tuple[str, dict]]:
     """(tool, args) for every chip, read from app.js so these cannot drift from the UI."""
     js = open("web/app.js").read()
+    if "const CHIPS = [" not in js:
+        raise SystemExit(
+            "web/app.js no longer contains `const CHIPS = [`. This parser is "
+            "reading the wrong thing, and every check below it would be "
+            "measuring a chip set that is not the one the UI ships.")
     block = js[js.index("const CHIPS = ["):js.index("];", js.index("const CHIPS = ["))]
     out = []
     for chunk in re.split(r"\n  \{", block):
@@ -216,6 +226,11 @@ def chips_that_draw() -> set[str]:
     that advertise a path were ever checked to actually render one.
     """
     js = open("web/app.js").read()
+    if "const CHIPS = [" not in js:
+        raise SystemExit(
+            "web/app.js no longer contains `const CHIPS = [`. This parser is "
+            "reading the wrong thing, and every check below it would be "
+            "measuring a chip set that is not the one the UI ships.")
     block = js[js.index("const CHIPS = ["):js.index("];", js.index("const CHIPS = ["))]
     seen: dict[str, int] = {}
     draws: set[str] = set()

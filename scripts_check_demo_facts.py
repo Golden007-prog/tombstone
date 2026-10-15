@@ -105,6 +105,11 @@ import re as _re
 
 _script = open("docs/DEMO-SCRIPT.md").read()
 _js = open("web/app.js").read()
+if "const CHIPS = [" not in _js:
+    raise SystemExit(
+        "web/app.js no longer contains `const CHIPS = [`. This parser is "
+        "reading the wrong thing, and every check below it would be "
+        "measuring a chip set that is not the one the UI ships.")
 _i = _js.index("const CHIPS = [")
 _d = 0
 for _n, _c in enumerate(_js[_i:], _i):
