@@ -119,6 +119,9 @@ jobs:
       - name: The premise measurement still matches what the README claims
         run: python measure_repeat_rejections.py
 
+      - name: The blog post's claims, re-checked against the graph
+        run: python verify_blog.py
+
       - name: Corpus counts quoted in any doc still match the graph
         run: python scripts_check_doc_counts.py
 
