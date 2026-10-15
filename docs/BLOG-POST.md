@@ -71,7 +71,7 @@ You cannot find that by searching. You find it by counting inbound edges to a ga
 
 ---
 
-## Seven things FalkorDB taught me the hard way
+## Eight things FalkorDB taught me the hard way
 
 I measured rather than trusted, and most of what follows cost me time.
 
@@ -195,28 +195,78 @@ over and how many approvers it has, which no amount of reading that one file cou
 
 ---
 
-## "Why not just use networkx?"
+### 8. `algo.WCC(NULL, NULL)` returns nothing, and does not tell you
 
-Someone asked me this and it is the right question. My graph is about 3,300 nodes. That fits in
+`algo.pageRank(NULL, NULL)` is valid — the two arguments are node labels and relationship types.
+So `algo.WCC(NULL, NULL)` looks valid too. It is not: on v4.22.1 it returns **zero rows and no
+error**. `CALL algo.WCC()` is the working form.
+
+I published a benchmark figure for WCC that was, it turned out, the cost of computing nothing. It
+survived because a timing harness measures how long a call takes, not whether it did anything. If
+you benchmark a graph algorithm, assert the *result* first — compare it against another engine, or
+at minimum against a count you worked out by hand. The full story is in the networkx section below.
+
+
+## "Why not just use networkx?" — I had this wrong
+
+Someone asked me this and it is the right question. My graph is about 3,000 nodes. That fits in
 memory trivially, and networkx is a very good library.
 
-So I measured both, same machine, 3,300 nodes and 39,987 edges:
+I answered it with a benchmark, published the table, and built an argument on it. Then, late in
+the project, I noticed the table had **no script behind it** and described a graph of 3,300 nodes
+and 39,987 edges — which is not my graph. Mine is **3,087 nodes and 15,735 edges**. So I wrote the
+benchmark properly, against the real thing, and ran it three times.
 
-| operation | networkx | FalkorDB v4.22.1 |
-|---|---|---|
-| build the graph | **21 ms** | 190 ms |
-| 2-hop neighbourhood (p50) | **0.017 ms** | 0.368 ms |
-| PageRank | 1,529.1 ms | **10.0 ms** |
-| betweenness (k=32) | 351.6 ms | **19.8 ms** |
+| operation | networkx | FalkorDB v4.22.1 | I had claimed |
+|---|---|---|---|
+| build the graph *(not like-for-like)* | **8.1 ms** | 803 ms | networkx 9x |
+| 2-hop neighbourhood (p50) | **0.004 ms** | 0.3 ms | networkx 22x |
+| WCC | **2.1 ms** | 5.4 ms | networkx 1.6x |
+| **betweenness (k=32)** — *the one a tool calls* | 25.8 ms | **16.7 ms** | **FalkorDB 18x** |
+| PageRank — *no tool calls it* | 338 ms | **5.7 ms** | FalkorDB 153x |
 
-networkx wins in-process pointer chasing by 22x. Of course it does — it is an in-memory adjacency
-dict, and anyone claiming otherwise can be disproved in five minutes.
+**The betweenness row is the one that mattered, and it went from 18x to about 1.5x.** My argument
+had been: 352 ms is an offline batch job, 19.8 ms is a tool an agent can call inside a
+conversational turn, that is a difference in kind. On the real graph networkx does it in 26 ms.
+Both are fine inside a turn. The argument is withdrawn.
 
-But look at PageRank: **1,529 ms versus 10 ms.** That is not a tuning difference, it is a difference
-in kind. At a second and a half, centrality is an offline batch job you run nightly and cache. At ten
-milliseconds, it is a tool an agent can call *inside a single conversational turn*, on a graph that
-just changed. That is the whole argument for a graph database here, and it is the sparse-matrix
-engine doing exactly what it says on the tin.
+The old numbers were not fabricated — they were measured on a graph 2.5x denser in edges, which is
+exactly where a sparse-matrix engine's advantage lives. They were just not measurements of the
+thing I was shipping, and I had stopped checking.
+
+So here is the honest version, which costs me the punchiest paragraph I had written:
+
+> On a graph this size, **speed is not why you need a graph database.** networkx is faster at
+> everything except PageRank, which nothing in my product calls, and roughly ties on betweenness,
+> which one tool does. If computing betweenness over 3,000 nodes were all this did, networkx plus
+> a JSON file would be the right choice and I would be wrong.
+
+What survives is not a speed claim at all:
+
+- a **vector index composed with traversal in one query** — find a rejected idea by meaning, then
+  walk to who rejected it and whether they still hold authority, without a round trip;
+- **`GRAPH.COPY`** — mutate a whole-graph copy, re-run a recursive traversal over it, diff against
+  the original and throw the copy away, inside one request;
+- **memory in the same graph as the facts**, so one query starts in a remembered answer and ends
+  in live nodes;
+- durable persistence, physically isolated tenant graphs, concurrent access to shared live state,
+  and a path object returned by the query that produced the answer.
+
+Two things I learned writing the replacement benchmark, both of which would have quietly flattered
+me:
+
+**`CALL algo.WCC(NULL, NULL)` returns zero rows instead of erroring.** I had written it by analogy
+with `algo.pageRank(NULL, NULL)`, which is valid. The WCC two-argument form is not, and it fails
+silently — so my published "WCC 4.5 ms" was the cost of computing nothing at all. `CALL algo.WCC()`
+is the working form. I only caught it because the new benchmark makes both engines agree on the
+component count *before* it times either (lesson 8 above).
+
+**networkx's PageRank needs scipy to be fast.** With scipy it takes a sparse path; without, it
+falls back to pure Python and is far slower. My CI runner did not have scipy, and had I let that
+slide, I would have published a much larger FalkorDB win on the one row where FalkorDB already
+wins most — a number that would have been an artefact of my opponent's environment rather than of
+either engine. The benchmark now refuses to run without scipy and says why. A comparison is only
+worth publishing if the thing you are comparing against is running properly.
 
 Which lets me ask the question I actually care about:
 

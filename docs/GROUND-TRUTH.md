@@ -80,6 +80,8 @@ Fulltext: `CALL db.idx.fulltext.createNodeIndex('Doc','body')` then `queryNodes(
 | strategy | edges/sec | vs baseline |
 |---|---|---|
 | **C. resolve ids in app, then `WHERE id(a)=.. AND id(b)=..`** | **222,374** | **73x** |
+
+*Re-run on 15 Oct on a different machine: 2,225 edges/sec for A against 158,306 for C — **71x**. The absolute throughput is hardware- and load-dependent and should not be quoted on its own, but the ratio reproduces. `spikes/edgebench.py` is committed, which is why this one could be re-checked at all; the networkx table below could not, and did not survive being made reproducible.*
 | E. `MERGE (a) MERGE (b) MERGE (a)-[:L]->(b)` one pass | 14,789 | 4.9x |
 | A. `MATCH (a:N{id:..}),(b:N{id:..}) CREATE` + index | 3,021 | 1x |
 | F. 4 or 8 concurrent writer clients | ~3,300 | 1.1x (no gain — writes serialize) |
