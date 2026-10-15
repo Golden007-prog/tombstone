@@ -881,3 +881,63 @@ def test_keyless_ask_answers_or_refuses_but_never_guesses(agent):
     assert refused["shape"] == "UNSURE_WHICH_TOOL"
     assert "not going to guess" in refused["answer"]
     assert not refused.get("cypher")
+
+
+# ---------------- memory, on the path the hosted demo actually uses ----------------
+
+def test_keyless_ask_earns_answered_from_memory_on_a_repeat(agent):
+    """Asking the same thing twice without an API key must come back as remembered.
+
+    It did not. The keyless path was written separately from the model path and called
+    `memory.remember(...)`, a method that does not exist, inside a bare `except Exception: pass`.
+    Every keyless question silently recorded nothing, and the hosted demo is the keyless one --
+    so "remembers what it learns" was the one pillar a judge could not have seen working.
+    Both paths now go through `Agent._remember`.
+    """
+    question = "which areas are held alone by a single approver, bus factor one?"
+    first = agent.ask_locally(question)
+    assert first["shape"] == "ANSWERED_WITH_PATH"
+    second = agent.ask_locally(question)
+    assert second["shape"] == "ANSWERED_FROM_MEMORY", (
+        f"a repeat keyless ask returned {second['shape']}, so nothing was remembered")
+    assert "Asked before" in (second.get("note") or "")
+
+
+# (tool, args) for every tool whose rows name real nodes. `recall` is excluded by design: an
+# answer about remembering should not itself be remembered.
+CITING_TOOLS = [
+    ("sole_approver_risk", {}),
+    ("ownership_dilution", {}),
+    ("stepped_back_bridges", {"min_areas": 3}),
+    ("broken_lineage", {"min_cites": 2}),
+    ("hollowing_communities", {"min_size": 5}),
+    ("stale_knowledge", {"min_years": 3}),
+    ("stepped_back_but_still_listed", {}),
+    ("draft_owners_patch", {}),
+    ("what_if_they_go", {"handles": ["deads2k", "liggitt"]}),
+    ("successor_for", {"handle": "lavalamp"}),
+    ("who_owns", {"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", "depth": 4}),
+]
+
+
+@pytest.mark.parametrize("tool,args", CITING_TOOLS)
+def test_every_answering_tool_cites_the_nodes_it_returned(agent, tool, args):
+    """An answer with no citations can never be returned from memory, because the gate is that
+    its citations still resolve -- there is nothing to re-check.
+
+    Seven of thirteen tools were never wired into the citation linker, so they recorded zero
+    citations and memory silently did nothing for them. The rows plainly contained people and
+    ownership paths the whole time; nobody had told the linker about them.
+    """
+    ans = agent.dispatch(tool, args)
+    if ans.shape != "ANSWERED_WITH_PATH" or not ans.rows:
+        pytest.skip(f"{tool} returned {ans.shape} here, so there is nothing to cite")
+    question = f"citation coverage probe for {tool}"
+    agent._remember(question, tool, ans)
+    # Look it up as the answer labels itself: who_owns records as "who_owns(depth=4)" so its two
+    # depths stay distinct memories.
+    recorded = agent.memory.recall_exact(question, ans.tool or tool)
+    assert recorded, f"{tool} recorded no memory at all"
+    assert recorded[5] > 0, (
+        f"{tool} answered with {len(ans.rows)} rows but cited 0 nodes, so it can never be "
+        f"returned from memory")

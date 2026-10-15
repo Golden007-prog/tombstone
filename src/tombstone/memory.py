@@ -114,6 +114,32 @@ class Memory:
                     keys["MissingRecord"].add(r[0])
                 elif t.startswith("who_owns"):
                     keys["OwnersFile"].add(r[0])
+                # Below: tools that return perfectly good entities but were never wired up, so
+                # they recorded ZERO citations and could therefore never be returned from memory
+                # -- the gate for ANSWERED_FROM_MEMORY is that the cited nodes still resolve, and
+                # a tool with no citations has nothing to re-check. Memory worked on 6 of 13
+                # tools and silently did nothing on the rest.
+                elif t == "sole_approver_risk":
+                    keys["Person"].add(r[0])
+                    for area in (r[2] or []):
+                        keys["OwnersFile"].add(area)
+                elif t == "hollowing_communities":
+                    for person in (r[5] or []):
+                        keys["Person"].add(person)
+                elif t == "stale_knowledge":
+                    keys["Kep"].add(str(r[0]))
+                elif t == "what_if_they_go":
+                    for person in (r[0] or []):
+                        keys["Person"].add(person)
+                    for area in (r[1] or []):
+                        keys["OwnersFile"].add(area)
+                elif t == "stepped_back_but_still_listed":
+                    keys["Person"].add(r[0])
+                    for area in (r[3] or []):
+                        keys["OwnersFile"].add(area)
+                elif t == "draft_owners_patch":
+                    keys["Person"].add(r[0])
+                    keys["OwnersFile"].add(r[1])
             except (IndexError, TypeError):
                 continue
 

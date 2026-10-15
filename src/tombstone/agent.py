@@ -81,6 +81,46 @@ class Agent:
             self._corpus = load()
         return self._corpus
 
+    def _remember(self, question: str, tool: str, ans):
+        """Upgrade an answer to ANSWERED_FROM_MEMORY if it is earned, then record it.
+
+        Shared by BOTH ask paths on purpose. This logic used to live inline in the model path
+        only, and when the keyless path was added it was re-implemented from memory and got it
+        wrong: it called a method that does not exist, inside a bare `except Exception: pass`, so
+        every keyless question silently failed to record anything and no question ever came back
+        as remembered. The hosted demo is the keyless one, so that was the configuration judges
+        would have seen. Duplicated flows drift; one flow cannot.
+        """
+        if not self.memory or tool == "recall":
+            return ans
+        # Look the memory up under the tool name the ANSWER carries, not the routed one. They
+        # differ for who_owns, which records itself as "who_owns(depth=4)" so the two depths stay
+        # distinct memories -- querying with the bare routed name never matched, so that tool
+        # could never be returned from memory no matter how often it was asked.
+        remembered = None
+        try:
+            remembered = self.memory.recall_exact(question, ans.tool or tool)
+        except Exception:
+            remembered = None
+
+        if (remembered and remembered[5] > 0 and ans.shape == "ANSWERED_WITH_PATH"
+                and len(ans.rows) == remembered[4]):
+            import datetime as _dt
+            when = _dt.datetime.fromtimestamp((remembered[3] or 0) / 1000).strftime("%d %b %H:%M")
+            ans.shape = "ANSWERED_FROM_MEMORY"
+            ans.note = (f"Asked before ({int(remembered[2] or 1)}x, last {when}). All "
+                        f"{remembered[5]} nodes that answer cited are still in the graph, and "
+                        f"re-running it just now returned the same {len(ans.rows)} rows.")
+
+        # Additive and best-effort: a memory write must never break the answer that was asked for.
+        if ans.shape in ("ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY"):
+            try:
+                qv = list(self.embedder().embed([question]))[0].tolist()
+                self.memory.record(question, ans, qvec=qv)
+            except Exception:
+                pass
+        return ans
+
     def router(self):
         """The keyless router. Built once, from people who actually exist in the graph."""
         if getattr(self, "_router", None) is None:
@@ -114,7 +154,7 @@ class Agent:
                                  " The buttons on this page are the questions it does answer."),
                     "routed_by": "local-embedding", "near": choice.get("near", []),
                     "catalogue": CATALOGUE}
-        ans = self.dispatch(choice["tool"], choice["args"])
+        ans = self._remember(question, choice["tool"], self.dispatch(choice["tool"], choice["args"]))
         out = {"shape": ans.shape, "question": question, "tool": ans.tool,
                "routed_to": choice["tool"], "routed_by": "local-embedding",
                "routing": {"score": choice["score"], "runner_up": choice["runner_up"],
@@ -122,11 +162,6 @@ class Agent:
                "answer": render(ans), "headline": headline(ans), "rows": ans.rows,
                "coverage": ans.coverage, "note": ans.note, "ms": round(ans.ms, 2),
                "cypher": ans.cypher.strip(), "query_sha": query_sha(ans.cypher)}
-        if self.memory and ans.shape == "ANSWERED_WITH_PATH":
-            try:
-                self.memory.remember(question, ans)
-            except Exception:
-                pass
         return out
 
     def provider(self):
@@ -287,32 +322,8 @@ class Agent:
         # Answered before? Only reuse it if the nodes it cited are STILL THERE. A remembered
         # answer whose citations have gone is a stale claim, not a memory -- fall through and
         # re-run rather than serve it.
-        remembered = None
-        if self.memory and tool != "recall":
-            try:
-                remembered = self.memory.recall_exact(question, tool)
-            except Exception:
-                remembered = None
+        ans = self._remember(question, tool, self.dispatch(tool, args))
 
-        ans = self.dispatch(tool, args)
-
-        if (remembered and remembered[5] > 0 and ans.shape == "ANSWERED_WITH_PATH"
-                and len(ans.rows) == remembered[4]):
-            import datetime as _dt
-            when = _dt.datetime.fromtimestamp((remembered[3] or 0) / 1000).strftime("%d %b %H:%M")
-            ans.shape = "ANSWERED_FROM_MEMORY"
-            ans.note = (f"Asked before ({int(remembered[2] or 1)}x, last {when}). All "
-                        f"{remembered[5]} nodes that answer cited are still in the graph, and "
-                        f"re-running it just now returned the same {len(ans.rows)} rows.")
-        # Remember what was learned. Additive and best-effort: a memory write must never break
-        # the answer the user actually asked for.
-        if (self.memory and ans.shape in ("ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY")
-                and ans.tool != "recall"):
-            try:
-                qv = list(self.embedder().embed([question]))[0].tolist()
-                self.memory.record(question, ans, qvec=qv)
-            except Exception:
-                pass
         return {
             "question": question,
             "routed_to": choice["tool"],

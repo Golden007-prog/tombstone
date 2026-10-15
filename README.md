@@ -428,7 +428,7 @@ Adding a key (copy `.env.example` to `.env` — Anthropic, OpenAI, Gemini or Gro
 swaps the router for a model. It changes *who picks the tool*. It does not change what runs.
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q     # 76 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 88 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 
