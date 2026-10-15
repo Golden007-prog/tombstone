@@ -414,6 +414,19 @@ a substantive recorded rationale.** It also runs three negative controls — ide
 not know about — and **3/3 correctly return nothing**. A retrieval layer that never returns nothing
 is not telling you anything.
 
+
+**Any answer is a link.** `?run=<tool>` runs that chip on load and `&focus=1` strips everything
+above the result, so you can be sent to an answer rather than to an empty box:
+
+```
+http://localhost:8099/?run=draft_owners_patch&focus=1    # the drafted patches, nothing else
+http://localhost:8099/?run=who_owns&i=1                  # the same question, four hops deep
+```
+
+The walkthrough video is built by screenshotting exactly those links, which is why
+`python scripts_build_walkthrough.py` can regenerate it and why it fails rather than shipping a
+stale cut if the app is not serving.
+
 ## The graph data model
 
 Required by Rule 10. The two **latent** labels are the whole idea: neither is a document, a person
