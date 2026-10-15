@@ -386,6 +386,22 @@ Entity names are resolved against the graph *before* any traversal, because a pl
 is worse than no answer. And a negative never stands alone — an empty traversal only means this
 corpus doesn't record it, which the UI says in those words every time.
 
+## Where the data comes from
+
+| source | licence | what is used | how it is extracted |
+|---|---|---|---|
+| [kubernetes/enhancements](https://github.com/kubernetes/enhancements) | Apache-2.0 | 681 `kep.yaml` records; the `Alternatives` / `Drawbacks` / `Risks` sections of 688 READMEs | YAML parse + markdown sub-heading regex. **No LLM.** |
+| [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) | Apache-2.0 | 585 `OWNERS` files — `approvers`, `reviewers`, `emeritus_approvers`, `options` | YAML parse, group aliases expanded via `OWNERS_ALIASES` |
+| [kubernetes/kubernetes `OWNERS_ALIASES`](https://github.com/kubernetes/kubernetes/blob/master/OWNERS_ALIASES) | Apache-2.0 | 74 aliases → 449 memberships | YAML parse |
+| `BAAI/bge-small-en-v1.5` | MIT | 384-dim embeddings of 958 alternatives | local, via `fastembed`. No API. |
+
+**Not ingested, deliberately:** the email addresses published in `kubernetes/community`'s
+`sigs.yaml`. The rules forbid personal data; GitHub handles and the affiliations the project
+itself publishes as its governance record are in, addresses are out.
+
+Modifications to the redistributed material are listed in [`NOTICE`](NOTICE), as Apache-2.0 §4
+requires — the snapshot contains verbatim KEP prose.
+
 ## Keeping knowledge current
 
 Track 3 names this explicitly, and the honest version on a real corpus is not a freshness
@@ -524,6 +540,35 @@ capacity for the apiserver metrics endpoints". It is only true as a consequence 
 ```bash
 PYTHONPATH=src python eval_graph_vs_text.py     # re-run it
 ```
+
+## Why not just use Graphiti, Cognee or GraphRAG-SDK?
+
+Fair question, and the honest answer is that for most agent-memory problems **you should** — all
+three are mature, and two of them have ~32k stars to this project's zero. They solve a different
+problem.
+
+| | Graphiti (31.8k★) | Cognee (32.3k★) | GraphRAG-SDK (1.0k★) | Tombstone |
+|---|---|---|---|---|
+| what it is | real-time temporal KG for agent memory | general AI memory platform | ontology-driven KG builder (FalkorDB's own) | one corpus, one question shape |
+| builds the graph by | **LLM extraction** | **LLM extraction** | **LLM-inferred ontology** | **deterministic parsing** — no LLM touches the extraction path |
+| schema | inferred per-episode | inferred | inferred, then fixed | hand-written, 8 node labels |
+| re-runs give | different graphs | different graphs | different ontologies | byte-identical graphs |
+| cost to rebuild | LLM calls per document | LLM calls per document | LLM calls per corpus | **zero, 1.1s** |
+| best at | conversational memory that accumulates | heterogeneous sources | bootstrapping a KG from prose | a corpus whose structure is already machine-readable |
+
+**The distinction that matters here.** Kubernetes already publishes its governance as structured
+data: `kep.yaml` has `replaces`/`superseded-by`, `OWNERS` has `approvers` and `emeritus_approvers`,
+and the KEP template *mandates* an `Alternatives` section. An LLM extraction pass over that would
+be strictly worse — it would cost money, vary between runs, and hallucinate relationships that the
+YAML states exactly. **752 of the 958 rejected alternatives are extracted by a regex over
+sub-headings, not a model.**
+
+So the LLM in this project does exactly one job: picking which of eleven tools to call. It never
+writes Cypher, never extracts an entity, and never phrases a finding. Swap it out and the graph is
+unchanged.
+
+Where those three would beat this: anything whose source is prose with no structure — meeting
+notes, Slack, support tickets. Tombstone would have nothing to parse.
 
 ## Why FalkorDB, measured honestly
 

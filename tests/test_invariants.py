@@ -577,3 +577,32 @@ def test_hollowing_communities_discloses_its_algorithm(agent):
     a = agent.dispatch("hollowing_communities", {"min_size": 5})
     assert "labelPropagation" in a.cypher
     assert "label propagation" in render(a).lower()
+
+
+def test_no_llm_anywhere_in_the_extraction_path():
+    """A load-bearing claim: the graph is built by deterministic parsing, not by a model.
+
+    This is what makes re-runs byte-identical and the rebuild free, and it is the whole
+    distinction from Graphiti / Cognee / GraphRAG-SDK. If a model ever creeps into corpus.py,
+    build.py or snapshot.py, that claim quietly becomes false — so this fails instead.
+    """
+    import pathlib
+    import re
+
+    banned = re.compile(r"\b(openai|anthropic|gpt-|claude-|completion|chat_completion)\b", re.I)
+    for name in ("corpus.py", "build.py", "snapshot.py"):
+        src = pathlib.Path("src/tombstone") / name
+        for i, line in enumerate(src.read_text().splitlines(), 1):
+            code = line.split("#", 1)[0]          # comments may discuss LLMs; code may not use one
+            assert not banned.search(code), f"{name}:{i} references a model in the build path: {line.strip()[:80]}"
+
+
+def test_titled_alternatives_really_are_regex_derived(g):
+    """78% of alternatives are titled by a markdown sub-heading, not labelled by a model."""
+    total = g.ro_query("MATCH (a:Alternative) RETURN count(a)").result_set[0][0]
+    titled = g.ro_query("MATCH (a:NamedOption) RETURN count(a)").result_set[0][0]
+    assert titled / total > 0.7, f"only {titled}/{total} titled — extraction may have regressed"
+    # every NamedOption must carry the flag the parser set, not a post-hoc label
+    flagged = g.ro_query(
+        "MATCH (a:NamedOption) WHERE a.titled = true RETURN count(a)").result_set[0][0]
+    assert flagged == titled
