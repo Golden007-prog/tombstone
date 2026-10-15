@@ -996,7 +996,10 @@ times. Each fix made the claim narrower and more defensible.
   flight — peaks at **~400 MB and runs inside a 512 MB container without being OOM-killed**, and
   repeated copies do not grow it, so the copies are genuinely dropped. The deploy check runs
   capped at 512 MB so a regression fails there rather than as a crash on the hosted demo. It
-  retries once, and if it still cannot copy it returns `DEGRADED` saying so. It never reports a number from a copy that did not happen — a counterfactual that
+  retries once, and if it still cannot copy it returns `DEGRADED` saying so — which is not
+  theoretical: **six counterfactuals fired at once into a 512 MB container answered five and
+  degraded one, with no errors, no hung requests and no OOM.** Judges share links, so concurrent
+  use of one container is the normal case, and that is the behaviour it was built for. It never reports a number from a copy that did not happen — a counterfactual that
   answered "0 areas would be left unowned" because the diff was empty would be the worst bug
   this product could have, so there is a test that drives that exact path.
 

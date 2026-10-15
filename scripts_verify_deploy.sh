@@ -114,6 +114,37 @@ if printf '%s' "$app_js" | grep -qE 'localStorage|sessionStorage|document\.cooki
 fi
 echo "  no browser storage   -> survives third-party cookie blocking"
 
+# Six counterfactuals at once, all of which fork, inside 512MB. The failure this is looking for is
+# a 500 or a hung request; a DEGRADED is the designed answer when a fork genuinely cannot happen,
+# and is counted as a pass. Judges share links, so concurrent use of the one hosted container is
+# the normal case rather than the stress case.
+python3 - <<'PY'
+import json, sys, urllib.request, concurrent.futures as cf, os
+base = f"http://localhost:{os.environ.get('PORT', '8111')}"
+body = {"tool": "what_if_they_go", "args": {"handles": ["deads2k", "liggitt"]}}
+
+def call(_):
+    req = urllib.request.Request(base + "/api/tool", method="POST",
+                                 data=json.dumps(body).encode(),
+                                 headers={"content-type": "application/json"})
+    try:
+        return json.load(urllib.request.urlopen(req, timeout=180)).get("shape")
+    except Exception as exc:
+        return f"HARD-FAILURE:{type(exc).__name__}"
+
+with cf.ThreadPoolExecutor(max_workers=6) as ex:
+    shapes = list(ex.map(call, range(6)))
+answered = sum(s == "ANSWERED_WITH_PATH" for s in shapes)
+degraded = sum(s == "DEGRADED" for s in shapes)
+hard = [s for s in shapes if s and s.startswith("HARD-FAILURE")]
+print(f"  6 concurrent forking requests: {answered} answered, {degraded} degraded honestly, "
+      f"{len(hard)} hard failures")
+if hard:
+    sys.exit(f"FAIL: concurrent counterfactuals produced {hard}")
+if answered == 0:
+    sys.exit("FAIL: not one concurrent counterfactual completed")
+PY
+
 peak="$(docker stats --no-stream --format '{{.MemUsage}}' "$IMG" 2>/dev/null)"
 echo "  peak memory in a 512MB container: $peak"
 if docker inspect "$IMG" --format '{{.State.OOMKilled}}' 2>/dev/null | grep -q true; then
