@@ -110,7 +110,7 @@ jobs:
 
       - name: FalkorDB vs networkx on the real graph (cross-checked, timings reported)
         run: |
-          pip install -q networkx
+          pip install -q networkx scipy
           python bench_vs_networkx.py
 
       - name: GRAPH.COPY still carries the whole graph, and report the timing

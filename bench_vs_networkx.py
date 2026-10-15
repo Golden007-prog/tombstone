@@ -26,8 +26,20 @@ try:
     import networkx as nx
 except ImportError:
     sys.exit("networkx is not installed. It is a dev-only comparison dependency:\n"
-             "  pip install networkx\n"
+             "  pip install networkx scipy\n"
              "The product itself does not use it, which is why it is not in requirements.txt.")
+
+try:
+    import scipy  # noqa: F401
+except ImportError:
+    # Not optional, and not a packaging detail. networkx's PageRank uses a scipy sparse path when
+    # scipy is present and a far slower pure-Python one when it is not. Benchmarking against the
+    # fallback would be measuring the competitor with a hand tied -- and would flatter FalkorDB by
+    # a wide margin on the single row where it already wins by the most. The comparison is only
+    # worth publishing if networkx is running at its best.
+    sys.exit("scipy is not installed, so networkx would fall back to its slow pure-Python\n"
+             "PageRank and this comparison would flatter FalkorDB. Install it:\n"
+             "  pip install networkx scipy")
 
 from graphkit.ingest import connect          # noqa: E402
 from tombstone.build import build            # noqa: E402
