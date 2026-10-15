@@ -120,6 +120,13 @@ class Agent:
                           note="FalkorDB is unreachable, so there is nothing to reason over. "
                                "There is no fallback by design — no in-memory mirror, no cached "
                                "answers.")
+        def num(v, default, cast=int):
+            """A malformed argument is a bad request, not a graph failure."""
+            try:
+                return cast(v)
+            except (TypeError, ValueError):
+                return default
+
         try:
             if tool == "has_this_been_tried":
                 text = args.get("idea_text") or args.get("text") or ""
@@ -127,17 +134,17 @@ class Agent:
                     return Answer("UNKNOWN_ENTITY", tool, note="No idea text supplied.")
                 qvec = list(self.embedder().embed([text]))[0].tolist()
                 return self.tools.has_this_been_tried(
-                    qvec, max_dist=float(args.get("max_dist", 0.45)))
+                    qvec, max_dist=num(args.get("max_dist", 0.45), 0.45, float))
             if tool == "orphaned_ownership":
                 return self.tools.orphaned_ownership()
             if tool == "departed_bridges":
-                return self.tools.departed_bridges(min_areas=int(args.get("min_areas", 3)))
+                return self.tools.departed_bridges(min_areas=max(0, num(args.get("min_areas", 3), 3)))
             if tool == "successor_for":
-                return self.tools.successor_for(args.get("handle", ""))
+                return self.tools.successor_for(args.get("handle") or "")
             if tool == "broken_lineage":
-                return self.tools.broken_lineage(min_cites=int(args.get("min_cites", 1)))
+                return self.tools.broken_lineage(min_cites=max(1, num(args.get("min_cites", 1), 1)))
             if tool == "who_owns":
-                return self.tools.who_owns(args.get("path", ""), depth=int(args.get("depth", 4)))
+                return self.tools.who_owns(args.get("path") or "", depth=num(args.get("depth", 4), 4))
         except Exception as e:
             # Fail loudly. No cached answer, no in-memory mirror.
             msg = str(e)

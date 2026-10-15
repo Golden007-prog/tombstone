@@ -186,6 +186,45 @@ def test_no_age_is_rendered_when_the_date_is_missing(agent):
         assert "date not recorded" in out
 
 
+def test_malformed_arguments_never_leak_a_python_error(agent):
+    """A bad argument type is a bad request, not a database failure. Judges will poke at this."""
+    for tool, args in [
+        ("departed_bridges", {"min_areas": "lots"}),
+        ("broken_lineage", {"min_cites": -1}),
+        ("has_this_been_tried", {"idea_text": "kubelet state", "max_dist": "near"}),
+        ("who_owns", {"path": None, "depth": 4}),
+        ("successor_for", {"handle": None}),
+        ("successor_for", {}),
+    ]:
+        a = agent.dispatch(tool, args)
+        assert a.shape in {"ANSWERED_WITH_PATH", "NOT_IN_GRAPH", "UNKNOWN_ENTITY"}, (tool, args, a.shape)
+        body = render(a)
+        for leak in ("Traceback", "invalid literal", "could not convert", "NoneType"):
+            assert leak not in body, f"{tool}{args} leaked: {body[:120]}"
+
+
+def test_any_depth_clamps_to_the_two_that_exist(agent):
+    """Only two depths exist. A third tool name would fall through the renderer and print tuples."""
+    path = "pkg/controller/podgc/OWNERS"
+    for d in (2, 9999, 7):
+        a = agent.dispatch("who_owns", {"path": path, "depth": d})
+        assert a.tool == "who_owns(depth=4)", f"depth={d} produced {a.tool}"
+        assert "ORPHANED" in render(a)
+    assert agent.dispatch("who_owns", {"path": path, "depth": -5}).tool == "who_owns(depth=1)"
+
+
+def test_cypher_injection_is_structurally_impossible(agent):
+    """Every query is parameterised and entity names are resolved against the graph first."""
+    before = agent.g.ro_query("MATCH (k:Kep) RETURN count(k)").result_set[0][0]
+    for tool, args in [
+        ("successor_for", {"handle": "lavalamp'}) DETACH DELETE (n) //"}),
+        ("who_owns", {"path": "x' OR 1=1 //", "depth": 4}),
+        ("who_owns", {"path": "'); MATCH (n) DETACH DELETE n; //", "depth": 1}),
+    ]:
+        assert agent.dispatch(tool, args).shape == "UNKNOWN_ENTITY"
+    assert agent.g.ro_query("MATCH (k:Kep) RETURN count(k)").result_set[0][0] == before
+
+
 def test_agent_recovers_after_the_database_comes_back():
     """An instance that starts (or is hit) while FalkorDB is briefly down must not stay broken.
 

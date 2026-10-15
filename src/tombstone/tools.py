@@ -274,7 +274,10 @@ LIMIT $limit
             return Answer("UNKNOWN_ENTITY", "who_owns",
                           note=f"'{path}' is not an ownership file in this graph. Nothing else was run.",
                           coverage=self._coverage())
-        cypher = self.WHO_OWNS_DEPTH1 if depth <= 1 else self.WHO_OWNS_DEPTH4
+        # Only two depths exist: the shallow control and the full traversal. Clamp anything else
+        # rather than inventing a third tool name the renderer has never heard of.
+        depth = 1 if depth <= 1 else 4
+        cypher = self.WHO_OWNS_DEPTH1 if depth == 1 else self.WHO_OWNS_DEPTH4
         rows, ms = self._run("who_owns", cypher, {"path": resolved, "limit": limit})
         if rows:
             return Answer("ANSWERED_WITH_PATH", f"who_owns(depth={depth})", rows=rows, ms=ms,
