@@ -129,3 +129,8 @@ body.focus.show-ask .hint { display: none !important; }
 pre.diff{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
   line-height:1.5;white-space:pre;overflow-x:auto;margin:10px 0;padding:10px 12px;
   background:rgba(255,255,255,.03);border-left:2px solid var(--line,#333);border-radius:4px}
+
+/* The three chips that carry the argument. Numbered and lifted out of the row so someone with
+   three minutes knows where to start; everything else stays available but stops competing. */
+.chip.step{border-color:var(--accent);color:var(--accent);font-weight:600}
+.chip.step:hover{background:color-mix(in srgb, var(--accent) 12%, transparent)}

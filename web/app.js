@@ -7,12 +7,14 @@ const $ = (id) => document.getElementById(id);
 // Each chip is a real tool call. The first two are the same question at two depths, which is the
 // contrast the brief asks for: shallow finds silence, deep finds the reason for the silence.
 const CHIPS = [
-  { label: "Who owns the apiserver metrics endpoint? (shallow)",
+  { label: "Who owns the apiserver metrics endpoint? (shallow)", step: 1,
     tool: "who_owns", args: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", depth: 1 },
     graph: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS" } },
-  { label: "…now ask the graph properly (4 hops)",
+  { label: "…now ask the graph properly (4 hops)", step: 2,
     tool: "who_owns", args: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS", depth: 4 },
     graph: { path: "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS" } },
+  { label: "Draft the fix \u2014 don't just report it", step: 3,
+    tool: "draft_owners_patch", args: { min_stepped_back: 3 } },
   { label: "Has anyone tried moving this into the kubelet?",
     tool: "has_this_been_tried",
     args: { idea_text: "let the kubelet manage this state itself instead of the API server" } },
@@ -36,8 +38,6 @@ const CHIPS = [
     args: { handles: ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"] } },
   { label: "What knowledge here is going stale?",
     tool: "stale_knowledge", args: { min_years: 3 } },
-  { label: "Draft the fix \u2014 don't just report it",
-    tool: "draft_owners_patch", args: { min_stepped_back: 3 } },
   { label: "Has this graph been asked this before?",
     tool: "recall", args: { question: "who currently owns the podgc controller" } },
 ];
@@ -85,8 +85,12 @@ function chips() {
   const box = $("chips");
   CHIPS.forEach((c) => {
     const b = document.createElement("button");
-    b.className = "chip";
-    b.textContent = c.label;
+    // Thirteen chips in a row give a visitor with three minutes no idea where to start, so the
+    // three that actually make the argument are numbered: the question answered shallowly, the
+    // same question answered properly, and the agent acting on what it found. The rest are there
+    // to be explored, not worked through in order.
+    b.className = c.step ? "chip step" : "chip";
+    b.textContent = c.step ? `${c.step}. ${c.label}` : c.label;
     b.dataset.tool = c.tool;
     b.onclick = () => runTool(c, b);
     box.appendChild(b);
