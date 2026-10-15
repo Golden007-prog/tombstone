@@ -170,3 +170,29 @@ Corrected successor ranking for lavalamp's 31 abandoned areas:
 
 **Rule for any build on this corpus: load OWNERS_ALIASES first and expand before creating Person nodes.
 Also filter bots (`kubernetes-prow[bot]` is the single top committer in the git history).**
+
+## FINAL graph numbers (after excluding template files)
+The KEP templates themselves (`NNNN-kep-template`, `0000-cloud-provider-template`) were being
+ingested as decisions. They carry placeholder metadata (`kep-number: NNNN`,
+`creation-date: 'yyyy-mm-dd'`) and showed up as a decision with no date and no author — which
+rendered as "55y ago" because an unparsed date became epoch 0. Both now excluded.
+
+| | count |
+|---|---|
+| Kep | **679** |
+| Alternative | 959 (753 titled `:NamedOption`, 206 untitled prose) |
+| Person | 794 (alias-expanded, bots filtered) |
+| OwnersFile | 585 |
+| MissingRecord | 52 |
+| Sig | 23 |
+| -[:APPROVES]-> | 2,584 |
+| -[:EMERITUS_OF]-> | 298 |
+| -[:CO_AUTHORED]-> | 5,894 (computed in Cypher, 95ms) |
+| lineage resolved / broken | 300 / 70 |
+
+Remaining date gaps: **8 of 679** KEPs have no usable `creation-date` — 3 omit the field entirely,
+and 5 still carry the literal template string `'yyyy-mm-dd'`. These render as "date not recorded",
+never as an age.
+
+**Cold start from the committed snapshot: 1.07-1.18s** including the vector index and all 959
+embeddings. That is the whole product bootstrapping, which is what makes a free-tier deploy viable.

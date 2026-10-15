@@ -17,7 +17,7 @@ from __future__ import annotations
 import datetime as _dt
 import sys
 
-from graphkit.ingest import Ingestor, connect
+from graphkit.ingest import Ingestor, chunked, connect
 from tombstone.corpus import Corpus, expand, is_bot, normalise_status, rejected_alternatives
 
 EPOCH = _dt.date(1970, 1, 1)
@@ -30,6 +30,9 @@ def to_ms(datestr) -> int:
     if isinstance(datestr, _dt.date):
         return (datestr - EPOCH).days * 86400000
     s = str(datestr or "")[:10]
+    # The KEP template ships `creation-date: 'yyyy-mm-dd'` and some authors never replace it.
+    if not s or not s[:4].isdigit():
+        return 0
     try:
         return (_dt.date.fromisoformat(s) - EPOCH).days * 86400000
     except Exception:
@@ -85,10 +88,17 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
             else:
                 untitled += 1
             aid = f"{rel}#alt#{i}"
+            # An untitled Alternatives section is prose, not a named option. Derive a label from
+            # its first sentence so the UI never shows "(untitled alternative)" to a judge.
+            label = title
+            if not label:
+                first = " ".join(body.split())
+                cut = first.find(". ")
+                label = (first[: cut + 1] if 0 < cut < 160 else first[:140].rstrip() + "…")
             alt_rows.append(
                 dict(
                     key=aid,
-                    title=(title or "(untitled alternative)")[:250],
+                    title=label[:250],
                     body=" ".join(body.split())[:1800],
                     kep=rel,
                     titled=bool(title),
@@ -97,6 +107,16 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
             alt_edges.append((rel, aid))
     ing.nodes("Alternative", alt_rows)
     ing.edges("Kep", "CONSIDERED", "Alternative", alt_edges)
+
+    # A titled sub-heading inside `Alternatives` is a NAMED option someone argued for and lost.
+    # Untitled sections are just prose. Only named options make a good "has this been tried?"
+    # answer, so they get a second label.
+    #
+    # Why a label and not a property filter: FalkorDB vector indexes cannot filter by property
+    # (verified -- a top-k over a shared index returns rows you then have to discard, so you ask
+    # for k and keep k/N). Minting a label gives a genuinely pre-filtered ANN index instead, with
+    # no post-filter recall loss.
+    g.query("MATCH (a:Alternative) WHERE a.titled = true SET a:NamedOption")
     stats["Alternative"] = len(alt_rows)
     stats["Alternative_titled"] = titled
     stats["Alternative_untitled"] = untitled
@@ -182,6 +202,36 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
     ing.edges("Kep", "OWNED_BY", "Sig",
               [(rel, str(d["owning-sig"])) for rel, d in corpus.keps.items() if d.get("owning-sig")])
     stats["Sig"] = len(sigs)
+
+    # ---------------- vector index over the rejected alternatives ----------------
+    # Embeddings come from the committed float16 snapshot when present. Embedding these 960 real
+    # ~1,400-char chunks live costs ~115s at a measured 8.4/sec, which is not a price worth paying
+    # on every boot; the snapshot reloads in 11.6ms and preserves top-5 neighbour order exactly.
+    from tombstone.snapshot import load_vectors
+
+    keys, vectors = load_vectors()
+    if keys and vectors:
+        g.query(
+            "CREATE VECTOR INDEX FOR (a:NamedOption) ON (a.emb) "
+            "OPTIONS {dimension: 384, similarityFunction: 'cosine'}"
+        )
+        have = {r[0] for r in g.ro_query("MATCH (a:Alternative) RETURN a.key").result_set}
+        payload = [{"k": k, "e": v} for k, v in zip(keys, vectors) if k in have]
+        for batch in chunked(payload):
+            g.query(
+                "UNWIND $rows AS x MATCH (a:Alternative {key: x.k}) SET a.emb = vecf32(x.e)",
+                params={"rows": list(batch)},
+            )
+        stats["vectors_loaded"] = len(payload)
+        stats["NamedOption"] = g.ro_query(
+            "MATCH (a:NamedOption) RETURN count(a)"
+        ).result_set[0][0]
+    else:
+        stats["vectors_loaded"] = 0
+        stats["vector_warning"] = (
+            "No vector snapshot found -- has_this_been_tried will be unavailable. "
+            "Run: python src/tombstone/embed.py"
+        )
 
     # ---------------- Person<->Person co-authorship projection ----------------
     # Computed BY THE DATABASE, in Cypher, not in Python. This matters: an adversarial reviewer

@@ -151,6 +151,19 @@ def is_bot(handle: str) -> bool:
     )
 
 
+# These are the KEP templates themselves, not decisions. They carry placeholder metadata
+# (`creation-date: 'yyyy-mm-dd'`, `kep-number: NNNN`) and would otherwise show up as a decision
+# with no date and no author.
+TEMPLATE_PATHS = ("NNNN-kep-template", "0000-cloud-provider-template")
+
+
+def is_template(rel_path: str, kep: dict) -> bool:
+    if any(t in rel_path for t in TEMPLATE_PATHS):
+        return True
+    num = str(kep.get("kep-number", "")).strip().upper()
+    return num in {"NNNN", ""} or num == "0"
+
+
 @dataclass
 class Corpus:
     keps: dict = field(default_factory=dict)        # rel_path -> kep.yaml dict
@@ -165,7 +178,7 @@ class Corpus:
             if "kep.yaml" in fn:
                 try:
                     d = yaml.safe_load(open(os.path.join(dp, "kep.yaml"), encoding="utf-8", errors="replace"))
-                    if isinstance(d, dict):
+                    if isinstance(d, dict) and not is_template(rel, d):
                         self.keps[rel] = d
                 except Exception:
                     pass

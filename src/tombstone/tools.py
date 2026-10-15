@@ -102,7 +102,7 @@ class Tools:
 
     # ---------- TOOL 1 ----------
     HAS_THIS_BEEN_TRIED = """
-CALL db.idx.vector.queryNodes('Alternative', 'emb', $k, vecf32($qvec)) YIELD node AS alt, score
+CALL db.idx.vector.queryNodes('NamedOption', 'emb', $k, vecf32($qvec)) YIELD node AS alt, score
 WITH alt, score WHERE score <= $maxDist
 MATCH (kep:Kep)-[:CONSIDERED]->(alt)
 OPTIONAL MATCH (kep)-[:OWNED_BY]->(sig:Sig)
@@ -118,7 +118,8 @@ RETURN alt.title                             AS rejected_idea,
        kep.status                            AS status,
        sig.key                               AS sig,
        kep.url                               AS source_url,
-       ($now - kep.created_ms) / $msYear     AS years_ago,
+       CASE WHEN kep.created_ms = 0 THEN -1
+            ELSE ($now - kep.created_ms) / $msYear END AS years_ago,
        deciders,
        decider_live_roles,
        CASE WHEN decider_live_roles = 0 THEN 'NO_LIVING_OWNER' ELSE 'HAS_LIVING_OWNER' END
@@ -275,10 +276,18 @@ LIMIT $limit
                           coverage=self._coverage())
         cypher = self.WHO_OWNS_DEPTH1 if depth <= 1 else self.WHO_OWNS_DEPTH4
         rows, ms = self._run("who_owns", cypher, {"path": resolved, "limit": limit})
-        shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
-        return Answer(shape, f"who_owns(depth={depth})", rows=rows, ms=ms, cypher=cypher,
-                      params={"path": resolved, "depth": depth},
-                      coverage=self._coverage() if not rows else {})
+        if rows:
+            return Answer("ANSWERED_WITH_PATH", f"who_owns(depth={depth})", rows=rows, ms=ms,
+                          cypher=cypher, params={"path": resolved, "depth": depth})
+        # The path RESOLVED -- it simply has no current approvers. Saying "nothing matches that"
+        # here would be the kind of plausible-but-wrong answer the brief warns about.
+        return Answer(
+            "NOT_IN_GRAPH", f"who_owns(depth={depth})", rows=[], ms=ms, cypher=cypher,
+            params={"path": resolved, "depth": depth},
+            note=(f"{resolved} is a real ownership file in this graph, but it has NO current "
+                  f"approvers. Ask again at depth 4 to see who used to own it and what they decided."),
+            coverage=self._coverage(),
+        )
 
 
 CATALOGUE = {
