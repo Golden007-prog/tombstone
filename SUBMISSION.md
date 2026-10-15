@@ -19,7 +19,11 @@ The decisions your org already made and forgot. Asked as a graph.
 
 **Track 03 — Company Brain.**
 
-*Second track, if entering more than one:* Track 02 (Agent Memory) is arguable but not yet
+*Second track, if entering more than one.* For context when deciding: at least one competing
+Track 3 entry (`StarKnightt/threadline`) is entering three tracks, so multi-track entry is clearly
+permitted and being used. That is a reason to decide deliberately, not a reason to follow.*
+
+*Reasoning:* Track 02 (Agent Memory) is arguable but not yet
 earned. Answers persist as `(:Answer)` nodes that `CITED` the real records they came from, and a
 later session gets `ANSWERED_FROM_MEMORY` only when those citations still resolve — so memory
 invalidates itself when the graph moves underneath it. What Track 02 also asks for is agents that
@@ -30,7 +34,10 @@ it.
 ## Description
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
-never a thing you could look up. The rejected option is not a document — it is a 200-word
+never a thing you could look up. (I tried to measure that premise on this corpus and could not
+confirm it — the measurement is in the README, along with the weaker claim that *is* demonstrated:
+a rejected option is not retrievable at all today, so the question cannot be asked by anyone.)
+The rejected option is not a document — it is a 200-word
 subsection buried inside a 4,000-word proposal about something else. It has no identity, so you
 cannot count how often an idea was refused, you cannot ask who refused it, and you cannot find out
 whether anyone who knows why is still around.
@@ -52,8 +59,18 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Every number in the README is re-checked against the live graph by a script that runs in CI, and
-the graph is scored against a text baseline over the same documents: **7/8 versus 2/8**.
+Nothing here is asserted. **20 CI steps on every push** re-check it: 105 tests, 25 graph claims
+re-queried against the live database, 17 rendered UI states checked for panels that render empty,
+the drafting action's own output, the memory claims, both benchmarks re-run, and a job that runs
+the quickstart on a machine that already has a `falkordb` container — the case that used to break
+it. The graph is scored against a text baseline over the same documents: **7/8 versus 2/8**, and
+it loses one of those eight on purpose.
+
+Several claims did not survive that process and are **marked in the README rather than deleted**:
+a benchmark that said FalkorDB computed betweenness 18x faster than networkx (on the real graph it
+is roughly a tie), a multi-tenancy latency curve that did not reproduce on a second run, and the
+project's own opening premise. A page that documents what it got wrong is worth more than one that
+never checked.
 
 ## Links
 
