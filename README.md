@@ -54,6 +54,34 @@ fully public. Every number below is checkable with one `git clone`.
 
 **Jump to:** [what it found](#which-group-is-hollowing-out) · [why a graph](#turn-falkordb-off-and-here-is-exactly-what-stops-working) · [measured vs text search](#does-the-graph-actually-do-work-a-text-search-cannot-measured) · [run it](#quickstart) · [the data model](#the-graph-data-model) · [the Cypher](#the-cypher-this-product-depends-on) · [what I got wrong](#a-correction-i-made-and-why-it-is-in-the-readme)
 
+
+## Every submission requirement, and exactly where it is
+
+No judging criteria are published for this hackathon — I checked both the
+[event page](https://www.wemakedevs.org/hackathons/falkordb) and the
+[rules](https://www.wemakedevs.org/hackathons/falkordb/rules). Rule 10's six-item submission
+checklist is therefore the only published standard that exists, so rather than guess at a rubric,
+here is that checklist with the exact location of each item and an honest status.
+
+| Rule 10 asks for | where it is in this repo | status |
+|---|---|---|
+| A public source-code repository | this repo, Apache-2.0 | **done** |
+| A README with setup instructions and the graph data model | [Quickstart](#quickstart) and [The graph data model](#the-graph-data-model) | **done** |
+| The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — every query generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source** | **done** |
+| A demo video of the working project | `docs/video/walkthrough-silent.mp4` | silent screen walkthrough committed; narrated cut to follow |
+| A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account, tested clean-room from an empty directory on a fresh clone | satisfied via local setup; live deployment in progress |
+| The track you are entering | **Track 3, Company Brain**, stated at the top of this README | **done** |
+
+Two rules beyond the checklist:
+
+- **Rule 11 — disclose AI coding assistant use.** [AI assistance disclosure](#ai-assistance-disclosure).
+- **Rule 8 — the main work must begin after the event starts.** Every commit in this repo was
+  authored on or after 15 October 2026 IST. That is checkable rather than asserted:
+
+  ```bash
+  git log --format='%at' | awk '$1 < 1760466660' | wc -l   # commits before the start; prints 0
+  ```
+
 ## Which *group* is hollowing out?
 
 Individual attrition is a traversal. "Which group is losing its people" is not — because **the
@@ -289,7 +317,7 @@ To enable free-text questions, copy `.env.example` to `.env` and add one key (An
 Gemini or Groq — it auto-detects).
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q     # 37 invariant tests
+PYTHONPATH=src python -m pytest tests/ -q     # 50 invariant tests
 PYTHONPATH=src python verify_claims.py        # re-checks every number in this README
 ```
 
@@ -686,6 +714,12 @@ times. Each fix made the claim narrower and more defensible.
   than real options. The deterministic parser cannot always tell.
 - "No current approver" means *this corpus* records none. People own things informally.
 - The corpus is a snapshot. Re-run `python src/tombstone/snapshot.py` against fresh clones to update.
+- **The counterfactual needs memory headroom to fork.** `GRAPH.COPY` copies the graph in the
+  server process, so on a small box, or when two counterfactuals overlap, it can fail with
+  "could not fork". It retries once, and if it still cannot copy it returns `DEGRADED` saying
+  so. It never reports a number from a copy that did not happen — a counterfactual that
+  answered "0 areas would be left unowned" because the diff was empty would be the worst bug
+  this product could have, so there is a test that drives that exact path.
 
 ## AI assistance disclosure
 

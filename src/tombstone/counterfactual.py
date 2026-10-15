@@ -19,6 +19,37 @@ from __future__ import annotations
 import time
 import uuid
 
+class CopyUnavailable(RuntimeError):
+    """`GRAPH.COPY` could not run -- an environment limit, not a wrong answer.
+
+    GRAPH.COPY forks the server process, so it needs memory headroom roughly equal to the graph.
+    On a loaded machine, or when two counterfactuals overlap, it fails with "could not fork".
+    That is a capacity fact about the host, so it must surface as DEGRADED and never as a number:
+    a counterfactual that silently reported zero newly-stranded areas because the copy failed
+    would be the worst possible bug in this product.
+    """
+
+
+def _copy_with_retry(db, source: str, copy_name: str) -> float:
+    """Copy `source` to `copy_name`, retrying once. Returns seconds taken.
+
+    The retry exists because the common cause of a fork failure is transient: another copy is
+    still resident and about to be dropped. One short wait clears that case. A second failure is
+    treated as real and raised as CopyUnavailable rather than retried into a loop.
+    """
+    last = None
+    for attempt in (0, 1):
+        t0 = time.perf_counter()
+        try:
+            db.connection.execute_command("GRAPH.COPY", source, copy_name)
+            return time.perf_counter() - t0
+        except Exception as e:  # noqa: BLE001 - the driver surfaces fork failures as bare errors
+            last = e
+            if attempt == 0:
+                time.sleep(0.25)
+    raise CopyUnavailable(str(last)[:120])
+
+
 # IMPORTANT: both queries are restricted to areas that HAVE a declared approver list.
 #
 # 19 OWNERS files in Kubernetes declare only `reviewers`, `labels` or `options` and no `approvers`
@@ -82,15 +113,17 @@ class Counterfactual:
         copy_name = f"{self.source}:cf:{uuid.uuid4().hex[:8]}"
         t0 = time.perf_counter()
         try:
-            self.db.connection.execute_command("GRAPH.COPY", self.source, copy_name)
-            t_copy = time.perf_counter() - t0
+            t_copy = _copy_with_retry(self.db, self.source, copy_name)
             cf = self.db.select_graph(copy_name)
             cf.query("MATCH (p:Person)-[r:APPROVES]->() WHERE p.key IN $h DELETE r",
                      params={"h": handles})
             after = set(self._scalar(cf, STRANDED, {"scope": scope}))
-        except Exception as e:
-            # GRAPH.COPY forks, so it needs headroom roughly equal to the graph. Under memory
-            # pressure it fails with "could not fork" -- report that rather than pretend.
+        except CopyUnavailable as e:
+            return {"ok": False, "copy_unavailable": True,
+                    "reason": f"GRAPH.COPY could not run on this host: {e}. The counterfactual "
+                              f"needs a forked copy of the graph, so this is a capacity limit "
+                              f"rather than a result -- no number is reported."}
+        except Exception as e:  # noqa: BLE001
             return {"ok": False, "reason": f"counterfactual could not run: {str(e)[:120]}"}
         finally:
             try:
@@ -135,8 +168,7 @@ class Counterfactual:
         copy_name = f"{self.source}:cf:{uuid.uuid4().hex[:8]}"
         t0 = time.perf_counter()
         try:
-            self.db.connection.execute_command("GRAPH.COPY", self.source, copy_name)
-            t_copy = time.perf_counter() - t0
+            t_copy = _copy_with_retry(self.db, self.source, copy_name)
 
             cf = self.db.select_graph(copy_name)
             cf.query(
@@ -145,6 +177,11 @@ class Counterfactual:
 
             after_uncovered = set(self._scalar(cf, UNCOVERED, {"scope": scope}))
             after_stranded = set(self._scalar(cf, STRANDED, {"scope": scope}))
+        except CopyUnavailable as e:
+            return {"ok": False, "copy_unavailable": True,
+                    "reason": f"GRAPH.COPY could not run on this host: {e}. The counterfactual "
+                              f"needs a forked copy of the graph, so this is a capacity limit "
+                              f"rather than a result -- no number is reported."}
         finally:
             try:
                 self.db.select_graph(copy_name).delete()

@@ -528,6 +528,12 @@ def test_counterfactual_only_counts_areas_that_had_something_to_lose(agent):
     '7 orphaned directories' claim, so the baseline must be ZERO stranded areas.
     """
     a = agent.dispatch("what_if_they_go", {"handles": ["deads2k"]})
+    if a.shape == "DEGRADED" and "GRAPH.COPY could not run" in (a.note or ""):
+        # The host could not fork a copy of the graph. That is a capacity fact about this
+        # machine, not a violated invariant, and it must not be reported as either a pass or a
+        # correctness failure. test_counterfactual_degrades_when_the_host_cannot_fork covers
+        # the behaviour on that path directly.
+        pytest.skip(f"GRAPH.COPY unavailable on this host: {a.note}")
     assert a.shape == "ANSWERED_WITH_PATH"
     _cohort, _stranded, baseline, _ms, _copy = a.rows[0]
     assert baseline == 0, (
@@ -636,3 +642,36 @@ def test_headline_never_contradicts_an_empty_answer(agent):
         bad = agent.dispatch(tool, {"handle": "no-such-person", "path": "no/such/path"})
         assert bad.shape == "UNKNOWN_ENTITY"
         assert headline(bad) is None, "an unresolved entity must not get a headline number"
+
+
+def test_counterfactual_degrades_when_the_host_cannot_fork(agent):
+    """A failed `GRAPH.COPY` must produce DEGRADED, never a number.
+
+    GRAPH.COPY forks the server, so it fails under memory pressure. The dangerous failure is not
+    the error -- it is reporting "0 areas would be left unowned" because the copy never happened
+    and the diff was therefore empty. This drives the real fork-failure path by making the copy
+    command raise, and asserts the answer carries no rows at all.
+
+    One of the two call sites previously had try/finally with no except, so a fork failure
+    propagated out of the request instead of degrading. This locks that shut.
+    """
+    import tombstone.counterfactual as cf
+
+    real = cf._copy_with_retry
+
+    def boom(db, source, copy_name):
+        raise cf.CopyUnavailable("MISC Queue could not fork")
+
+    cf._copy_with_retry = boom
+    try:
+        a = agent.dispatch("what_if_they_go", {"handles": ["deads2k"]})
+    finally:
+        cf._copy_with_retry = real
+
+    assert a.shape == "DEGRADED", f"expected DEGRADED on a failed copy, got {a.shape}"
+    assert not a.rows, f"a failed counterfactual reported rows: {a.rows}"
+    assert "GRAPH.COPY could not run" in (a.note or "")
+    assert "could not fork" in (a.note or "")
+    # and the live graph is still intact afterwards
+    ok = agent.dispatch("what_if_they_go", {"handles": ["deads2k"]})
+    assert ok.shape in ANSWERED or ok.shape == "DEGRADED"
