@@ -186,6 +186,30 @@ def test_no_age_is_rendered_when_the_date_is_missing(agent):
         assert "date not recorded" in out
 
 
+def test_agent_recovers_after_the_database_comes_back():
+    """An instance that starts (or is hit) while FalkorDB is briefly down must not stay broken.
+
+    The agent is cached per process, so without an explicit reconnect a judge clicking during a
+    restart would get a permanently dead site until someone redeployed.
+    """
+    import os
+
+    old = os.environ.get("FALKORDB_PORT")
+    os.environ["FALKORDB_PORT"] = "6399"          # nothing listening
+    try:
+        a = Agent(graph_name=GRAPH)
+        assert a.health()["falkordb"] == "down"
+        assert a.dispatch("orphaned_ownership", {}).shape == "DEGRADED"
+    finally:
+        if old is None:
+            os.environ.pop("FALKORDB_PORT", None)
+        else:
+            os.environ["FALKORDB_PORT"] = old
+    # same agent object, database now reachable again
+    assert a.health()["falkordb"] == "up"
+    assert a.dispatch("orphaned_ownership", {}).shape == "ANSWERED_WITH_PATH"
+
+
 def test_agent_fails_loudly_without_the_database():
     """No in-memory mirror, no cached fallback. With FalkorDB gone the product stops."""
     import os

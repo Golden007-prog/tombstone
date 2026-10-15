@@ -71,9 +71,27 @@ class Agent:
             self._provider = Provider()
         return self._provider
 
+    def _reconnect(self) -> bool:
+        """Try to re-establish a dropped connection.
+
+        Without this, an instance that happened to start while FalkorDB was briefly unavailable
+        would stay broken forever, because the agent is cached per process. A judge clicking
+        during a restart would get a permanently dead site.
+        """
+        try:
+            self.db = connect()
+            self.g = self.db.select_graph(self.graph_name)
+            self.tools = Tools(self.g, self.now_ms)
+            self.connect_error = None
+            return True
+        except Exception as e:
+            self.db = self.g = self.tools = None
+            self.connect_error = str(e)[:200]
+            return False
+
     def health(self) -> dict:
         """Used by the UI's kill switch: is the graph actually there?"""
-        if self.g is None:
+        if self.g is None and not self._reconnect():
             return {"falkordb": "down", "error": self.connect_error or "not connected"}
         try:
             t0 = time.perf_counter()
@@ -81,6 +99,15 @@ class Agent:
             return {"falkordb": "up", "ms": round((time.perf_counter() - t0) * 1000, 2),
                     "graph": self.graph_name}
         except Exception as e:
+            # The socket died after a good start. Try once to pick it back up before reporting down.
+            if self._reconnect():
+                try:
+                    t0 = time.perf_counter()
+                    self.g.ro_query("RETURN 1")
+                    return {"falkordb": "up", "ms": round((time.perf_counter() - t0) * 1000, 2),
+                            "graph": self.graph_name, "reconnected": True}
+                except Exception:
+                    pass
             return {"falkordb": "down", "error": str(e)[:200]}
 
     def dispatch(self, tool: str, args: dict) -> Answer:
@@ -88,10 +115,11 @@ class Agent:
         if tool not in CATALOGUE:
             return Answer("UNKNOWN_ENTITY", tool,
                           note=f"'{tool}' is not a tool in this catalogue. Nothing was run.")
-        if self.tools is None:
+        if self.tools is None and not self._reconnect():
             return Answer("DEGRADED", tool,
                           note="FalkorDB is unreachable, so there is nothing to reason over. "
-                               "There is no fallback by design.")
+                               "There is no fallback by design — no in-memory mirror, no cached "
+                               "answers.")
         try:
             if tool == "has_this_been_tried":
                 text = args.get("idea_text") or args.get("text") or ""
@@ -112,7 +140,20 @@ class Agent:
                 return self.tools.who_owns(args.get("path", ""), depth=int(args.get("depth", 4)))
         except Exception as e:
             # Fail loudly. No cached answer, no in-memory mirror.
-            return Answer("DEGRADED", tool, note=f"The graph query could not complete: {str(e)[:250]}")
+            msg = str(e)
+            unreachable = any(
+                t in msg.lower()
+                for t in ("connection refused", "connection error", "timeout", "connection reset",
+                          "cannot connect", "error 61", "broken pipe")
+            )
+            if unreachable:
+                return Answer(
+                    "DEGRADED", tool,
+                    note="FalkorDB is unreachable, so there is nothing to reason over. "
+                         "There is no fallback by design — no in-memory mirror, no cached answers. "
+                         f"({msg[:90]})",
+                )
+            return Answer("DEGRADED", tool, note=f"The graph query could not complete: {msg[:220]}")
         return Answer("UNKNOWN_ENTITY", tool, note="Tool matched no handler.")
 
     def ask(self, question: str) -> dict:
