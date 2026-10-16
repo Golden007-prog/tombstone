@@ -92,11 +92,30 @@ for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md", "docs/BLOG-POST
     for _l in sorted(set(_re.findall(r"\]\(#([a-z0-9\-]+)\)", _t))):
         if _l not in _heads:
             _anchor_problems.append(f"{_doc}: link to #{_l} matches no heading")
+# Relative file links too. Same failure as a bad anchor and easier to cause: three helpers came
+# out of graphkit tonight and a dead method out of tools.py, any of which a document could have
+# been pointing at. None was, but nothing would have said so.
+import pathlib as _pathlib
+
+_rel_total = 0
+for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md", "docs/BLOG-POST.md",
+             "docs/video/README.md", "deploy/README-hf-space.md", "docs/GROUND-TRUTH.md"):
+    _p = _pathlib.Path(_doc)
+    if not _p.exists():
+        continue
+    for _l in _re.findall(r"\]\(([^)#][^)]*)\)", _p.read_text()):
+        if _l.startswith(("http://", "https://", "mailto:", "#")):
+            continue
+        _rel_total += 1
+        if not (_p.parent / _l.split("#")[0]).resolve().exists():
+            _anchor_problems.append(f"{_doc}: links to {_l}, which does not exist")
+
 if _anchor_problems:
     print()
-    for _p in _anchor_problems:
-        print(f"  FAIL  {_p}")
+    for _p2 in _anchor_problems:
+        print(f"  FAIL  {_p2}")
     raise SystemExit(1)
-print("  every internal anchor points at a heading that exists")
+print(f"  every internal anchor points at a heading that exists, and all {_rel_total} "
+      f"relative links resolve")
 
 sys.exit(1 if fails else 0)
