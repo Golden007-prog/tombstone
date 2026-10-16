@@ -139,6 +139,11 @@ def _check_stated_count() -> int:
     want, bad = len(CLAIMS), 0
     docs = [d for d in _subp.run(["git", "ls-files", "*.md"], capture_output=True,
                                  text=True).stdout.split() if os.path.exists(d)]
+    # The walkthrough's closing card now states this count too -- it used to make a vague claim
+    # about "numbers" and was corrected to name a figure, which is better prose and a new thing
+    # to keep in step. A viewer reads that card; it belongs in the same sweep as the documents.
+    if os.path.exists("scripts_build_walkthrough.py"):
+        docs.append("scripts_build_walkthrough.py")
     seen = 0
     for doc in docs:
         text = open(doc).read()

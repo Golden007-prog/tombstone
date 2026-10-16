@@ -196,7 +196,12 @@ opening = card(os.path.join(work, "open.mp4"), 4, [
     ("Asked as a graph, over the real Kubernetes governance record.", 24),
 ])
 closing = card(os.path.join(work, "close.mp4"), 5, [
-    ("Numbers re-checked against the live graph on every push.", 26),
+    # Was "Numbers re-checked against the live graph on every push." -- a universal claim
+    # about "numbers" on the last frame a viewer sees, and three of the five benchmarks
+    # are dated measurements rather than gates. This repo has a checker whose entire job
+    # is banning that sentence shape, and it scans six markdown files, so the one place
+    # the claim survived was the video. Counted instead of generalised.
+    ("31 graph claims re-checked against the live graph on every push.", 25),
     ("github.com/aviralgarg05/tombstone", 30),
     ("Graph Hacks 2026 - Track 3, Company Brain", 22),
 ])

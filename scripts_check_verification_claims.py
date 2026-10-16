@@ -27,12 +27,26 @@ import re
 import sys
 
 DOCS = ["README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md", "docs/BLOG-POST.md",
-        "docs/video/README.md", "deploy/README-hf-space.md"]
+        "docs/video/README.md", "deploy/README-hf-space.md",
+        # Not a document, but it holds the video's title and closing cards -- text a
+        # viewer reads, in a file no prose checker was looking at.
+        "scripts_build_walkthrough.py"]
 
 # A universal quantifier within a few words of a verification verb.
 QUANT = r"(every|each|all)\s+(?:single\s+)?(number|claim|figure|benchmark|fact|statement|metric)s?"
 VERB = r"(check|re-?check|verif|assert|re-?run|re-?quer|guarantee|gated)"
 BAD = re.compile(rf"{QUANT}\b[^.]{{0,60}}?\b{VERB}|{VERB}[a-z]*\b[^.]{{0,40}}?\b{QUANT}", re.I)
+
+# A bare plural subject makes the same claim without the quantifier, and the rule above
+# cannot see it: the video's closing card read "Numbers re-checked against the live graph
+# on every push", where "every" attaches to "push" and the sweep over nouns finds nothing.
+# Three of the five benchmarks are dated measurements, so that sentence was the one place
+# in the project still making the claim this file exists to stop -- on the last frame a
+# viewer sees.
+# `[^A-Za-z]{0,4}` because in the walkthrough builder the sentence is a Python string, so the
+# stripped line begins `("` rather than with the word.
+BARE = re.compile(rf"^[^A-Za-z]{{0,4}}(numbers|claims|figures|benchmarks|facts|metrics)"
+                  rf"\b[^.]{{0,40}}?\b{VERB}", re.I)
 
 # Sentences that describe the mistake rather than make it. Each is a correction this repo wrote
 # about itself, and refusing them would mean refusing to document the thing being prevented.
@@ -59,19 +73,23 @@ def main() -> int:
             text = line.strip()
             if len(text) < 20:
                 continue
-            m = BAD.search(text)
+            m = BAD.search(text) or BARE.search(text)
             if not m or ALLOWED.search(text):
                 continue
-            # A match sitting inside quotation marks is this repository quoting a sentence it
-            # already corrected. Refusing those would make it impossible to write down what the
-            # mistake was, which is most of the value of having found it.
-            if any(m.group(0)[:20] in q for q in re.findall(r'"([^"]{10,160})"', text)):
+            # A match inside quotation marks in PROSE is this repository quoting a sentence it
+            # already corrected, and refusing those would make it impossible to write down what
+            # the mistake was. In a .py file the same quotes mean the opposite: the string IS the
+            # text a viewer reads. Applying the prose rule there would have excused the video's
+            # closing card, which is the one place this claim survived.
+            quoted_is_a_quotation = not doc.endswith(".py")
+            if quoted_is_a_quotation and any(
+                    m.group(0)[:20] in q for q in re.findall(r'"([^"]{10,160})"', text)):
                 continue
-            if True:
-                hits.append((doc, lineno, m.group(0)[:60], text[:96]))
+            hits.append((doc, lineno, m.group(0)[:60], text[:96]))
 
     if hits:
-        print(f"{len(hits)} universal claim(s) about verification:\n")
+        print(f"{len(hits)} universal "
+              f"{'claim' if len(hits) == 1 else 'claims'} about verification:\n")
         for doc, lineno, frag, text in hits:
             print(f"  {doc}:{lineno}")
             print(f"      matched: {frag!r}")
