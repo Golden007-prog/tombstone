@@ -85,6 +85,20 @@ on the next visit — which the fast boot makes tolerable.
 and `healthCheckPath` all current, nothing deprecated. The container's entrypoint binds
 `${PORT:-8099}`, so it honours the port Render injects rather than hard-coding one.
 
+**Exact steps, and the one that is easy to miss.** Render's docs say it "looks for `render.yaml`
+at the repository root by default" and that you "can define your Blueprint file anywhere" by
+setting the **Blueprint Path** field. This file is at `deploy/render.yaml`, *not* the root, so
+leaving that field empty gives you a blueprint-not-found error rather than a deploy:
+
+1. [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**
+2. Connect this GitHub repository
+3. Set **Blueprint Path** to `deploy/render.yaml` ← the step that is easy to miss
+4. Apply. First build takes a few minutes on 0.1 CPU; `healthCheckPath` is `/api/health`,
+   which only answers once FalkorDB is up and the graph is seeded, so a green health check means
+   the graph really built.
+
+No token is handled anywhere in that flow — it is a browser and your own account throughout.
+
 Two caveats, and they are the reason this is the fallback rather than the plan. Free web services
 **spin down after 15 minutes** of no traffic and take ~1 minute to wake, so a judge's first click
 can hit a blank page — acceptable only if the submission says so. And the free plan is **0.1 CPU
