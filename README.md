@@ -1291,6 +1291,32 @@ times. Each fix made the claim narrower and more defensible.
 
 ## Honest limits
 
+- **The co-authorship projection is directional, so betweenness is computed over a handle-ordered
+  graph.** The projection is printed verbatim in the schema section above, `WHERE a.key < b.key`
+  and all: it writes exactly one `CO_AUTHORED` edge per collaborating pair, always from the
+  lexicographically smaller GitHub handle to the larger. Co-authorship is symmetric; that storage
+  is not. Whether it matters depends on whether `algo.betweenness` follows edge direction, and
+  **FalkorDB does not document that** — the parameter table lists only `nodeLabels`,
+  `relationshipTypes`, `samplingSize` and `samplingSeed`. So it was derived from the vendor's own
+  worked example rather than guessed. Their published sample is `a->b, b->c, b->d, c->e, d->e`
+  scoring **Bob 6, Charlie 2, David 2, Alice 0, Emma 0**. Brandes over that graph *directed* gives
+  b=3, c=1, d=1, a=0, e=0 — the published row exactly, doubled. *Undirected* gives b=3.5 and
+  e=0.5, i.e. Bob 7 and Emma 1, contradicting two of their five numbers. Directed matches five of
+  five; undirected fails two. Their harmonic-centrality page says it outright for that procedure —
+  *"the algorithm treats the graph as directed"* — and PageRank's says the same.
+  So: betweenness here ranks over a DAG whose topological order is handle-sort order, which biases
+  against anyone whose handle sorts at either extreme among their own collaborators — they can
+  only ever be a source or a sink, never an intermediary. **Two things that does not do.** It does
+  not explain the finding this page leads with: `logicalhan` at 156.46 above `lavalamp` at 115.97,
+  when those two handles are adjacent in sort order and `lavalamp` sorts *earlier*, so the bias
+  predicts the opposite ordering. And it does not make `labelPropagation` degenerate — there is a
+  test requiring real communities of five or more with attrition ordered, and it passes.
+  **What I did not do is fix it,** and that is a judgement rather than an oversight. Making the
+  projection symmetric doubles its edges, which moves the 5,879 that `verify_claims.py` re-derives
+  on every push and every number downstream of it, two days from the deadline. Writing the
+  limitation down costs nothing and is checkable; re-deriving the graph to improve a metric nothing
+  else depends on is the kind of change that breaks four other things at 11pm.
+
 - **Every figure on this page is a desktop capture, and they are illegible on a phone.** Measured
   rather than assumed, by serving each one the way GitHub serves a README image and driving it at
   375×812. A phone gives an image 343px after gutters, so: `drafted-patch.png` and
@@ -1438,8 +1464,11 @@ times. Each fix made the claim narrower and more defensible.
   *serial* peak stays under 512 MB, so a serial regression still fails there rather than as a
   crash on the demo. It
   retries once, and if it still cannot copy it returns `DEGRADED` saying so — which is not
-  theoretical: **six counterfactuals fired at once into a 512 MB container answered five and
-  degraded one, with no errors, no hung requests and no OOM.** Judges share links, so concurrent
+  theoretical: **six counterfactuals fired at once answered five and degraded one, with no errors
+  and no hung requests** — in the 2 GB container, which is the size the burst needs and the reason
+  the check gives it 2 GB. An earlier version of this sentence said "into a 512 MB container …
+  and no OOM", which contradicted the measurement three lines above it: 512 MB is the *serial*
+  ceiling asserted after the serial checks, not the size the concurrency burst runs in. Judges share links, so concurrent
   use of one container is the normal case, and that is the behaviour it was built for. It never reports a number from a copy that did not happen — a counterfactual that
   answered "0 areas would be left unowned" because the diff was empty would be the worst bug
   this product could have, so there is a test that drives that exact path.
@@ -1450,12 +1479,14 @@ Built with AI coding assistance, as the rules permit and require disclosing.
 
 The graph model, the tool boundaries, every Cypher query, the benchmark methodology and the
 engineering decisions are mine. Every performance number here comes from a committed script I ran
-and can re-run. There are six, named rather than gestured at, because this sentence used to send
-you to `spikes/` for all of them and that is where the two that matter most are not. At the
+and can re-run. There are seven, named rather than gestured at, because this sentence used to
+send you to `spikes/` for all of them and that is where the ones that matter most are not. At the
 repository root: [`bench_vs_networkx.py`](bench_vs_networkx.py) for the comparison table above,
-[`bench_copy.py`](bench_copy.py) for the `GRAPH.COPY` timing, and
+[`bench_copy.py`](bench_copy.py) for the `GRAPH.COPY` timing,
 [`bench_memory_growth.py`](bench_memory_growth.py) for what the agent's memory costs per stored
-answer. Under [`spikes/`](spikes), the longer-running three: `tenancy_bench.py` builds a thousand
+answer, and [`bench_index_scope.py`](bench_index_scope.py) for what a second vector index over the
+excluded alternatives would cost and score. That last one is why this said "six" until now: it
+landed on 16 Oct and two of the three places that count benchmarks were not updated with it. Under [`spikes/`](spikes), the longer-running three: `tenancy_bench.py` builds a thousand
 graphs, `edgebench.py` probes edge-creation rates with and without an index, and `bench.py`
 measures ingest throughput and concurrent reads. Where a research agent's figure disagreed with my own parse, **my parse
 is used and the discrepancy is recorded** — the `OWNERS_ALIASES` correction in

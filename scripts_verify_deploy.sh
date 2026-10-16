@@ -185,7 +185,7 @@ PY
 peak="$(docker stats --no-stream --format '{{.MemUsage}}' "$IMG" 2>/dev/null)"
 echo "  peak with six concurrent copies: $peak"
 if docker inspect "$IMG" --format '{{.State.OOMKilled}}' 2>/dev/null | grep -q true; then
-  echo "FAIL: the container was OOM-killed inside 512MB"
+  echo "FAIL: the container was OOM-killed inside the 2GB it was given"
   exit 1
 fi
 

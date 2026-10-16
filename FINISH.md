@@ -155,7 +155,7 @@ the last thing in your calendar for this, and there is no reason to stay up past
 
 For what it is worth on the way in: Track 3's prize is an M6 Mac Mini, the best-blog-post side
 prize is one winner, and the top 50 submissions each get a t-shirt per member — which, in a field
-of 85 Track 3 entries alone, makes the blog post the cheapest additional shot at something.
+of 99 Track 3 entries alone, makes the blog post the cheapest additional shot at something.
 
 ---
 

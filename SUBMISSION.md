@@ -23,7 +23,7 @@ The decisions your org already made and forgot. Asked as a graph.
 
 ## If the form caps the description
 
-*Nobody can see the form's fields until you are registered, and the Description below is 3654 characters. These are the same pitch at two shorter lengths so a character limit is a paste, not a rewrite at 11pm.*
+*Nobody can see the form's fields until you are registered, and the Description below is 3725 characters. These are the same pitch at two shorter lengths so a character limit is a paste, not a rewrite at 11pm.*
 
 **~273 characters:**
 
@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 134 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 134 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -46,8 +46,8 @@ That line is the whole answer; everything below it is for your decision, not for
 ---
 
 *Second track, if entering more than one.* The field as of 16 Oct, from public repositories
-rather than from a gallery — there is none. **123 repositories created since 14 Oct mention
-FalkorDB and 85 are Track 3 entries**, counted by `scripts_survey_field.py` rather than by hand;
+rather than from a gallery — there is none. **141 repositories created since 14 Oct mention
+FalkorDB and 99 are Track 3 entries**, counted by `scripts_survey_field.py` rather than by hand;
 the three below were read closely, and the census of the twenty largest is further down:
 
 | entry | what it is | tracks |
@@ -56,7 +56,7 @@ the three below were read closely, and the census of the twenty largest is furth
 | `Vaibhaav-Tiwari/lineage` | truth maintenance: when a decision reverses, the answers and beliefs built on it are struck through and actions blocked. 745 PEPs plus forum threads and commits since 2015 | two |
 | `StarKnightt/threadline` | 3D replay of every traversal, a verifier agent that path-checks each citation, 60-question eval | all three |
 | `kh-bikash/cairn` | **the closest competitor.** Live, no sign-up. Two workspaces on two FalkorDB graphs: 13 real FalkorDB-org repositories, and a fictional 24-person company in real Slack/Jira/ADR export formats. Betweenness and label propagation, drift detection, rejected alternatives with verbatim quotes, MCP, and a **four-system eval** — graph agent, graph-with-no-AI, dense vector RAG, keyword RAG — graded twice, automatically and by a second model | two |
-| `Prashant-thakur77/Faultline` | "no path, no claim": the model suggests, a read-only query decides. Live demo, hosted MCP with a public read-only key, a GitHub Pages replay that needs no backend, a v1.0.0 release, **a narrated 4:24 video already published**, and a real pull request merged after two-step approval | T1 primary, T3 secondary |
+| `Prashant-thakur77/Faultline` **(now 404 — read 16 Oct while live, unverifiable since)** | "no path, no claim": the model suggests, a read-only query decides. Live demo, hosted MCP with a public read-only key, a GitHub Pages replay that needs no backend, a v1.0.0 release, **a narrated 4:24 video already published**, and a real pull request merged after two-step approval | T1 primary, T3 secondary |
 | `srinjoy356/keystone` | public codebase history as a graph; every answer shows its subgraph and exact Cypher, and each quoted decision is checked against its source text by code. FalkorDB Cloud + Vercel, and a real issue opened after human approval | all three |
 
 **Three of the four serious Track 3 builds use invented data; one does not, and it is the one to
@@ -73,7 +73,7 @@ since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15
 tests to 134.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not — and there is now a number for that rather
-than a caution: **5 of the 20 largest Track 3 entries name a specific real public corpus** in
+than a caution: **6 of the 20 largest Track 3 entries name a specific real public corpus** in
 their README (`cairn`, `lineage`, this one, `decision-brain`, `Onix`), and two of those five are
 also on Kubernetes. Real data is the rarer choice, which is worth saying plainly, but it is not
 this entry's private territory, and claiming otherwise to a judge who has read `cairn` would be
@@ -85,22 +85,41 @@ field, and `acme`, which usually appears inside a sentence *refusing* to invent 
 including this repository's own README, which the first run therefore filed as synthetic. A
 pattern keyed on a word instead of a meaning, for the third time in two days.
 
-What is actually distinctive is narrower and survives the comparison. Kubernetes publishes
-`emeritus_approvers`: an explicit, maintained record of who stepped back, which is what every
-finding here is built on. lineage discloses the opposite in its own weaknesses — *"Listed owners
-are known only for today"* — so it has the decisions and the people without the attrition. That is
-the gap this corpus was chosen for, and it is the one claim worth making about it.
+Why this corpus was the right choice is narrower than "nobody else has it", and the two are worth
+separating. Kubernetes publishes `emeritus_approvers`: an explicit, maintained record of who
+stepped back, which is what every finding here is built on. lineage discloses the opposite in its
+own weaknesses — *"Listed owners are known only for today"* — so it has the decisions and the
+people without the attrition. That is the gap this corpus was chosen for, and that part still
+holds.
 
-**No other entry found is using this corpus.** Three GitHub searches — for `emeritus_approvers`,
-for FalkorDB entries mentioning OWNERS files, and for Kubernetes enhancements plus KEP — return
-only this repository. The others each chose their own: threadline reads the FalkorDB org's GitHub
-history, orion a synthetic company of people, teams, systems and customers, lineage the Python
-PEPs and the forum threads behind them. That matters for one reason worth saying out loud in the
-submission: **Kubernetes is the only one of those where the organisation publishes its own
-attrition.** `emeritus_approvers` is a field a real project maintains about people who stepped
-back, and the whole product is built on reading it. A synthetic company cannot have that, and a
-repository's commit history only implies it. (Searches are evidence of absence only to the extent
-GitHub's index is complete, and entries can be private until submission.)
+**An earlier version of this page said "no other entry found is using this corpus." That is no
+longer true, and the entry that falsifies it is the closest competitor in the field.**
+`BalajiReddy1/understudy`, pushed the morning of 16 Oct, describes itself as modelling
+"Kubernetes as a company in FalkorDB" and checking "who could actually step in if someone left" —
+this project's thesis in one sentence. It is not a surface resemblance. Its tree carries
+`ingest/owners.py`, `ingest/keps.py` and `derive/departures.py`, and that last file's own
+docstring reads *"Departures: approvers who left, read from OWNERS history… a handle newly appears
+in `emeritus_approvers` in an OWNERS file."* Same field, same files. On one axis it goes further
+than this does: it diffs OWNERS across git history to date each departure and record the person's
+last activity before it, so it knows *when* the project lost someone. This reads current state and
+does not. It also carries nineteen test modules, an MCP server, an agent loop with memory and
+trace, a fixes engine and a networkx cross-check.
+
+So, honestly, what is left: the corpus is shared, the attrition signal is shared, and what differs
+is what gets done with them. From its tree, understudy has no web surface, no rendered figures and
+no reachable demo. This has an answer surface where every reply carries its Cypher, that query's
+hash and the arguments it was answered with; a drawn path a judge can read without running
+anything; a graph-versus-text evaluation over the same documents (24/25 against 9/25 for TF-IDF
+and 10/25 for dense retrieval); 36 claims re-derived against the live database on every push; and
+a counterfactual that forks the graph with `GRAPH.COPY`. Those are the claims to defend. "Only
+entry on this corpus" is not one of them any more — and finding that out from a stranger's
+repository two days before the deadline is a great deal cheaper than having a judge find it.
+
+The others each chose their own: threadline reads the FalkorDB org's GitHub history, orion a
+synthetic company of people, teams, systems and customers, lineage the Python PEPs and the forum
+threads behind them. `cairn` and `bibek198/decision-brain` also name Kubernetes in their READMEs.
+(Searches are evidence of absence only to the extent GitHub's index is complete, and entries can
+be private until they are submitted — which is precisely how this claim came to be wrong.)
 
 Two more Track 3 entries have appeared since: `volfiros/axon-brain`, which stores access rules in
 the graph and filters every query before anything reaches the model, and `rossycoder/dealership-brain`,
@@ -110,25 +129,32 @@ Read their READMEs rather than run them, so the feature claims are what they cla
 do — but the deployments I did check, by request rather than by reading.
 
 **That hand-made list of eight was wrong by an order of magnitude, and it is worth saying how.**
-Re-counted with [`scripts_survey_field.py`](scripts_survey_field.py) on 16 Oct: **123
-repositories created since 14 Oct mention FalkorDB, and 85 of them are Track 3 / company-brain
-entries.** Not eight. `RISHIK92/company-brain`, which the earlier sweep called substantial, now
+Re-counted with [`scripts_survey_field.py`](scripts_survey_field.py), re-run on 16 Oct as this
+was being written: **141 repositories created since 14 Oct mention FalkorDB, and 99 of them are
+Track 3 / company-brain entries.** An earlier run the same day said 123 and 85; the field grew by
+fourteen entries in an afternoon, which is the best argument there is for re-running the script
+rather than quoting it. Not eight. `RISHIK92/company-brain`, which the earlier sweep called substantial, now
 returns 404 — gone or made private — so one of the eight cannot even be checked any more.
 
-Of the **20 largest, 6 serve a reachable demo**: `Faultline`, `cairn`, `keystone`, `threadline`,
-`lore` and `orion`. This repository is **8th of 85 by size**, and is not one of the six.
+Of the **20 largest, 7 serve a reachable demo**: `cairn`, `keystone`, `decisiondebt`,
+`threadline`, `lore`, `orion` and `OpsRelay`. This repository is **9th of 99 by size**, and is not
+one of the seven. An earlier version of this line listed `Faultline` among them — it was read when
+it was live, but `Prashant-thakur77/Faultline` now returns 404, and it never came out of the
+script's own three queries, so a hand-read entry was being presented as scripted output. Both
+faults are the same fault: a list the page invites you to reproduce has to be the list the script
+actually prints.
 
 The count has two deliberate cautions, because getting it wrong once was enough. It looks for a
 demo in the README as well as the `homepage` field — three of the fifteen largest link one only
 in their README, so counting `homepage` alone undercounts and reporting that as the deployment
 rate would be exactly the sort of flattering error this page keeps catching. And it reports a
-census of the twenty largest rather than a rate over all 85, because a rate over repositories you
+census of the twenty largest rather than a rate over all 99, because a rate over repositories you
 have actually opened is honest and one extrapolated from a sample is not. Two of the six also
 time out under Python's default headers and answer 200 to `curl`; reporting a live competitor as
 dead would have been the convenient mistake.
 
-**A sharper reading of the same census.** Across all 85 the deployment rate is low, but that
-average flattens the part that matters. The three entries read closely here — `cairn`, `Faultline`,
+**A sharper reading of the same census.** Across all 99 the deployment rate is low, but that
+average flattens the part that matters. The three entries read closely here — `cairn`, `Faultline` (since 404),
 `keystone` — are **all three deployed**, all three enter more than one track, and one of them has
 its narrated video already published and a v1.0.0 release tagged. At the top of this field a live
 link is not a differentiator, it is the entry fee; the differentiator is further in. So the
@@ -145,7 +171,7 @@ links, not that the field is ahead.
 Two things follow that are worth acting on. **Multi-track entry is normal here**, so entering one
 track is a choice and should be a reasoned one. And the live demo is still the clearest gap in
 this submission — not because the field is ahead, which the census above shows it is not, but
-because a judge with 85 entries to get through clicks links, and six of the twenty largest give
+because a judge with 99 entries to get through clicks links, and seven of the twenty largest give
 them one. Note what a deployment does *not* settle: orion's demo company is explicitly synthetic,
 dealership-brain's is a fictional dealership. Being deployed and being checkable are different
 claims, and this entry has the second without the first.*
@@ -164,7 +190,9 @@ alias), the strongest-looking case never becomes a candidate because it is vendo
 in the Cypher, and both drafts sit in `docs/patches/` so a judge
 can read them without running anything. The README leads on it. But the entries leading that
 track *execute*: `Faultline` merged a real pull request on its own demo-infra repository after a
-two-step approval and verified it APPLIED; `keystone` opened a real issue on a sandbox repo. This
+two-step approval and verified it APPLIED — that repository has since gone 404, so take it as read
+while live and no longer checkable; `keystone` opened a real issue on a sandbox repo, and that one
+still stands. This
 drafts a patch and deliberately stops, which is the right product decision and the weaker
 submission on an "acts" axis. Entering 01 would invite exactly the comparison the paragraph below
 refuses for 02, against an entry that also already has its narrated video released.
@@ -206,15 +234,15 @@ anywhere, and every draft is addressed to a human with both readings of the evid
 there is a test that walks the AST and fails if the drafting path imports a network module. It
 finds places where the project's own record contradicts itself — someone recorded as having stepped back from several areas while one other
 file still lists them as an active approver — and drafts the OWNERS patch that fixes it. The part
-worth looking at is what it refuses to draft: the strongest-looking candidate in the whole corpus
-is excluded because that file is vendored from another repository, and a second is refused because
-the person's handle is not in the file at all — an alias expands to them, so no edit to that file
-would remove them.
+worth looking at is what it does not draft: the strongest-looking candidate never becomes a candidate at all, because that file is
+vendored from another repository and the exclusion lives in the Cypher; the one it does
+refuse is refused because the person's handle is not in the file at all — an alias expands
+to them, so no edit to that file would remove them.
 
 Nothing here is asserted. **33 CI steps on every push** re-check it: 134 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
-other four build a thousand graphs, millions of edges or a memory curve, so they are dated measurements with
+other five build a thousand graphs, millions of edges, a memory curve or a second vector index, so they are dated measurements with
 committed scripts rather than gates, and the README says which is which — and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
 it. The graph is scored against two baselines over the same documents — **24/25, against 9/25 for
@@ -412,8 +440,8 @@ argued: six simultaneous `GRAPH.COPY` requests give five answered and one degrad
       every rendered answer state, the README's printed output, the demo script's facts and
       timing, both benchmarks, and whether the page still renders on GitHub
 - [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a
-      512 MB container exactly as a Space does, then checks it answers, forks, embeds in an
-      iframe and survives concurrent use
+      container, asserts the serial peak stays under a 512 MB ceiling, then checks it answers,
+      forks, embeds in an iframe and survives concurrent use
 - [ ] `export HF_TOKEN=hf_...` then `./deploy_hf.sh` — it sets the repo homepage, writes the live
       URL into this file, and arms the keep-awake workflow by itself
 - [ ] Open the Space **in a private window** and click chip 1, to confirm it works for someone who

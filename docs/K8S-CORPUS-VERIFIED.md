@@ -112,7 +112,7 @@ Edges: 4393 WORKED_ON, 989 APPROVES, 684 OWNED_BY, 298 WAS_APPROVER, 300 lineage
   pointers = 18.9%**, slightly better than my earlier 74/20.0%. Quote 18.9% / "70 of 370".
 
 ## Person<->Person CO_AUTHORED projection — fixes the degenerate-algorithm problem
-Built from 3,576 WORKED_ON edges over 684 KEPs -> **5,894 co-author pairs** (weight = shared KEPs).
+Built from 3,576 WORKED_ON edges over 684 KEPs -> **5,879 co-author pairs** (weight = shared KEPs).
 Projection build: 0.14s total. Now every algorithm is meaningful:
 
 | algorithm | time | top results |
@@ -221,7 +221,7 @@ rendered as "55y ago" because an unparsed date became epoch 0. Both now excluded
 | Sig | 23 |
 | -[:APPROVES]-> | 2,584 |
 | -[:EMERITUS_OF]-> | 298 |
-| -[:CO_AUTHORED]-> | 5,894 (computed in Cypher, 95ms) |
+| -[:CO_AUTHORED]-> | 5,879 (computed in Cypher, 95ms) |
 | lineage resolved / broken | 300 / 70 |
 
 Remaining date gaps: **8 of 679** KEPs have no usable `creation-date` — 3 omit the field entirely,

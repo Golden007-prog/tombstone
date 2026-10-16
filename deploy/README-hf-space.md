@@ -21,9 +21,10 @@ governance record**, not an invented company. 681 decisions, 958 rejected altern
 
 **It does not only answer — it acts.** It finds places where the project's own record contradicts
 itself and drafts the `OWNERS` patch that fixes them. The part worth looking at is what it
-*refuses* to draft: the strongest-looking candidate in the whole corpus is excluded because that
-file is vendored from another repository, and a second is refused because the person's handle is
-not in the file at all — an alias expands to them, so no edit to that file would remove them.
+does not draft: the strongest-looking candidate never becomes a candidate at all, because that file is
+vendored from another repository and the exclusion lives in the Cypher; the one it does
+refuse is refused because the person's handle is not in the file at all — an alias expands
+to them, so no edit to that file would remove them.
 
 **No sign-up and no API key.** The buttons call the tools directly, and typed questions work too:
 with no key configured they are routed locally by meaning against a fixed catalogue, then answered

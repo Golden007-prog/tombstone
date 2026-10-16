@@ -184,8 +184,12 @@ that depends on all of it being the same graph.
 Writes are small and there are only two kinds. Every answered question becomes one
 `MERGE (a:Answer {qid})` plus a `MERGE` per citation, so re-asking is idempotent by construction
 rather than by checking first. The corpus itself is never written at runtime: `build()` drops and
-reseeds the graph in about six seconds from a committed snapshot, which is why a restart needs no
-restore and nothing can be half-migrated.
+reseeds the graph from a committed snapshot, which is why a restart needs no restore and nothing
+can be half-migrated. **~1.1s** against a FalkorDB that is already up, which is the local case and
+the figure the comparison table in the README uses; **6.1s** cold inside the container, where the
+server is starting at the same time; **2.26s** in the container running as UID 1000. This answer
+used to say "about six seconds" flat, which quoted the container figure at someone asking about a
+restart and disagreed with the README by five and a half times.
 
 Concurrency was measured rather than reasoned about, and it is the one place this product has a
 hard edge: `GRAPH.COPY` forks the server process, so each in-flight counterfactual needs headroom
