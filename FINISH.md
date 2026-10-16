@@ -13,7 +13,7 @@ export HF_TOKEN=hf_xxxxxxxxxxxx      # huggingface.co/settings/tokens -> New tok
 ```
 
 The script creates the Space, swaps in the Space README (Spaces reads config from its own
-front-matter, not this repo's) and uploads 57 files / 1.4 MB. First build takes a few minutes;
+front-matter, not this repo's) and uploads 90 files / 3.0 MB. First build takes a few minutes;
 after that it boots in seconds.
 
 **Then verify it the way a judge will** — different network, private window, no sign-in:
@@ -52,9 +52,12 @@ fall back to a container.
 Upload unlisted to YouTube, and set **"Not for Kids"** — that setting is what blocks judges from
 viewing. Then open the link in a private window and confirm it plays.
 
-## 3. Publish the blog post (~30 min)
+## 3. Publish the blog post (~45 min, most of it reading)
 
-`docs/BLOG-POST.md` is finished, ~1,750 words. Publish to **dev.to**, tagged `falkordb` and
+`docs/BLOG-POST.md` is finished, ~4,200 words — long enough that the read-through is most
+of the 45 minutes, and worth doing, because it goes out under your name to people who
+cannot run anything. Its factual claims are re-checked against the live graph by
+`verify_blog.py`, which runs in `./preflight.sh`. Publish to **dev.to**, tagged `falkordb` and
 `graphhacks`. Add the live Space link and `docs/img/path.svg` as the header image.
 
 This is the least contested prize on the board — the validators found exactly one published

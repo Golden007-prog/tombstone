@@ -158,6 +158,41 @@ if not _seen_steps:
 else:
     checked += _seen_steps
     print(f"  the workflow has {_steps} steps, stated {_seen_steps}x across the documents")
+
+# What the deploy actually ships. FINISH.md tells you so you know what to expect while watching
+# it upload, and it said 57 files / 1.4 MB for what is now 90 files / 3.1 MB -- the repo grew and
+# the sentence did not. Computed the way deploy_hf.sh builds its upload, `git archive HEAD` plus
+# the Space README swapped in, so this cannot drift from what that script does without the script
+# changing too.
+import os as _os
+import shutil as _sh
+import tempfile as _tf
+_stage = _tf.mkdtemp(prefix="deploycount-")
+try:
+    _tar = _subp.run(["git", "archive", "HEAD"], capture_output=True)
+    _subp.run(["tar", "-x", "-C", _stage], input=_tar.stdout, capture_output=True)
+    _sh.copy("deploy/README-hf-space.md", _os.path.join(_stage, "README.md"))
+    _n_files, _bytes = 0, 0
+    for _root, _dirs, _names in _os.walk(_stage):
+        for _nm in _names:
+            _n_files += 1
+            _bytes += _os.path.getsize(_os.path.join(_root, _nm))
+    _mb = _bytes / 1_000_000
+    _said = re.search(r"uploads (\d+) files / ([\d.]+) MB", open("FINISH.md").read())
+    if not _said:
+        problems.append("FINISH.md no longer says what the deploy uploads")
+    else:
+        _sf, _sm = int(_said.group(1)), float(_said.group(2))
+        if _sf != _n_files:
+            problems.append(f"FINISH.md says the deploy uploads {_sf} files; it uploads {_n_files}")
+        elif abs(_sm - _mb) > 0.15:
+            problems.append(f"FINISH.md says {_sm} MB; the staged upload is {_mb:.1f} MB")
+        else:
+            checked += 1
+            print(f"  the deploy uploads {_n_files} files / {_mb:.1f} MB and FINISH.md says so")
+finally:
+    _sh.rmtree(_stage, ignore_errors=True)
+
 # The test count and the rendered-state count each appear in more than one document, and the
 # README states the test count TWICE -- once in the 60-second box and once as a comment beside the
 # pytest command in the Quickstart. Updating one and not the other is exactly what happened, and

@@ -78,4 +78,22 @@ print(f"  {'PASS' if _ok_ci else 'FAIL'}  the post says {_said_ci.group(1) if _s
       f"CI steps and the workflow has {_steps}")
 fails += not _ok_ci
 
+# FINISH.md tells you how long this post is, so you can budget reading it on the last day. It
+# said "~1,750 words" for a post of 4,185 -- off by well over double, in the one file written to
+# be read under deadline. The post's own length is the only figure about it that nothing else
+# could catch: doc_counts checks the corpus numbers inside it, and the claims above check the
+# facts, but how big it is lives in a different file entirely.
+_words = len(blog.split())
+_said_len = _re.search(r"`docs/BLOG-POST\.md` is finished, ~([\d,]+) words", open("FINISH.md").read())
+if not _said_len:
+    print("  FAIL  FINISH.md no longer states the post's length where this check looks")
+    fails += 1
+else:
+    _claimed = int(_said_len.group(1).replace(",", ""))
+    # Rounded to the nearest 50 in prose, so allow that much slack and no more.
+    _close = abs(_claimed - _words) <= 50
+    print(f"  {'PASS' if _close else 'FAIL'}  FINISH.md says ~{_claimed:,} words and the post "
+          f"has {_words:,}")
+    fails += not _close
+
 sys.exit(1 if fails else 0)
