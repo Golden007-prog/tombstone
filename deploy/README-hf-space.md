@@ -28,6 +28,11 @@ not in the file at all — an alias expands to them, so no edit to that file wou
 with no key configured they are routed locally by meaning against a fixed catalogue, then answered
 by the same hand-written Cypher. Ask it for a poem and it declines by name rather than guess.
 
+**What happens to what you type.** An answered question is written into the graph as a node
+carrying the question text — that is the memory feature working, not a side effect — and the
+"Has this graph been asked this before?" button will show it to whoever visits next. Nothing is
+sent anywhere else, and there is no account to attach it to.
+
 Try these:
 
 - *Who owns the apiserver metrics endpoint?* — shallow returns **nothing**, with a statement of

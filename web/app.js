@@ -82,7 +82,11 @@ async function health() {
     }
     $("hint").textContent = h.llm_configured
       ? "Free-text routing is on: a model picks one tool, then hand-written Cypher answers."
-      : "No API key on this instance, so your question is routed locally by meaning against a fixed catalogue — then the same hand-written Cypher answers it. It refuses rather than guess.";
+      // The second sentence is a disclosure, not a feature note. An answered question is written
+      // into the graph as an (:Answer) node carrying the question text, and the recall chip
+      // surfaces it to whoever visits next. Everything else about this product is stated plainly
+      // to the person reading it; what happens to their own input should be too.
+      : "No API key on this instance, so your question is routed locally by meaning against a fixed catalogue — then the same hand-written Cypher answers it. It refuses rather than guess. Answered questions are stored in the graph — that is the memory feature, and it means a later visitor can see what was asked.";
     $("q").disabled = false; $("go").disabled = false;
   } catch (e) {
     el.className = "health down";
