@@ -54,9 +54,14 @@ jobs:
               # every one after it -- a red cross on the repository every six hours, starting
               # exactly when people are looking at it. The invariant that matters is that it
               # ANSWERED, with rows, from the graph.
+              # The `question` field is what memory is keyed by, and every one of these pings
+              # writes an (:Answer) node on the live Space. Without it the entry is labelled from
+              # the tool name, so a judge who clicks the recall chip reads "asked 9x" about a
+              # question they never asked and cannot tell a robot from a visitor. Naming the
+              # prober makes the memory self-explanatory, and keeps the assertion as strong.
               curl -sf -m 90 -X POST "$url/api/tool" \
                 -H 'content-type: application/json' \
-                -d '{"tool":"sole_approver_risk","args":{}}' \
+                -d '{"tool":"sole_approver_risk","args":{},"question":"keep-warm probe (GitHub Actions, every 6h): which areas have exactly one approver?"}' \
               | python3 -c 'import json,sys; d=json.load(sys.stdin); s=d.get("shape"); r=d.get("rows") or []; print(f"answered: {s} with {len(r)} rows"); sys.exit(0 if s in ("ANSWERED_WITH_PATH","ANSWERED_FROM_MEMORY") and r else f"not a real answer: {s}, {len(r)} rows")'
               exit 0
             fi
