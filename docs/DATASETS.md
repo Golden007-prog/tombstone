@@ -28,8 +28,8 @@ ripplekg (real disruptions + stock events), gaming-multiverse-reasoner (IGDB). s
 only entry in the field with verifiable numbers in its README.~~
 
 **Struck rather than deleted, because every clause of it is now contradicted by a better
-measurement in this same repository.** `scripts_survey_field.py`, re-run on 16 Oct, counts **141
-repositories created in the window and 99 Track 3 entries**, not ~110 overall. A census of the 20
+measurement in this same repository.** `scripts_survey_field.py`, re-run on 17 Oct, counts **175
+repositories created in the window and 113 Track 3 entries**, not ~110 overall. A census of the 20
 largest Track 3 entries finds **5 naming a real public corpus** — `cairn` (13 FalkorDB-org repos),
 `lineage` (CPython and discuss.python.org), this one (Kubernetes), `decision-brain` (Kubernetes)
 and `Onix` (arXiv) — and **not one of them is among the four named above**, so the original list

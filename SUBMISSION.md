@@ -46,8 +46,8 @@ That line is the whole answer; everything below it is for your decision, not for
 ---
 
 *Second track, if entering more than one.* The field as of 16 Oct, from public repositories
-rather than from a gallery — there is none. **141 repositories created since 14 Oct mention
-FalkorDB and 99 are Track 3 entries**, counted by `scripts_survey_field.py` rather than by hand;
+rather than from a gallery — there is none. **175 repositories created since 14 Oct mention
+FalkorDB and 113 are Track 3 entries**, counted by `scripts_survey_field.py` rather than by hand;
 the three below were read closely, and the census of the twenty largest is further down:
 
 | entry | what it is | tracks |
@@ -73,9 +73,9 @@ since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15
 tests to 145.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not — and there is now a number for that rather
-than a caution: **6 of the 20 largest Track 3 entries name a specific real public corpus** in
-their README (`cairn`, `lineage`, this one, `decision-brain`, `Onix`), and two of those five are
-also on Kubernetes. Real data is the rarer choice, which is worth saying plainly, but it is not
+than a caution: **4 of the 20 largest Track 3 entries name a specific real public corpus** in
+their README (`cairn`, `lineage`, this one, `decision-brain`), and three of those four are also on
+Kubernetes. Real data is the rarer choice, which is worth saying plainly, but it is not
 this entry's private territory, and claiming otherwise to a judge who has read `cairn` would be
 the expensive kind of wrong.
 
@@ -145,15 +145,17 @@ do — but the deployments I did check, by request rather than by reading.
 
 **That hand-made list of eight was wrong by an order of magnitude, and it is worth saying how.**
 Re-counted with [`scripts_survey_field.py`](scripts_survey_field.py), re-run on 16 Oct as this
-was being written: **141 repositories created since 14 Oct mention FalkorDB, and 99 of them are
-Track 3 / company-brain entries.** An earlier run the same day said 123 and 85; the field grew by
-fourteen entries in an afternoon, which is the best argument there is for re-running the script
-rather than quoting it. Not eight. `RISHIK92/company-brain`, which the earlier sweep called substantial, now
+was being written: **175 repositories created since 14 Oct mention FalkorDB, and 113 of them are
+Track 3 / company-brain entries.** Successive runs of the same script gave 123/85, then 141/99,
+then this — twenty-eight Track 3 entries appeared in a day. That is the best argument there is for
+re-running the script rather than quoting it, and the reason every figure here carries its date. Not eight. `RISHIK92/company-brain`, which the earlier sweep called substantial, now
 returns 404 — gone or made private — so one of the eight cannot even be checked any more.
 
-Of the **20 largest, 7 serve a reachable demo**: `cairn`, `keystone`, `decisiondebt`,
-`threadline`, `lore`, `orion` and `OpsRelay`. This repository is **9th of 99 by size**, and is not
-one of the seven. An earlier version of this line listed `Faultline` among them — it was read when
+Of the **20 largest, 9 serve a reachable demo**, and **this is one of them** — re-run on 17 Oct
+after deploying: `SynapseCorp`, `cairn`, `northwind-drift-agent`, `keystone`, **`tombstone`**,
+`provenance`, `threadline`, `lore` and `OpsRelay`. This repository is **8th of 113 by size**. An
+earlier version of this line said it was *not* one of them, which was true when written and
+stopped being true the moment the Render deploy went up. An earlier version of this line listed `Faultline` among them — it was read when
 it was live, but `Prashant-thakur77/Faultline` now returns 404, and it never came out of the
 script's own three queries, so a hand-read entry was being presented as scripted output. Both
 faults are the same fault: a list the page invites you to reproduce has to be the list the script
