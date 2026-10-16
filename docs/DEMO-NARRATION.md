@@ -4,7 +4,7 @@ Generated from [`DEMO-SCRIPT.md`](DEMO-SCRIPT.md) by `scripts_build_narration.py
 
 Every stage direction, screen note and word budget lives in the script. What is left here is what you say.
 
-**489 words across 180 seconds.** Record the voiceover separately from the screen capture — the checklist in the script explains why, and it is the single biggest cause of a bad night.
+**490 words across 180 seconds.** Record the voiceover separately from the screen capture — the checklist in the script explains why, and it is the single biggest cause of a bad night.
 
 ---
 
@@ -60,19 +60,17 @@ That's the path the answer came from — the nodes the query walked, not a summa
 
 ### 0:56 → 1:14 · The question you cannot ask a search box
 
-*52 words, 18 seconds.*
+*53 words, 18 seconds.*
 
 This is the question the whole thing exists for.
 
 Has anyone tried this before?
 
-No API key here - that was routed locally, by meaning, against a fixed list of tools.
+No API key - routed locally, by meaning, against a fixed list of tools.
 
-Yes.
+The nearest is KEP-6061 - it considered pulling profile artifacts into the kubelet and rejected it.
 
-KEP-6061 considered pulling profile artifacts into the kubelet, and rejected it.
-
-Here's the recorded reason, in the author's own words.
+Author's own words, and the distance: nothing bounded this.
 
 ---
 

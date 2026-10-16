@@ -24,7 +24,7 @@ cannot quietly fall behind an edit made here.
 It held 767 spoken words in 180 seconds — 4.3 words per second, which is not a narration, it is a
 countdown. Read aloud it ran about 4:35, so the 3:00 cap would have been discovered at midnight
 during take nine. Comfortable narration is **2.8 words per second**, and visuals need room to
-breathe, so the budget for 3:00 is **about 500 spoken words.** This script now holds **489**, at
+breathe, so the budget for 3:00 is **about 500 spoken words.** This script now holds **490**, at
 2.7 w/s, with no beat above 2.9. Each heading carries its own budget, and
 `python scripts_check_demo_timing.py` fails if the beats stop being contiguous, stop summing to
 180 seconds, drift above 3.0 w/s, stop matching the word counts in their headings, or stop
@@ -75,10 +75,10 @@ ownership files.*
 >
 > "This is the question the whole thing exists for. Has anyone tried this before?
 >
-> No API key here - that was routed locally, by meaning, against a fixed list of tools.
+> No API key - routed locally, by meaning, against a fixed list of tools.
 >
-> Yes. KEP-6061 considered pulling profile artifacts into the kubelet, and rejected it. Here's the
-> recorded reason, in the author's own words."
+> The nearest is KEP-6061 - it considered pulling profile artifacts into the kubelet and rejected
+> it. Author's own words, and the distance: nothing bounded this."
 
 ### 1:14–1:25 — Fork the graph and ask what breaks · 25 words
 

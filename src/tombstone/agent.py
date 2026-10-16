@@ -41,6 +41,32 @@ class _LazyRequired(dict):
 _ROUTE_REQUIRED = _LazyRequired()
 
 
+# Whether "close to this" is a claim this tool is entitled to make.
+#
+# The page says a vector index "always hands back its k nearest rows, which is how a plausible
+# wrong answer gets made" -- and this tool was doing exactly that. The chip passes max_dist 0.15,
+# but free text cannot set it, so every typed question ran at the 0.45 default and got "yes, N
+# recorded rejections of something close to this". "Has anyone tried serving the apiserver over
+# carrier pigeon" answered yes, citing Share Resources with Service API.
+#
+# The obvious fix -- calibrate a threshold -- was tried and ABANDONED, because the measurement
+# says it cannot work. Three runs against this corpus:
+#
+#   typed "moving this into the kubelet?"        best 0.313   rows genuinely about the kubelet
+#   typed "apiserver over carrier pigeon"        best 0.297   rows unrelated
+#   chip's curated "move pod lifecycle logic..." best 0.203   rows on point
+#
+# The nonsense scores BETTER than the good typed question. Absolute distance is anti-correlated
+# with correctness across that pair, because an interrogative ("has anyone tried ...?") dilutes
+# the embedding while nonsense that borrows corpus vocabulary does not. No cut separates them,
+# and any number chosen here would be a calibration the data does not support.
+#
+# So entitlement comes from the CALLER, not from a threshold. A caller who passes max_dist has
+# asserted a bound, and a row that survives it is close by construction -- that is the chip, at
+# 0.15. A typed question asserts nothing, so the answer says "nearest", prints every distance,
+# and says why the number is on screen. The rows are never dropped; what changes is the verb.
+DEFAULT_MAX_DIST = 0.45
+
 def _n(count, singular: str, plural: str | None = None) -> str:
     """"1 area", "2 areas" -- written out, because "1 area(s)" reads as unfinished.
 
@@ -594,7 +620,15 @@ def headline(a: Answer) -> dict | None:
         if t == "stepped_back_bridges":
             return {"stat": a.rows[0][0], "label": "held the most connective authority before stepping back"}
         if t == "has_this_been_tried":
-            return {"stat": "yes", "label": f"{n} recorded rejections of something close to this"}
+            best = min((r[11] for r in a.rows if r[11] is not None), default=None)
+            near = f", closest {best:.2f}" if best is not None else ""
+            if a.params.get("max_dist", DEFAULT_MAX_DIST) < DEFAULT_MAX_DIST:
+                return {"stat": "yes",
+                        "label": f"{n} recorded rejections within the "
+                                 f"{a.params['max_dist']} bound{near}"}
+            return {"stat": "nearest",
+                    "label": f"{n} nearest recorded rejections{near} — no closeness bound was "
+                             f"set, so read the distances"}
         if t == "broken_lineage":
             # Same defect as sole_approver_risk: n was the page size and `cited` summed the page,
             # so "15 ... cited 22 times" described fifteen rows, not the 47 records cited 55 times
@@ -688,9 +722,22 @@ def render(a: Answer) -> str:
                 f"  reason: {str(rationale)[:220]}\n"
                 f"  decided by: {', '.join(deciders) if deciders else 'unrecorded'} "
                 f"[{'no one who made this call still holds approval authority' if own == 'NO_LIVING_OWNER' else 'at least one decider still holds approval authority'}]\n"
-                f"  source: {url}"
+                f"  source: {url}\n"
+                f"  similarity: cosine distance {dist:.3f}"
             )
-        return f"Yes — {_n(n, 'recorded rejection')} of something close to this:\n\n" + "\n\n".join(lines)
+        _best = min((r[11] for r in a.rows if r[11] is not None), default=None)
+        _near = f" The closest sits at cosine distance {_best:.2f}." if _best is not None else ""
+        if a.params.get("max_dist", DEFAULT_MAX_DIST) < DEFAULT_MAX_DIST:
+            _head = (f"Yes — {_n(n, 'recorded rejection')} within the "
+                     f"{a.params['max_dist']} closeness bound this was asked with.{_near}")
+        else:
+            _head = (f"These are the {_n(n, 'nearest recorded rejection')}, and nothing stronger "
+                     f"is claimed.{_near} No closeness bound was set, and on this corpus the "
+                     f"distance does not reliably separate a related question from an unrelated "
+                     f"one — a typed question about the kubelet scores 0.313 while one about "
+                     f"carrier pigeons scores 0.297 — so every distance is printed and the "
+                     f"reasons are there to read:")
+        return _head + "\n\n" + "\n\n".join(lines)
     if t == "ownership_dilution":
         lines = []
         for area, departed, nd, fallback, levels, n_fb, _url in a.rows:
