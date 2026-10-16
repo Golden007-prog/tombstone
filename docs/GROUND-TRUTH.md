@@ -390,7 +390,7 @@ something the machine answers.
 benchmark re-run by 31 CI steps on each push". Two run in CI; the tenancy benchmark builds a
 thousand graphs and does not — and I had written that down one commit earlier while leaving the
 summary claiming otherwise. I corrected it to "two of the three", and the check I wrote in the
-same commit caught *that* as wrong: there are five benchmark scripts, not three, counting the
+same commit caught *that* as wrong: there were five benchmark scripts then, not three, counting the
 ingest-rate ones in `spikes/` that the blog quotes. Then the check failed on a pair of numbers
 that agreed, because its word map stopped at four and "five" mapped to `None`.
 

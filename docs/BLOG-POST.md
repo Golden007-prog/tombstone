@@ -408,7 +408,7 @@ nesting must exclude void elements, because no closing tag is coming for them.
 README said "every benchmark re-run on each push". Two of them run in CI; the multi-tenancy one
 builds a thousand graphs and does not — and I had written that fact down an hour earlier while
 leaving the summary claiming otherwise. I corrected it to "two of the three", and the check I
-wrote in the same commit caught *that* as wrong too: there are five benchmark scripts, counting
+wrote in the same commit caught *that* as wrong too: there were five benchmark scripts then, counting
 the ingest-rate ones whose numbers appear in this post. Then the check failed on a pair of numbers
 that agreed, because its word map stopped at four.
 

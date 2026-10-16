@@ -21,8 +21,8 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
 > - **Nothing here is asserted.** 128 tests, 36 graph claims, 18 rendered UI states, and **two of
->   the five benchmarks** re-run by **31 CI steps on each push** — the other three build a thousand
->   graphs or millions of edges, so they are dated measurements with committed scripts rather than
+>   the six benchmarks** re-run by **31 CI steps on each push** — the other four build a thousand
+>   graphs, millions of edges or a memory curve, so they are dated measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
 >   withdraw, which are
 >   [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
@@ -1246,15 +1246,19 @@ times. Each fix made the claim narrower and more defensible.
 ## Honest limits
 
 - **Memory grows with use, and nothing evicts it.** Every answered question becomes an
-  `(:Answer)` node, deduplicated by question so repeats only bump a counter. Measured by
-  recording forty of them and watching the database: **about 7.4 KB each**, most of it the
-  384-dimension embedding stored as a native `Vectorf32`. Ten thousand distinct answered
-  questions would add roughly **72 MB** on top of the 387 MB this image already peaks at, which
-  is inside the 512 MB serial ceiling but no longer comfortably. A Space left running for months
-  would get there; a hackathon will not. There is no cap and no eviction, deliberately — a cache
-  that forgets is a different product — and `./run.sh --forget` clears it in one command. A
-  question that is *not* answered costs nothing: only the answering shapes are recorded, so
-  typing nonsense at it does not accumulate anything.
+  `(:Answer)` node, deduplicated by question so repeats only bump a counter.
+  [`bench_memory_growth.py`](bench_memory_growth.py) records 200 of them and watches the
+  database: **about 12 KB each**, reproducing at 11.9, 11.6 and 12.2 KB across three runs from a
+  cleared start. Most of that is the 384-dimension embedding, stored as a native `Vectorf32`.
+  A thousand distinct answered questions costs ~12 MB on top of the 387 MB this image already
+  peaks at; **ten thousand reaches about 506 MB against the 512 MB serial ceiling** — at the
+  edge, not inside it. Months of a busy Space, not a hackathon. There is no cap and no eviction,
+  deliberately — a memory that silently forgets is a different product — and `./run.sh --forget`
+  clears it in one command. A question that is *not* answered costs nothing: only the answering
+  shapes are recorded, so typing nonsense at it accumulates nothing.
+  *(The first version of this entry said 7.4 KB, measured over forty answers against a database
+  that still held an earlier experiment. Too few samples, dirty baseline, and the figure was off
+  by a third in the direction that made the limit look safer.)*
 
 - **A few embedded options are section headings, and the query now excludes them.** Lifting named
   options out of prose is a regex over sub-headings and it is not perfect: of the 752 titles that

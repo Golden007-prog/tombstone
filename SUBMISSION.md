@@ -157,8 +157,8 @@ would remove them.
 
 Nothing here is asserted. **31 CI steps on every push** re-check it: 128 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
-the drafting action's own output, the memory claims, two of the five benchmarks re-run — the
-other three build a thousand graphs or millions of edges, so they are dated measurements with
+the drafting action's own output, the memory claims, two of the six benchmarks re-run — the
+other four build a thousand graphs, millions of edges or a memory curve, so they are dated measurements with
 committed scripts rather than gates, and the README says which is which — and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
 it. The graph is scored against a text baseline over the same documents: **24/25 versus 9/25**, in
