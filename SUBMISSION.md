@@ -200,6 +200,30 @@ Resources page after building this.
 > the OWNERS inheritance tree, `algo.betweenness` (seeded), `algo.labelPropagation`, `GRAPH.COPY`
 > for counterfactuals, and a vector index composed with traversal in a single query.
 
+## Hardest problem / what went wrong
+
+*A form usually asks this. The honest answer is the strongest thing here, so it is written out
+rather than improvised.*
+
+> The hardest part was not building it, it was finding out which of my own claims were false.
+>
+> Four did not survive being checked. I claimed FalkorDB computed betweenness 18x faster than
+> networkx; re-measured on this product's actual graph rather than the larger synthetic one the
+> old table described, it is roughly a tie, and the argument built on it is withdrawn. I claimed
+> 88 of 111 departed owners held no current role; expanding `OWNERS_ALIASES` properly made it 83,
+> because group aliases had been counted as people. I claimed the agent remembered what it
+> learned, which was true on the path a model routes and silently false on the keyless path that
+> the hosted demo actually uses — a method that does not exist, called inside a bare `except
+> Exception: pass`, so every question recorded nothing. And the premise in my own first sentence,
+> that organisations re-propose what they already rejected, I could not demonstrate on this
+> corpus at all.
+>
+> What I changed as a result is the part I would defend: every number on the page is now
+> re-derived from the live database by a script that runs on each push, the withdrawn claims are
+> struck through rather than deleted, and the eval has a control category that exists so the text
+> baseline can win — which it does, nine-all. A page that records what it got wrong is worth more
+> than one that never looked.
+
 ## What I would do next
 
 > Three things, in the order they would matter. **Reach the 163 rejections the search cannot

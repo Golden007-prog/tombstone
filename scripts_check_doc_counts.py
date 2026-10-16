@@ -435,6 +435,41 @@ for _doc in _docs:
 print(f"  {_gap} alternatives are outside the haystack; {_substantive} of them are real text "
       f"and {_markers} are list markers, and the docs say so")
 
+# The "hardest problem" answer in SUBMISSION.md restates the alias correction -- "88 of 111
+# departed owners" and "made it 83". The subset rule above deliberately skips 111, because
+# conflating a subset denominator with the 794 Person total is a false alarm it was written to
+# avoid, so neither figure was checked anywhere in that file. 88 is the SUPERSEDED number and
+# must stay wrong; 83 and 111 are live and must not drift.
+_emeritus_total = count("MATCH (p:Person)-[:EMERITUS_OF]->() RETURN count(DISTINCT p)")
+_emeritus_only = count("MATCH (p:Person)-[:EMERITUS_OF]->() WHERE NOT (p)-[:APPROVES]->() "
+                       "RETURN count(DISTINCT p)")
+def _flat(text: str) -> str:
+    """One long line, so a pattern cannot miss because the sentence wrapped.
+
+    Three checks written today matched nothing for exactly this reason: markdown wraps prose, and
+    inside a blockquote the break becomes "\n> ", so "made it 83, because" is split and a
+    literal-space pattern finds nothing. A check that silently matches nothing is the failure
+    mode this file exists to prevent, so the text is flattened before these scans rather than
+    each pattern being taught about newlines one at a time.
+    """
+    return re.sub(r"\s*\n>?\s*", " ", text)
+
+
+for _doc in _docs:
+    _t = _flat(open(_doc).read())
+    for _said in re.findall(r"made it (\d+), because", _t):
+        if int(_said) != _emeritus_only:
+            problems.append(f"{_doc}: says the alias fix made it {_said}; the graph gives "
+                            f"{_emeritus_only}")
+        else:
+            checked += 1
+    for _said in re.findall(r"\d+ of (\d+) departed owners", _t):
+        if int(_said) != _emeritus_total:
+            problems.append(f"{_doc}: says {_said} departed owners; the graph has "
+                            f"{_emeritus_total}")
+        else:
+            checked += 1
+
 # "N of M nouns" -- the SUBSET rule skips a number preceded by "of", which is right for the N and
 # exactly wrong for the M. In "206 of 959 alternatives", 959 is a TOTAL and it was wrong by one;
 # the scanner had been stepping over it since the rule was added. Totals stated as denominators
