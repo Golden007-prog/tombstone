@@ -39,6 +39,17 @@ three are serious Track 3 builds:
 | `Vaibhaav-Tiwari/lineage` | truth maintenance: when a decision reverses, the answers and beliefs built on it are struck through and actions blocked. 745 PEPs plus forum threads and commits since 2015 | two |
 | `StarKnightt/threadline` | 3D replay of every traversal, a verifier agent that path-checks each citation, 60-question eval | all three |
 
+**Every serious Track 3 build I have read uses invented data — three for three.** orion's demo
+company, Corvane, is explicitly synthetic; dealership-brain's is a fictional dealership;
+`RISHIK92/company-brain` generates its world from its own `world.build` module and seeds, and
+labels itself a practice build rather than the submission. That last one volunteers the cost in
+its own README: because its synthetic text is not paraphrased, it *"flatters the pattern extractor
+and lexical baselines alike"*. Which is the trap precisely — when you write both the documents and
+the questions, the gap you measure between a graph and a text baseline is partly a gap you
+authored. This entry's 24/25 against 9/25 is over prose written by thousands of Kubernetes
+contributors who had never heard of it, which is why the control category ties nine-all instead of
+collapsing.
+
 **No other entry found is using this corpus.** Three GitHub searches — for `emeritus_approvers`,
 for FalkorDB entries mentioning OWNERS files, and for Kubernetes enhancements plus KEP — return
 only this repository. The others each chose their own: threadline reads the FalkorDB org's GitHub
