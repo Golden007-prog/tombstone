@@ -113,6 +113,28 @@ def main() -> int:
     submitted = os.environ.get("SUBMITTED") == "1"
     extra.append(("Registered and submitted on wemakedevs.org", OK if submitted else NO,
                   "set SUBMITTED=1 once the form is in" if not submitted else "confirmed"))
+    # 5b. Not one of Rule 10's items, but a line I added to the README's 60-second block so there
+    # would be somewhere obvious to paste the URL. A placeholder that outlives the deployment is
+    # worse than no placeholder: it tells a judge, in the first thing they read, that the thing
+    # they are looking at is not deployed. So it is checked against the repo's homepage both ways.
+    live_line = next((l for l in readme.splitlines() if "**Live demo:**" in l), "")
+    placeholder = "not deployed yet" in live_line
+    if not live_line:
+        extra.append(("The README's live-demo line", NO,
+                     "the 60-second block has no **Live demo:** line; FINISH.md tells you to "
+                     "replace one"))
+    elif is_space and placeholder:
+        extra.append(("The README's live-demo line", NO,
+                     f"the repo homepage is {home} but the README still says 'not deployed yet' — "
+                     f"the first thing a judge reads contradicts the link beside it"))
+    elif not is_space and not placeholder:
+        extra.append(("The README's live-demo line", NO,
+                     "the README advertises a live demo but the repo homepage names no Space"))
+    else:
+        extra.append(("The README's live-demo line", OK,
+                     "says 'not deployed yet', and no Space is set — consistent"
+                     if placeholder else f"names the deployment, matching the repo homepage"))
+
     # CI state for THIS commit, not the last run that happened to be green. I reported green for
     # three consecutive failing pushes by reading a stale result, which is the exact failure this
     # whole repository argues against, committed in the summary line rather than the code.
@@ -139,7 +161,9 @@ def main() -> int:
                   f"core.hooksPath = {hooks or 'unset'}"))
     dirty = sh("git", "status", "--porcelain")
     extra.append(("Working tree clean", OK if not dirty else NO,
-                  f"{len(dirty.splitlines())} uncommitted change(s)" if dirty else "clean"))
+                  (lambda k: f"{k} uncommitted change" if k == 1
+                   else f"{k} uncommitted changes")(len(dirty.splitlines()))
+                  if dirty else "clean"))
 
     width = max(len(r[0]) for r in rows + extra) + 2
     print("Rule 10 — every submission must include:\n")
