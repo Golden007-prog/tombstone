@@ -42,25 +42,29 @@ Beats 3 and 6 are captured through `?ask=<question>&focus=1`, which deep-links a
 question — so a question and its answer can be shared as a URL, and so the walkthrough can show
 someone typing rather than only clicking.
 
-## There is one, and I argued there should not be
+## There is one now, and the reason I first gave for it was wrong
 
 The first version of this section explained why this file needed no staleness check: every caption
 states a **behaviour** — "depth 1 returns nothing", "it refuses the handle an alias expands to" —
-and each of those is asserted by a named check elsewhere, so the video cannot go quietly wrong
-while the checks stay green.
+and each is asserted by a named check elsewhere, so the video cannot go quietly wrong while the
+checks stay green.
 
-That is true of the captions and wrong about the frames. Every answer in this video renders the
-**hash of the query that produced it**, right under the result. Change a Cypher constant and the
-video shows a hash that no longer exists anywhere. Which is exactly what happened: `tools.py`
-changed at 05:47 when `has_this_been_tried` started excluding seven section headings, and this
-file had last been built at 04:04.
+Then `has_this_been_tried` changed, its query hash changed with it, and I concluded the video must
+be showing a hash that no longer exists — every answer renders the hash of the query behind it.
+I wrote that down, fingerprinted the file, and then checked it, which is the right order only by
+luck. **It was not true.** That tool's answer runs to 2,908 characters, so the disclosure carrying
+the hash sits well below a 760×570 frame. The hashes actually visible in this video belong to
+`who_owns`, `what_if_they_go` and `stepped_back_bridges`, and none of those queries changed.
 
-So it is fingerprinted like the screenshots are — and against `src/tombstone/tools.py` as well as
-the three web files, because the images do not render a query hash and this does.
-`scripts_check_shots_fresh.py` fails if any of the four moves, which `./preflight.sh` runs.
+The guard is still right, for the duller reason: `tools.py` decides the answer **text**, and that
+is on screen in every beat. Change what a tool returns and the video shows an answer the product
+no longer gives — which is what the drafting screenshot had already done once, with a plural the
+code had stopped producing. So the fingerprint covers `src/tombstone/tools.py` as well as the
+three web files, and `scripts_check_shots_fresh.py` fails if any of them moves.
 
-The lesson is narrower than "fingerprint everything": ask what a generated artefact actually shows
-on screen, not what it is about. I asked the second question and got the right answer to it.
+Two things worth keeping from that: ask what a generated artefact actually shows on screen rather
+than what it is about — and when the reason you reach for is the more dramatic one, check it
+before you write it down.
 
 One trap worth keeping written down: ffmpeg's `drawtext` **silently drops** a line containing an
 unescaped `%`, with no error. That is how "72%" vanished from a caption in the first cut. The
