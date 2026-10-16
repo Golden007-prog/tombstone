@@ -242,6 +242,26 @@ else:
     checked += 1
 print("  the README's check-me commands are the ones CI runs")
 
+# The 60-second box used to say "every benchmark re-run by N CI steps". Two of the three run in
+# CI; spikes/tenancy_bench.py builds a thousand graphs and does not. A false claim in the most-read
+# line of the repository, and the kind that sounds like diligence.
+_ciq2 = open(".github/workflows/verify.yml").read()
+_benches = {p.name for p in pathlib.Path(".").glob("bench_*.py")} | {
+    p.name for p in pathlib.Path("spikes").glob("*bench*.py")}
+_in_ci = {b for b in _benches if b in _ciq2}
+_m_b = re.search(r"\*\*(\w+) of\s*\n?>?\s*the (\w+) benchmarks\*\*", open("README.md").read())
+_WORD = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven",
+         8: "eight", 9: "nine", 10: "ten"}   # five was missing, so the check failed on a
+                                             # pair of numbers that actually agreed
+if not _m_b:
+    problems.append("the 60-second box no longer states how many benchmarks CI re-runs")
+elif (_m_b.group(1), _m_b.group(2)) != (_WORD.get(len(_in_ci)), _WORD.get(len(_benches))):
+    problems.append(f"the box says '{_m_b.group(1)} of the {_m_b.group(2)} benchmarks'; "
+                    f"{len(_in_ci)} of {len(_benches)} run in CI")
+else:
+    checked += 1
+    print(f"  {len(_in_ci)} of {len(_benches)} benchmarks run in CI, and the box says so")
+
 print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
 
 print(f"  the UI check drives {_states} rendered states and every document agrees")
