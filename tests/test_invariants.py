@@ -1491,3 +1491,19 @@ def test_every_node_kind_the_picture_draws_has_a_legend_entry():
     # picture does not keep, and it costs a reader attention on the one beat that matters.
     orphans = sorted(swatches - {LEGEND_CLASS[k] for k in kinds})
     assert not orphans, f"the legend explains {orphans}, which the picture can no longer draw"
+
+    # Both renderers must also know which LANE each kind belongs in. The README's figure generator
+    # did not know about area_stranded and would have raised a bare KeyError on any subgraph that
+    # held one; its own path holds none, so it never showed. The app has every kind but falls back
+    # with `?? 0`, which files an unknown kind under "people" -- on a picture that is supposed to
+    # be evidence, quietly putting a node in the wrong lane is worse than failing to draw it, so
+    # the map is checked rather than the fallback trusted.
+    for lane_file in ("web/app.js", "scripts_gen_readme_figure.py"):
+        text = open(lane_file).read()
+        block = re.search(r"LANE\s*=\s*\{(.*?)\}", text, re.S)
+        assert block, f"{lane_file} has no LANE map any more"
+        mapped = set(re.findall(r'"?([a-z_]+)"?\s*:', block.group(1)))
+        missing = sorted(kinds - mapped)
+        assert not missing, (
+            f"{lane_file} has no lane for {missing}, so those nodes land in whichever lane the "
+            f"fallback picks rather than the one they belong to")

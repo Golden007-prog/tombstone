@@ -2,7 +2,11 @@ import json, sys, urllib.request, html
 
 # Regenerate the README figure from the live API, using the same lane layout as the web renderer.
 d = json.load(urllib.request.urlopen("http://127.0.0.1:8099/api/subgraph?path=pkg/controller/podgc/OWNERS"))
-LANE = {"person_gone": 0, "person_live": 0, "area": 1, "decision": 2, "rejected": 3}
+# area_stranded shares the area lane. It was missing, so this script raised a bare KeyError
+# on any subgraph holding a stranded area -- which the figure's own path does not, so it
+# never showed. A test now checks this map against the kinds the server can emit.
+LANE = {"person_gone": 0, "person_live": 0, "area": 1, "area_stranded": 1,
+        "decision": 2, "rejected": 3}
 LABEL = ["people", "area", "decision", "rejected ideas"]
 COL = {"person_gone": "#e0796c", "person_live": "#6fbd92", "area": "#d4ab5a",
        "decision": "#7fa3d8", "rejected": "#b08cc4"}
