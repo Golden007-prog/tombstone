@@ -351,9 +351,10 @@ honestly say nothing is there, and that is only worth anything if the claim is b
 
 ## The checks lied to me more often than the code did
 
-I ended up writing a lot of verification — a script that re-queries every number in the README
-against the live graph, another that drives every rendered answer state through a headless browser,
-another that reads the demo script's narration and asserts the app actually returns what it claims.
+I ended up writing a lot of verification — a script that re-queries the README's thirty-one graph
+claims against the live database, another that drives every rendered answer state through a
+headless browser, another that reads the demo script's narration and asserts the app actually
+returns what it claims.
 Thirty-one CI steps. The thing nobody warns you about is that **the checks fail in their own
 ways**, and a check that fails for the wrong reason costs more than the bug it was meant to catch.
 
@@ -432,6 +433,15 @@ community detection available; it is non-deterministic and has no resolution par
 
 ---
 
-*Built for Graph Hacks 2026 (WeMakeDevs × FalkorDB). Every number here comes from a benchmark in the
-repo that you can re-run, and there is a `verify_claims.py` that re-checks each factual claim against
-the live graph — I wrote it after catching myself quoting a stale figure.*
+*Built for Graph Hacks 2026 (WeMakeDevs × FalkorDB). Every figure in this post has something
+behind it in the repository, and they are not all the same thing: the graph counts are re-queried
+against the live database on every push, this post's own numbers are re-checked by `verify_blog.py`,
+and the ingest and benchmark timings come from committed scripts you can re-run — reported with
+their conditions rather than gated, because the same code gives betweenness 2x on a laptop and 6x
+on a CI runner.*
+
+*This footer used to say "every number here comes from a benchmark" and that a script "re-checks
+each factual claim". Neither was quite true — the corpus counts come from the graph, not a
+benchmark, and the script checks thirty-one claims rather than all of them. I found it by grepping
+my own writing for sentences that assert verification, which is a thing I recommend, and which is
+how the sentence two paragraphs above this one got fixed as well.*
