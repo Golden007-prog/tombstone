@@ -55,8 +55,14 @@ COUNTS = {
 # Numbers that are history, not current state: a quoted "previously said", a correction, a
 # benchmark on a different graph. Those lines say so, and re-asserting them would be wrong.
 HISTORY = re.compile(
+    # "synthetic", "stale", "older" and "earlier" were too broad: this project uses all four in
+    # LIVE claims -- "Nothing synthetic" sits directly after the corpus counts in both of
+    # SUBMISSION.md's descriptions, and "43 decisions are stale-and-still-cited" is a current
+    # finding. Each of those lines was being skipped wholesale, so the figures on them were
+    # checked nowhere in that file. An exclusion keyed on a word rather than on a retraction
+    # swallows every sentence that happens to use the word.
     r"previously|used to|was wrong|withdrawn|corrected|drifted|said \d|"
-    r"earlier|first number|I had claimed|claimed \d|synthetic|3,300|older|stale", re.I)
+    r"first number|I had claimed|claimed \d|3,300|no longer says", re.I)
 
 # A subset is not a total. "19 OWNERS files declare only reviewers" and "83 of 111 people" are
 # both true and neither is a claim about how many exist. Without this the check produced nine
