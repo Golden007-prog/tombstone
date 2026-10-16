@@ -564,7 +564,10 @@ def headline(a: Answer) -> dict | None:
         if t == "successor_for":
             return {"stat": f"{a.rows[0][1]}/{a.rows[0][2]}", "label": f"of their areas already co-owned by {a.rows[0][0]}"}
         if t == "hollowing_communities":
-            return {"stat": f"{int(a.rows[0][4])}%", "label": f"of a {int(a.rows[0][1])}-person group has stepped back"}
+            # "everywhere" for the same reason as the body: the percentage is the share left
+            # with no approval anywhere, not the share who stepped back from something.
+            return {"stat": f"{int(a.rows[0][4])}%",
+                    "label": f"of a {int(a.rows[0][1])}-person group has stepped back everywhere"}
         if t == "what_if_they_go":
             stranded = a.rows[0][1]
             # "1 areas" under a headline number is the kind of thing a reader notices before
@@ -649,7 +652,11 @@ def render(a: Answer) -> str:
         return ("They are not unowned — Kubernetes OWNERS inherit — but approval has silently "
                 "widened to people who never signed up for this code:\n\n" + "\n".join(lines))
     if t == "stepped_back_bridges":
-        lines = [f"• {r[0]} — betweenness {r[1]}, left {_n(r[2], 'area')} behind" for r in a.rows]
+        # Two decimals on every row. The database returns these already rounded, so printing the
+        # float gave a column reading 156.46, 31.2, 0.4, 0.0 -- correct, and harder to compare
+        # than it needs to be in the one answer whose whole point is a ranking.
+        lines = [f"• {r[0]} — betweenness {float(r[1]):.2f}, left {_n(r[2], 'area')} behind"
+                 for r in a.rows]
         return ("Ranked by how much CONNECTIVE authority was concentrated in people who have since stepped back (betweenness centrality "
                 "over the co-authorship graph, sampled, seed pinned):\n\n" + "\n".join(lines))
     if t == "successor_for":
@@ -660,8 +667,17 @@ def render(a: Answer) -> str:
         lines = []
         for cid, size, gone, live, pct, who in a.rows:
             lines.append(
-                f"• community #{cid} — {int(size)} people, {int(pct)}% have stepped back\n"
-                f"    {int(gone)} no longer hold approval authority, {int(live)} still do\n"
+                # The percentage counts only those left with NO approval anywhere -- the query's
+                # `g > 0 AND l = 0`. Writing "24% have stepped back" above "6 no longer hold
+                # approval authority, 5 still do" invited the reader to add 6 and 5 and get a
+                # number that contradicts the percentage, when the 5 are people who stepped back
+                # from somewhere and kept authority elsewhere. That is the same distinction this
+                # project already had to correct once in the README, between being emeritus in one
+                # area and holding nothing anywhere.
+                f"• community #{cid} — {int(size)} people; {_n(gone, 'has', 'have')} "
+                f"stepped back everywhere ({int(pct)}% of the group)\n"
+                f"    {_n(live, 'other')} stepped back from somewhere but still approve "
+                f"elsewhere\n"
                 f"    e.g. {', '.join(w for w in who if w)}")
         return ("Contributor communities losing their people fastest. These groups are not "
                 "declared anywhere — no membership file produces them. They are discovered by "

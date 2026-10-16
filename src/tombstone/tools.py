@@ -229,7 +229,13 @@ LIMIT $limit
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "stepped_back_bridges", rows=rows, ms=ms,
                       cypher=self.DEPARTED_BRIDGES, params=params, coverage=self._coverage(),
-                      note="betweenness is sampled (size 32, seed pinned) -- approximate, reproducible")
+                      # A row reading 0.00 is the sampled estimate, not a proof of zero: it means
+                      # no sampled shortest path happened to run through that person. Saying so
+                      # matters because the list is ranked, and a reader meeting 0.00 at the
+                      # bottom will otherwise take it as "held no connective authority at all".
+                      note="betweenness is sampled (size 32, seed pinned) -- approximate, "
+                           "reproducible. 0.00 means no sampled path ran through them, which is "
+                           "weaker than a measured zero")
 
     # ---------- TOOL 4 ----------
     SUCCESSOR_FOR = """
