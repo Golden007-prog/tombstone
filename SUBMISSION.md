@@ -46,8 +46,9 @@ That line is the whole answer; everything below it is for your decision, not for
 ---
 
 *Second track, if entering more than one.* The field as of 16 Oct, from public repositories
-rather than from a gallery — there is none. Fifteen-plus entries are now public, and at least
-three are serious Track 3 builds:
+rather than from a gallery — there is none. **123 repositories created since 14 Oct mention
+FalkorDB and 85 are Track 3 entries**, counted by `scripts_survey_field.py` rather than by hand;
+the three below were read closely, and the census of the twenty largest is further down:
 
 | entry | what it is | tracks |
 |---|---|---|
@@ -94,17 +95,30 @@ whose README separates what is real from what is stubbed and whose dataset is a 
 Read their READMEs rather than run them, so the feature claims are what they claim, not what they
 do — but the deployments I did check, by request rather than by reading.
 
-A later sweep found the Track 3 field is wider than these five. `RISHIK92/company-brain` (2.3MB,
-a temporal cited knowledge graph of people and decisions) and `cyh7789/passthru` are substantial
-and **neither advertises a URL**; `Laimos-code/lore-company-brain` is 6KB, a README. So the honest
-count on 16 Oct is **four deployed out of eight visible Track 3 entries** — orion, threadline,
-axon-brain and dealership-brain answered HTTP 200; lineage, RISHIK92/company-brain,
-lore-company-brain and passthru have no public URL.
+**That hand-made list of eight was wrong by an order of magnitude, and it is worth saying how.**
+Re-counted with [`scripts_survey_field.py`](scripts_survey_field.py) on 16 Oct: **123
+repositories created since 14 Oct mention FalkorDB, and 85 of them are Track 3 / company-brain
+entries.** Not eight. `RISHIK92/company-brain`, which the earlier sweep called substantial, now
+returns 404 — gone or made private — so one of the eight cannot even be checked any more.
 
-That is a weaker claim than "everyone else is live", and it is the true one. Deploying is still
-worth doing — the FAQ says a hosted demo is preferred, and half the serious field has one — but
-it is an advantage to gain rather than a hole to climb out of. Nothing had pushed since 15 Oct
-23:14 when this was written.
+Of the **20 largest, 6 serve a reachable demo**: `Faultline`, `cairn`, `keystone`, `threadline`,
+`lore` and `orion`. This repository is **8th of 85 by size**, and is not one of the six.
+
+The count has two deliberate cautions, because getting it wrong once was enough. It looks for a
+demo in the README as well as the `homepage` field — three of the fifteen largest link one only
+in their README, so counting `homepage` alone undercounts and reporting that as the deployment
+rate would be exactly the sort of flattering error this page keeps catching. And it reports a
+census of the twenty largest rather than a rate over all 85, because a rate over repositories you
+have actually opened is honest and one extrapolated from a sample is not. Two of the six also
+time out under Python's default headers and answer 200 to `curl`; reporting a live competitor as
+dead would have been the convenient mistake.
+
+**One conclusion from the old passage was backwards and is withdrawn.** It said a live demo "is
+now the one thing the rest of the field has and this does not". Fourteen of the twenty largest
+entries have no reachable demo either. Deploying is still clearly worth doing — the FAQ prefers a
+hosted demo, and at the serious end of the field roughly a third have one — but it moves this
+into a minority rather than up to par with everyone. The reason to do it is that judges click
+links, not that the field is ahead.
 
 Two things follow that are worth acting on. **Multi-track entry is normal here**, so entering one
 track is a choice and should be a reasoned one. And the live demo is the clearest gap in this
