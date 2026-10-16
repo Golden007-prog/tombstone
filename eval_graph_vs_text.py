@@ -343,7 +343,11 @@ def main() -> int:
               19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two",
               23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
               27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty"}
-    _readme_txt = open("README.md").read()
+    # Flattened: these patterns span several words, so a reflow that moved a line break
+    # between them would stop the match. The floors below would then fail loudly, which
+    # is the right failure for a deleted claim and the wrong one for a reformatted
+    # paragraph -- a check that cries wolf at `fmt` is one people learn to skip.
+    _readme_txt = _re.sub(r"\s*\n>?\s*", " ", open("README.md").read())
     _m = _re.search(r"loses (?:one|\w+) of those ([\w-]+) on purpose", _readme_txt)
     if not _m:
         drift.append("README no longer says how many questions the graph loses one of")

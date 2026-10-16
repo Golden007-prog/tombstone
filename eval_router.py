@@ -138,7 +138,10 @@ def main() -> int:
     # script, which is how every other number in this repo has gone stale -- three times in two
     # days. Assert it here, where the numbers are actually produced.
     import re as _re
-    readme = open("README.md").read()
+    # Flattened for the same reason as the other prose checks: these phrases wrap, and a
+    # line break moving between "the eight declines" and "are margin failures" would
+    # retire the check on a reformat rather than on a real change.
+    readme = _re.sub(r"\s*\n>?\s*", " ", open("README.md").read())
     start = readme.find("I measured that router on language it had never seen")
     if start < 0:
         print("\nFAIL: the README no longer has the section that quotes these numbers.")
