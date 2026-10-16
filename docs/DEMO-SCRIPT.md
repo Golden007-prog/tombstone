@@ -114,7 +114,7 @@ ownership files.*
 > But the refusals are the point. The strongest signal here — emeritus in twenty files, approver
 > in one — it won't touch: that file is vendored from another repo.
 >
-> This one it can't patch at all - his handle isn't in the file; an alias expands to him.
+> This one it can't patch at all - their handle isn't in the file; an alias expands to them.
 >
 > Patching all three would be wrong twice."
 
