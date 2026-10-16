@@ -707,8 +707,13 @@ a vector index composed with traversal **in a single query**; `GRAPH.COPY` to ev
 counterfactual against a mutated whole-graph copy and throw it away inside one request; memory
 that lives in the same graph as the facts, so one query starts in memory and ends in facts;
 durable persistence; physically isolated per-tenant graphs; concurrent access to live shared
-state; and a path object returned by the query that found the answer. networkx does none of those,
-and a JSON file does fewer.
+state. networkx does none of those, and a JSON file does fewer.
+
+This list said one more thing until an audit checked it: "a path object returned by the query that
+found the answer". That is false — all seventeen `RETURN` clauses in `tools.py` return scalars,
+and the drawn path is assembled by `subgraph()` in `server.py` from a second query over the keys
+the answer cites. The picture is real and the traversal is real; the *path object* was not, and a
+FalkorDB engineer reading that list is exactly who would have checked.
 
 One benchmarking bug worth recording, found by the cross-check rather than by reading: on
 v4.22.1, `CALL algo.WCC(NULL, NULL)` — the two-argument form, by analogy with
@@ -1561,5 +1566,10 @@ library.
 
 Data: [kubernetes/enhancements](https://github.com/kubernetes/enhancements) and
 [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) OWNERS, both Apache-2.0. No email
-addresses are ingested, even though `sigs.yaml` publishes them — Rule 6 says "personal".
+addresses are ingested **from the project's membership data**, even though `sigs.yaml` publishes
+them — Rule 6 says "personal". The scope is now in the sentence, because one email-shaped string
+does exist in the corpus: `20180404115311.725-1-alban@kinvolk.io`, inside a verbatim quotation of
+a KEP's own prose, and redacting it would break the promise that alternative bodies are the
+authors' words. [`NOTICE`](NOTICE) has disclosed that trade all along and `eval_gold.py` gates the
+count at one; the unqualified opening clause here was the one place that read past it.
 
