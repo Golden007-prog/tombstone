@@ -89,6 +89,15 @@ Before you hit submit:
 - [ ] confirm the video plays without signing in
 - [ ] confirm the repo is public and CI is green
 
+**Nothing is required of you after you submit.** Checked on 16 Oct: the schedule page publishes a
+registration window, a start and the deadline, and no judging session, no live demo slot, no
+presentation and no office hours; it does not announce a results date either. So the deadline is
+the last thing in your calendar for this, and there is no reason to stay up past it.
+
+For what it is worth on the way in: Track 3's prize is an M6 Mac Mini, the best-blog-post side
+prize is one winner, and the top 50 submissions each get a t-shirt per member — which, in a field
+of 85 Track 3 entries alone, makes the blog post the cheapest additional shot at something.
+
 ---
 
 ## If a judge asks a hard question
