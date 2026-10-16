@@ -153,7 +153,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: data/raw/eval-dense-vectors.npz
-          key: dense-vectors-${{ hashFiles('data/corpus.json.gz', 'eval_graph_vs_text.py') }}
+          # Keyed on the CORPUS alone, not on the script. Including the script meant every edit
+          # to its checking logic -- two of them within an hour, neither touching a document --
+          # invalidated the key and re-paid four minutes of embedding. The script is not trusted
+          # to be irrelevant, though: it stores a hash of the actual document text beside the
+          # vectors and discards a cache whose text does not match, so correctness rests on the
+          # documents themselves rather than on this key being clever.
+          key: dense-vectors-${{ hashFiles('data/corpus.json.gz') }}
 
       - name: Graph against a DENSE retrieval baseline, not only TF-IDF
         run: python eval_graph_vs_text.py --dense
