@@ -148,7 +148,14 @@ def main() -> int:
     if abs(want_mb - mb) > TOLERANCE_MB:
         print(f"  FAIL  FINISH.md says {want_mb} MB; HEAD gives {mb:.1f} MB")
         return 1
-    print(f"  the deploy uploads {files} files / {mb:.1f} MB and FINISH.md says so")
+    # Both numbers when they differ inside the tolerance, because printing only the computed one
+    # next to "and FINISH.md says so" reads as a contradiction when the file says 3.2 and this
+    # says 3.3 -- a true line that looks like a failure is its own kind of wrong.
+    if f"{mb:.1f}" != f"{want_mb:.1f}":
+        print(f"  the deploy uploads {files} files / {mb:.1f} MB; FINISH.md says {want_mb} MB, "
+              f"inside the {TOLERANCE_MB} MB tolerance")
+    else:
+        print(f"  the deploy uploads {files} files / {mb:.1f} MB and FINISH.md says so")
     return 0
 
 

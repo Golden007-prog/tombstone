@@ -31,17 +31,34 @@ export HF_TOKEN=hf_xxxxxxxxxxxx      # huggingface.co/settings/tokens -> New tok
 ```
 
 The script creates the Space, swaps in the Space README (Spaces reads config from its own
-front-matter, not this repo's) and uploads 98 files / 3.2 MB. First build takes a few minutes;
+front-matter, not this repo's) and uploads 98 files / 3.3 MB. First build takes a few minutes;
 after that it boots in seconds.
 
-**This path has already been verified on the committed tree**, so the token is the only thing
-missing. `./scripts_verify_deploy.sh` reproduces the Space locally — same `linux/amd64` platform,
-same non-root UID, no volumes — and on `99df19d` it built, booted, answered, drafted a patch,
-refused the one it cannot justify, served every static route, peaked at **450 MiB in serial use
-against the 512 MiB ceiling**, survived six concurrent `GRAPH.COPY` requests (five answered, one
-degraded honestly, no hard failures), and — with FalkorDB killed inside the container — reported
-down, returned `DEGRADED` for a question it had just answered, and kept serving the page. Re-run
-it yourself if you change anything before deploying; it needs no token.
+**`./deploy_hf.sh` needs the token and nothing else — not Docker.** It stages from
+`git archive HEAD` and pushes; the Space builds the image on Hugging Face's side. So you can
+deploy from a laptop with Docker shut down, and a Dockerfile problem would surface in the Space's
+own build log rather than silently.
+
+**What has and has not been verified, because the honest answer changed today.**
+`./scripts_verify_deploy.sh` reproduces the Space locally — same `linux/amd64` platform, same
+non-root UID, no volumes — and on `99df19d` it built, booted, answered, drafted a patch, refused
+the one it cannot justify, served every static route, peaked at **450 MiB in serial use against
+the 512 MiB ceiling**, and — with FalkorDB killed inside the container — reported down, returned
+`DEGRADED` for a question it had just answered, and kept serving the page.
+**That run is now 65 commits old.** `server.py`, `agent.py` and `tools.py` have all changed since,
+including the fix that stopped `/api/tool` honouring a filesystem argument — which is precisely
+the kind of thing that check exercises. It has not been re-run, and saying "already verified"
+without that caveat was the stale half of this file.
+What *has* run against the current tree, minutes ago: **145 tests, `./preflight.sh` 23/23 against
+a live graph, and CI green on every push.** Those cover the app; they do not build the image.
+So: re-run `./scripts_verify_deploy.sh` before deploying if you want the image covered too — it
+needs Docker and a few minutes and no token — or deploy without it and watch the Space's build
+log, which is the faster path and the one I would take with the clock where it is.
+
+On concurrency, one correction from today: six concurrent `GRAPH.COPY` requests always come back,
+every one either answering or degrading honestly, with no hard failure and no hang. The **split**
+is not a property and should not be quoted as one — which fork loses the race varies. It was 5
+answered / 1 degraded in that container run and 4 / 2 against a local instance on 16 Oct.
 
 **That SHA is deliberately specific, and here is what has changed since it.** Exactly one file
 on the deploy surface: `deploy/README-hf-space.md`, which gained a `short_description` line and
