@@ -622,7 +622,12 @@ def render(a: Answer) -> str:
         lines = []
         for r in a.rows:
             idea, rationale, kep, title, status, sig, url, years, deciders, live, own, dist = r
-            when = "date not recorded" if years is None or years < 0 else f"{years}y ago"
+            # "0y ago" is true for anything decided this year and reads like an unfilled field,
+            # which is the same failure as "1 areas" and "0ms": correct, and looks like a bug, on
+            # a line whose whole job is to tell you how old a rejection is.
+            when = ("date not recorded" if years is None or years < 0
+                    else "under a year ago" if years == 0
+                    else f"{years}y ago")
             lines.append(
                 f"• “{idea}” — rejected in KEP-{kep} ({status}, {sig}, {when})\n"
                 f"  reason: {str(rationale)[:220]}\n"
