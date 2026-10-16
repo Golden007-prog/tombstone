@@ -1290,9 +1290,20 @@ def test_every_surviving_area_drawn_shows_why_it_survives(agent):
         pytest.skip("GRAPH.COPY unavailable on this host")
     drawn = subgraph(handles=",".join(COHORT), stranded=",".join(answer.rows[0][1]))
     edges = drawn["edges"]
-    inherits = {e["source"] for e in edges if e["label"] == "INHERITS_FROM"}
+    # Named once, and asserted to exist before it is used to build sets. Filtering on a label
+    # that has been renamed yields EMPTY sets, and an empty set makes some assertions vacuous
+    # rather than failing -- a renamed edge should break this test loudly, not quietly weaken it.
+    # The label is "INHERITS COVERAGE" rather than the data model's INHERITS_FROM because the
+    # match behind it walks *1..8: pkg/api/testing reaches pkg only through pkg/api, which has no
+    # approvers at all, so one INHERITS_FROM edge there would claim a relationship the graph
+    # does not hold.
+    inherit_label = "INHERITS COVERAGE"
+    assert any(e["label"] == inherit_label for e in edges), (
+        f"no {inherit_label!r} edge is drawn at all; if it was renamed, rename it here too -- "
+        f"every check below filters on it and would pass on an empty set")
+    inherits = {e["source"] for e in edges if e["label"] == inherit_label}
     survivors = {n["id"] for n in drawn["nodes"] if n["kind"] == "area"}
-    ancestors = {e["target"] for e in edges if e["label"] == "INHERITS_FROM"}
+    ancestors = {e["target"] for e in edges if e["label"] == inherit_label}
     # Every surviving area is either the ancestor that carries others, or inherits from one.
     for area in survivors:
         assert area in inherits or area in ancestors, (

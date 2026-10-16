@@ -42,7 +42,7 @@ ARTEFACTS = (
 def main() -> int:
     bad = 0
     now = {f: hashlib.sha256(open(f, "rb").read()).hexdigest()[:16]
-           for f in SOURCES + ("src/tombstone/tools.py",)}
+           for f in SOURCES + ("src/tombstone/tools.py", "src/tombstone/server.py")}
     for fingerprint, generator, images in ARTEFACTS:
         missing = [i for i in images if not os.path.exists(i)]
         if missing:

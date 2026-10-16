@@ -262,7 +262,13 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
             for who in leaving:
                 link(add(who, who, "person_gone"), area, "APPROVES")
             anc = area_of(ancpath, False)
-            link(area, anc, "INHERITS_FROM")
+            # Not "INHERITS_FROM": that is a single-hop relationship in the data model, and the
+            # match above walks *1..8 to find the nearest ancestor that still has an approver.
+            # pkg/api/testing reaches pkg only through pkg/api, which has no approvers at all, so
+            # drawing one INHERITS_FROM edge between them asserted a relationship the graph does
+            # not contain -- on a picture whose whole claim is that the path IS the evidence. The
+            # derived name matches what the prose beside it already says: coverage inherits upward.
+            link(area, anc, "INHERITS COVERAGE")
             for who in keeps:
                 link(add(who, who, "person_live"), anc, "STILL APPROVES")
 

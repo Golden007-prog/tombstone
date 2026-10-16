@@ -224,7 +224,12 @@ print(f"\n{OUT}  —  {total}s, {len(BEATS)} beats, {os.path.getsize(OUT) // 102
 import hashlib as _hashlib
 import json as _json
 
-_SOURCES = ("web/app.js", "web/style.css", "web/index.html", "src/tombstone/tools.py")
+# server.py belongs here for the same reason tools.py does, and I only noticed because I
+# changed an edge LABEL in it: the video renders reasoning pictures, and the subgraph
+# endpoint decides what is in them. A server-side change to the drawing could have left
+# this video showing an edge name the product no longer uses, with every check green.
+_SOURCES = ("web/app.js", "web/style.css", "web/index.html",
+            "src/tombstone/tools.py", "src/tombstone/server.py")
 with open("docs/video/.walkthrough-fingerprint.json", "w") as _fh:
     _json.dump({f: _hashlib.sha256(open(f, "rb").read()).hexdigest()[:16] for f in _SOURCES},
                _fh, indent=2, sort_keys=True)
