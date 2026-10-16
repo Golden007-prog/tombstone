@@ -1691,11 +1691,18 @@ def test_the_benchmark_table_and_the_prose_under_it_agree():
 
     # Every other PageRank range in the file must match it, except one that is explicitly the
     # superseded figure being quoted -- "had claimed", past tense.
+    #
+    # Counted, because the first version of this test passed with BOTH prose mentions deleted:
+    # it asserted the table row existed and then looped over prose that had stopped matching, so
+    # rewording either sentence silently retired the check. That is the exact failure this test
+    # was written to catch, committed inside the test itself on the same day.
+    seen_readme = seen_explain = 0
     for m in re.finditer(r"PageRank[^.\n]{0,40}?(\d+)[–-](\d+)x", readme):
         # "had claimed" sits INSIDE the matched span -- "PageRank 30x where this table had
         # claimed 54-145x" -- not before it, which is where the first version of this looked.
         if "had claimed" in m.group(0) or "previously" in m.group(0):
             continue
+        seen_readme += 1
         assert (m.group(1), m.group(2)) == table_range, (
             f"the README states PageRank at {m.group(1)}-{m.group(2)}x where its own table says "
             f"{table_range[0]}-{table_range[1]}x")
@@ -1703,9 +1710,17 @@ def test_the_benchmark_table_and_the_prose_under_it_agree():
     # The explainer answers a judge's question out loud, so it must not quote a retired range.
     explain = open("docs/EXPLAIN-IT.md").read()
     for m in re.finditer(r"PageRank[^.\n]{0,40}?(\d+)[–-](\d+)x", explain):
+        seen_explain += 1
         assert (m.group(1), m.group(2)) == table_range, (
             f"docs/EXPLAIN-IT.md says PageRank {m.group(1)}-{m.group(2)}x; the README's table "
             f"says {table_range[0]}-{table_range[1]}x")
+
+    assert seen_readme >= 1, (
+        "no PageRank range found in the README's prose; the sentence was reworded and this check "
+        "silently stopped checking it")
+    assert seen_explain >= 1, (
+        "no PageRank range found in docs/EXPLAIN-IT.md; the explainer dropped the figure, or "
+        "reworded it past this check")
 
 
 def test_a_bold_line_on_its_own_is_not_glued_to_the_paragraph_above():
