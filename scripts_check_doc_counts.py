@@ -106,26 +106,58 @@ _inline = _outside.count("[32mok")   # literal, not a regex: r"\033\[32mok" comp
 _total = len(_labels) + _inline
 _WORDS = {14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen",
           19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two"}
-_spelled = re.search(r"one command, ([\w-]+) checks", open("SUBMISSION.md").read())
-_said = _spelled.group(1) if _spelled else "nothing"
-if _said != _WORDS.get(_total):
-    problems.append(f"SUBMISSION.md: says preflight runs '{_said}' checks, "
-                    f"it runs {_total} ({_WORDS.get(_total, _total)})")
+# Every tracked document, not just the submission checklist. This check was written against
+# SUBMISSION.md alone, so docs/EXPLAIN-IT.md -- the file whose entire job is being right when a
+# judge asks, under Rule 12 -- could claim any number of checks and nothing noticed. Scanning
+# whatever is tracked means a document added later is covered without remembering to list it.
+# _WORDS only spans 14-22, which is enough to RENDER the right answer but not to RECOGNISE a
+# wrong one: a doc claiming "thirty-one checks" parsed as not-a-number and was skipped in silence.
+# So the parse side gets every spelled number up to sixty, built rather than typed.
+_UNITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+          "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+          "eighteen", "nineteen"]
+_TENS = {20: "twenty", 30: "thirty", 40: "forty", 50: "fifty", 60: "sixty"}
+_SPELLED = {w: i for i, w in enumerate(_UNITS)}
+for _t, _tw in _TENS.items():
+    _SPELLED[_tw] = _t
+    for _u in range(1, 10):
+        _SPELLED[f"{_tw}-{_UNITS[_u]}"] = _t + _u
+import subprocess as _subp
+_docs = [d for d in _subp.run(["git", "ls-files", "*.md"], capture_output=True,
+                              text=True).stdout.split() if pathlib.Path(d).exists()]
+_claims = 0
+for _doc in _docs:
+    for _tok in re.findall(r"([\w-]+) checks\b", open(_doc).read()):
+        _n = int(_tok) if _tok.isdigit() else _SPELLED.get(_tok)
+        if _n is None:          # "the checks that need no database" -- not a count at all
+            continue
+        _claims += 1
+        if _n != _total:
+            problems.append(f"{_doc}: says preflight runs '{_tok}' checks, it runs {_total} "
+                            f"({_WORDS.get(_total, _total)})")
+if not _claims:
+    problems.append("no document states how many checks preflight runs; one is expected")
 else:
-    checked += 1
-    print(f"  preflight runs {_total} checks and the checklist says {_said}")
+    checked += _claims
+    print(f"  preflight runs {_total} checks, stated {_claims}x across {len(_docs)} documents")
 
 # Same for the CI step count, which sits in the README's 60-second box -- the single most-read line
 # in the repo -- and in the submission copy. It was typed in both places and checked in neither.
 _steps = sum(1 for _l in open(".github/workflows/verify.yml") if re.match(r"^\s*- name:", _l))
-for _doc in ("README.md", "SUBMISSION.md"):
+# Also widened to every tracked document: docs/EXPLAIN-IT.md and docs/GROUND-TRUTH.md both state
+# this number and neither was being read, so the same figure was guarded in two files and loose
+# in two others.
+_seen_steps = 0
+for _doc in _docs:
     _said = re.findall(r"(\d+) CI steps", open(_doc).read())
-    if not _said:
-        problems.append(f"{_doc}: no CI step count found where one is expected")
-    elif any(int(x) != _steps for x in _said):
+    _seen_steps += len(_said)
+    if any(int(x) != _steps for x in _said):
         problems.append(f"{_doc}: says {', '.join(_said)} CI steps, the workflow has {_steps}")
-    else:
-        checked += len(_said)
+if not _seen_steps:
+    problems.append("no document states the CI step count; one is expected")
+else:
+    checked += _seen_steps
+    print(f"  the workflow has {_steps} steps, stated {_seen_steps}x across the documents")
 # The test count and the rendered-state count each appear in more than one document, and the
 # README states the test count TWICE -- once in the 60-second box and once as a comment beside the
 # pytest command in the Quickstart. Updating one and not the other is exactly what happened, and
@@ -288,7 +320,6 @@ print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both 
 
 print(f"  the UI check drives {_states} rendered states and every document agrees")
 
-print(f"  the workflow has {_steps} named steps and both docs say so")
 
 # ---------------------------------------------------------------------------
 # docs/EXPLAIN-IT.md states the data model as a table -- "| `Person` | 794 |" -- so the number and
