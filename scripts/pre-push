@@ -43,6 +43,7 @@ echo "pre-push: the checks that need no database"
 run "the demo script is speakable"  python3 scripts_check_demo_timing.py
 run "the narration cut matches the script" python3 scripts_build_narration.py --check
 run "SUBMISSION.md's stated lengths" python3 scripts_check_submission_lengths.py
+run "committed artefacts match the code" python3 scripts_check_shots_fresh.py --hashes-only
 
 # This one is here rather than only in preflight because of WHEN it can be right. It
 # computes the upload from `git archive HEAD`, so before a commit HEAD lacks the file you

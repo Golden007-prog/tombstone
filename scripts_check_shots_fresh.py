@@ -11,6 +11,16 @@ and a browser, so the right moment to be told is while you are at the machine th
 cosmetic edit turning CI red for a screenshot nobody can regenerate there is the kind of check
 people learn to skip.
 
+I overrode that paragraph without reading it. A comment I added to `web/app.js` staled three
+artefacts, nothing said so for two commits, and I concluded the exclusion was an oversight and put
+this in CI -- where the reasoning above says a failure is unfixable and therefore ignorable. The
+paragraph was right and I had quoted from this very file earlier the same day.
+
+The actual gap was narrower, and `--hashes-only` is it: the hash comparison needs no app and no
+browser, so it can run in the push gate, on the machine that CAN regenerate, at the moment the
+staleness is introduced. The live `path.svg` probe still needs a served instance and stays in
+preflight. That catches what happened to me without putting an unfixable failure in CI.
+
 Run: python scripts_check_shots_fresh.py
 """
 from __future__ import annotations
@@ -44,6 +54,9 @@ ARTEFACTS = (
 
 def _hash(path: str) -> str:
     return hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]
+
+
+HASHES_ONLY = "--hashes-only" in sys.argv
 
 
 def main() -> int:
@@ -94,6 +107,11 @@ def main() -> int:
             print(f"  {', '.join(os.path.basename(i) for i in images)} "
                   f"{'matches' if len(images) == 1 else 'match'} the code and corpus "
                   f"{'it was' if len(images) == 1 else 'they were'} made from")
+    if HASHES_ONLY:
+        # The push gate's half: hashes only, no served instance needed. Said out loud rather than
+        # skipped silently, so nobody mistakes this for the full check.
+        print("  (hashes only — the live path.svg probe needs ./run.sh; ./preflight.sh does it)")
+        return bad
     return bad + _figure_matches_its_data()
 
 

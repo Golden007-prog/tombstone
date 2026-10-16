@@ -415,7 +415,7 @@ submission audit now reads the run for HEAD and says so, which turns "did I chec
 something the machine answers.
 
 **One sentence, wrong three times, each time in my favour.** The 60-second box said "every
-benchmark re-run by 34 CI steps on each push". Two run in CI; the tenancy benchmark builds a
+benchmark re-run by 33 CI steps on each push". Two run in CI; the tenancy benchmark builds a
 thousand graphs and does not — and I had written that down one commit earlier while leaving the
 summary claiming otherwise. I corrected it to "two of the three", and the check I wrote in the
 same commit caught *that* as wrong: there were five benchmark scripts then, not three, counting the

@@ -210,7 +210,7 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Nothing here is asserted. **34 CI steps on every push** re-check it: 134 tests, 36 graph claims
+Nothing here is asserted. **33 CI steps on every push** re-check it: 134 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other four build a thousand graphs, millions of edges or a memory curve, so they are dated measurements with

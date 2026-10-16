@@ -151,7 +151,7 @@ than in `./preflight.sh` — embedding 2,224 documents is minutes of CPU, which 
 
 One command: `./preflight.sh` — twenty-three checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-34 CI steps on every push, 36 runs because two repeat across Python 3.11 and 3.14. 134 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
+33 CI steps on every push, 35 runs because two repeat across Python 3.11 and 3.14. 134 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"
