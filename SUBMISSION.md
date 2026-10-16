@@ -55,9 +55,19 @@ the graph and filters every query before anything reaches the model, and `rossyc
 whose README separates what is real from what is stubbed and whose dataset is a fictional dealership.
 
 Read their READMEs rather than run them, so the feature claims are what they claim, not what they
-do — but the deployments I did check, by request rather than by reading. **On 16 Oct, four of the
-five answered HTTP 200**: orion, threadline, axon-brain and dealership-brain. Only `lineage` has no
-public URL. All five last pushed on 15 Oct.
+do — but the deployments I did check, by request rather than by reading.
+
+A later sweep found the Track 3 field is wider than these five. `RISHIK92/company-brain` (2.3MB,
+a temporal cited knowledge graph of people and decisions) and `cyh7789/passthru` are substantial
+and **neither advertises a URL**; `Laimos-code/lore-company-brain` is 6KB, a README. So the honest
+count on 16 Oct is **four deployed out of eight visible Track 3 entries** — orion, threadline,
+axon-brain and dealership-brain answered HTTP 200; lineage, RISHIK92/company-brain,
+lore-company-brain and passthru have no public URL.
+
+That is a weaker claim than "everyone else is live", and it is the true one. Deploying is still
+worth doing — the FAQ says a hosted demo is preferred, and half the serious field has one — but
+it is an advantage to gain rather than a hole to climb out of. Nothing had pushed since 15 Oct
+23:14 when this was written.
 
 Two things follow that are worth acting on. **Multi-track entry is normal here**, so entering one
 track is a choice and should be a reasoned one. And the live demo is the clearest gap in this
