@@ -224,7 +224,13 @@ else:
         # was stale, which the line break had been hiding from every check in the file.
         _body = re.sub(r"[^.]*\b(?:tests to|to this graph's|relationships to)\b[^.]*\.", " ",
                        _flat(open(_doc).read()))
-        for _said in re.findall(r"(\d+) (?:invariant )?tests\b", _body):
+        # The comparison is excluded above so a rival's count is not read as ours -- but OUR
+        # number is the second half of "185 tests to 128", and excluding the sentence removed the
+        # only check on it. Verified by setting it to 999: nothing failed. So the trailing figure
+        # is checked explicitly, which is the half of that sentence this repository is
+        # accountable for.
+        for _said in (re.findall(r"(\d+) (?:invariant )?tests\b", _body)
+                      + re.findall(r"\btests to (\d+)", _flat(open(_doc).read()))):
             if int(_said) != _tests:
                 problems.append(f"{_doc}: says {_said} tests, pytest collects {_tests}")
             else:
