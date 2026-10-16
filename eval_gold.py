@@ -258,6 +258,21 @@ def main() -> int:
     if bad_url:
         fails.extend(bad_url[:3])
 
+    # Named options are lifted out of prose by a regex over sub-headings, and a few section
+    # headings get through. The README states how many; this pins it, so the extractor getting
+    # worse is a failing check rather than a slowly worsening haystack.
+    import re as _re2
+    _ART = _re2.compile(r"^(cons|pros|notes?|summary|background|alternatives?|considerations?|"
+                        r"drawbacks?|risks?|examples?|conclusion|motivation)\s*:?\s*$", _re2.I)
+    _titles = [t for (t,) in q("MATCH (a:NamedOption) RETURN a.title").result_set]
+    _arte = [t for t in _titles if t and (_ART.match(t.strip()) or len(t.strip()) <= 3)]
+    _ok_arte = len(_arte) <= 13
+    print(f"  {'PASS' if _ok_arte else 'FAIL'}  {len(_arte)} of {len(_titles)} embedded options "
+          f"are section headings or fragments, and the README says 13")
+    if not _ok_arte:
+        fails.append(f"extraction has got worse: {len(_arte)} artefact titles among the embedded "
+                     f"options, up from the 13 the README documents")
+
     # The README states this result by name, so it is read back out of the page rather than
     # trusted. A number nobody derives goes stale within a day; a NAME in a claim about a real
     # person is worse, because it reads as authoritative and nothing about it looks approximate.

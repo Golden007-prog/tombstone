@@ -1175,6 +1175,17 @@ times. Each fix made the claim narrower and more defensible.
 
 ## Honest limits
 
+- **A few embedded options are section headings, not alternatives.** Lifting named options out of
+  prose is a regex over sub-headings, and it is not perfect: of the 752 titles that get embedded
+  and are therefore reachable by `has_this_been_tried`, **13 are artefacts** — `Pros`, `Cons`,
+  `Pros:`, `Cons:`, and a handful of three-letter fragments, though `ACL`, `API` and `VPA` in that
+  group are real option names. The practical effect is narrow and I measured it rather than
+  guessed: of six questions, five return genuine alternatives and only the vague one does not —
+  *"what are the tradeoffs here"* answers with **`Pros/Cons`**, a heading dressed as a rejected
+  idea. A specific question does not reach them, because the distance threshold keeps weak matches
+  out. Fixing it properly means re-extracting the corpus and re-verifying every number that rests
+  on it, which is not a thing to start two days from a deadline; `eval_gold.py` pins the count so
+  it cannot grow unnoticed.
 - **KEP numbers are not unique, and one pair proves it.** 681 decision records carry 680 distinct
   numbers: **2133 exists under both `sig-cloud-provider` and `sig-node`**, because Kubernetes
   reused it when *Kubelet Credential Providers* superseded *Out-of-Tree Credential Providers*. The
