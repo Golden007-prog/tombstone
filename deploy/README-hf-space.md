@@ -7,6 +7,7 @@ sdk: docker
 app_port: 8099
 pinned: false
 license: apache-2.0
+short_description: The decisions your org already made and forgot. A Company Brain on FalkorDB over Kubernetes' real governance record.
 ---
 
 # Tombstone
