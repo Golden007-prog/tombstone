@@ -2,8 +2,10 @@
 
 Markdown tables fail quietly: one stray pipe inside a cell and GitHub renders the whole block as
 a paragraph of text with pipes in it. Nothing errors, the file still looks fine in an editor, and
-you find out when someone opens the repo. This page has twelve tables and was edited about twenty
-times in a day.
+you find out when someone opens the repo. The page is mostly tables and was edited about twenty
+times in a day. The count is derived below and printed, not stated here: this sentence said
+"twelve" until the page rendered seventeen, which is a stale number inside the very script whose
+job is catching stale rendering -- a comment is not exempt from the thing the file is about.
 
 So this asks GitHub to render it and asserts that every table that should be a table is one, that
 every image resolves, and that each `#anchor` used in the page matches a heading GitHub actually
