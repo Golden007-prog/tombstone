@@ -20,8 +20,10 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
-> - **See it work without running anything:** **[▶ 86-second walkthrough](docs/video/walkthrough-silent.mp4)**
->   — plays in GitHub's own viewer, captioned, every frame a real screenshot of the running app.
+> - **See it work without running anything:** the picture two screens down renders inline —
+>   depth 1 returns nothing, depth 4 explains why. There is also an
+>   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (699 KB, downloads;
+>   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
 > - **Nothing here is asserted.** 134 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **33 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
@@ -92,7 +94,7 @@ with the exact location of each item and an honest status.
 | A public source-code repository | this repo, Apache-2.0 | **done** |
 | A README with setup instructions and the graph data model | [Quickstart](#quickstart) and [The graph data model](#the-graph-data-model) | **done** |
 | The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — every query generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source** | **done** |
-| A demo video of the working project | **[▶ watch the 86-second walkthrough](docs/video/walkthrough-silent.mp4)** — plays in the browser, no clone and no server; every frame is a real screenshot of the running app, captioned | silent walkthrough committed; narrated cut to follow |
+| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 699 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
 | A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup **plus a video, which is how the FAQ words the fallback** — not "either/or" but *complete local setup instructions **and** a working demo video* if you cannot deploy; Rule 10 requires the video separately, so both halves are present. The hosted deploy is verified end to end by `./scripts_verify_deploy.sh`, which builds the image for `linux/amd64` and runs it as a non-root user exactly as a Space does; it serves, seeds and answers. Only the account token is outstanding. |
 | The track you are entering | **Track 3, Company Brain**, stated at the top of this README | **done** |
 

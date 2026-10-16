@@ -316,7 +316,7 @@ rather than improvised.*
 | Repository | https://github.com/aviralgarg05/tombstone |
 | Live demo | *(fill in after `./deploy_hf.sh`)* |
 | Demo video | *(fill in — narrated cut per `docs/DEMO-SCRIPT.md`)* |
-| Fallback video | **[▶ docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4)** — 86s, captioned, in-repo, and it plays in GitHub's own viewer, so a judge who runs nothing still sees the product work |
+| Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 699 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
 | Blog post | *(fill in if published — side prize is for the best post)* |
 
 ## How FalkorDB is used (Rule: it must support a central part of the product)
