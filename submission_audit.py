@@ -113,6 +113,26 @@ def main() -> int:
     submitted = os.environ.get("SUBMITTED") == "1"
     extra.append(("Registered and submitted on wemakedevs.org", OK if submitted else NO,
                   "set SUBMITTED=1 once the form is in" if not submitted else "confirmed"))
+    # CI state for THIS commit, not the last run that happened to be green. I reported green for
+    # three consecutive failing pushes by reading a stale result, which is the exact failure this
+    # whole repository argues against, committed in the summary line rather than the code.
+    head = sh("git", "rev-parse", "HEAD")
+    runs = sh("gh", "run", "list", "--limit", "20", "--json", "headSha,status,conclusion")
+    ci_state, ci_detail = NO, "no run found for this commit — has it been pushed?"
+    try:
+        for r in json.loads(runs or "[]"):
+            if r.get("headSha") == head:
+                if r.get("status") != "completed":
+                    ci_state, ci_detail = HM, f"still {r.get('status')}"
+                elif r.get("conclusion") == "success":
+                    ci_state, ci_detail = OK, f"green on {head[:8]}"
+                else:
+                    ci_state, ci_detail = NO, f"{r.get('conclusion')} on {head[:8]}"
+                break
+    except Exception as e:
+        ci_detail = f"could not read CI state ({type(e).__name__})"
+    extra.append(("CI green on the commit you are about to submit", ci_state, ci_detail))
+
     hooks = sh("git", "config", "core.hooksPath")
     extra.append(("Push gate installed (git config core.hooksPath scripts)",
                   OK if hooks == "scripts" else NO,

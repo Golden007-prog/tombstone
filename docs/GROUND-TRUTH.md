@@ -357,6 +357,22 @@ near-tie — both tools above `MIN_SCORE` and within `MIN_MARGIN` — and there 
 a request to fix a unit test, and a question with no argument are each offered nothing. Caught by
 pulling a frame out of the walkthrough and reading the sentence under the buttons.
 
+**Wanting a number to be checkable does not make it so.** Absolute benchmark milliseconds are
+machine-dependent, so I did not assert them — and then asserted the *ratios*, reasoning that a
+ratio survives a change of machine. CI disproved that inside an hour: betweenness measures 2x on
+this laptop and **6x on a GitHub runner**, WCC 5x here and 1x there. The build went red for a
+claim that was never false. The ratios are reported now, with a divergence annotated as hardware;
+what stays gated is the cross-check that both engines agree on the ANSWER before either is timed,
+because that comparison does not care what machine it runs on. The general form: before gating on
+a measurement, ask what else changes it. If the answer includes "the hardware", it is evidence to
+record, not a condition to enforce.
+
+**Three red builds I reported as green.** While fixing the above I told the user CI was passing,
+three pushes running, because I read the most recent *completed* run instead of the run for the
+commit I had just pushed. The information was one command away and I used a remembered one. The
+submission audit now reads the run for HEAD and says so, which turns "did I check?" into
+something the machine answers.
+
 **One sentence, wrong three times, each time in my favour.** The 60-second box said "every
 benchmark re-run by 31 CI steps on each push". Two run in CI; the tenancy benchmark builds a
 thousand graphs and does not — and I had written that down one commit earlier while leaving the
