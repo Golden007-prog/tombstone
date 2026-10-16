@@ -398,6 +398,23 @@ added. That is not evidence against the figure; it is an instrument that has gon
 instance, and reporting it as a failure would be a lie about which thing is broken. The benchmark
 says so now, and names what to restart.
 
+Twice I tried to automate the question "which numbers in these documents does no check
+read?", and twice the instrument said everything was fine. The first asked whether any checker
+*mentions* the quantity word — "tests", "MiB", "characters" — which says nothing about whether
+the claim is compared to anything, and it duly reported full coverage. The second was meant to be
+rigorous: pull every regex literal out of every checker, then test each numeric claim's
+surrounding text against all of them. It reported **zero** ungated claims, which was implausible
+enough to check, and the check was quick. Of the 104 patterns it had collected, three were
+catch-alls — `[^\w \-]`, `\b[^.]{0,60}?\b` — that match almost any prose, so "matched by some
+regex" turned out to mean "contains punctuation". Both runs gave a clean bill of health to a
+figure that was, at that moment, wrong in two documents.
+
+What actually found things was reading. Opening a file I had never opened turned up a version-pin
+justification citing six upstream bugs, one of which had been fixed since. Reading the output of
+the useless sweep anyway turned up `387` and `400` in a list that should only have held `450`.
+Neither needed a tool; both needed attention, and the tools were worse than nothing because they
+told me attention was unnecessary.
+
 The same measurement taught me something duller and more expensive. I had published **about 12 KB
 per stored answer**, reproducing at 11.9, 11.6 and 12.2 across three runs — real runs, and all
 three started from an *empty* memory, where the first two hundred answers also pay around 1.7 MB
