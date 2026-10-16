@@ -69,4 +69,34 @@ else:
 
 print(f"\n{'FAILED' if fails else 'OK'}: the README renders "
       f"{'with problems' if fails else 'cleanly'} on GitHub")
+
+# Internal anchors. A link to a heading that does not exist scrolls nowhere and looks like a
+# broken page, and nothing here checked them: I wrote one pointing at
+# "#the-correction-i-made..." when the heading begins "A correction I made", and preflight passed.
+# GitHub's slug rules, near enough: lowercase, strip inline code and emphasis and punctuation,
+# spaces to hyphens.
+import re as _re
+
+def _slug(h: str) -> str:
+    h = _re.sub(r"`|\*\*|\*|_", "", h.strip().lower())
+    return _re.sub(r"[^\w \-]", "", h).replace(" ", "-")
+
+
+_anchor_problems = []
+for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md", "docs/BLOG-POST.md"):
+    try:
+        _t = open(_doc).read()
+    except FileNotFoundError:
+        continue
+    _heads = {_slug(h) for h in _re.findall(r"^#{2,4} (.+)$", _t, _re.M)}
+    for _l in sorted(set(_re.findall(r"\]\(#([a-z0-9\-]+)\)", _t))):
+        if _l not in _heads:
+            _anchor_problems.append(f"{_doc}: link to #{_l} matches no heading")
+if _anchor_problems:
+    print()
+    for _p in _anchor_problems:
+        print(f"  FAIL  {_p}")
+    raise SystemExit(1)
+print("  every internal anchor points at a heading that exists")
+
 sys.exit(1 if fails else 0)
