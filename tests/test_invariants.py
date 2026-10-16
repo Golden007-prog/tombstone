@@ -1795,13 +1795,20 @@ def test_every_repo_path_the_docs_name_actually_exists():
     # Files that belong to kubernetes/enhancements, not to this repository.
     UPSTREAM = {"kep.yaml", "sigs.yaml", "/keps/sig-api-machinery/0006-apply.md"}
 
+    # Files in ANOTHER ENTRANT's repository, named as evidence. SUBMISSION.md's competitive
+    # section quotes BalajiReddy1/understudy's tree to show it reads the same corpus this does --
+    # the entire point of naming those files is that they are not here. Listed one by one rather
+    # than by loosening the regex or exempting the document, so a genuinely missing path in this
+    # repository still fails this test.
+    OTHER_ENTRANTS = {"ingest/owners.py", "ingest/keps.py", "derive/departures.py"}
+
     PATH = re.compile(r"`([A-Za-z0-9_./-]+\.(?:py|sh|yml|yaml|json|gz|js|css|html|mp4|svg|gif|png))`")
     missing = []
     for doc in docs:
         here = pathlib.Path(doc).parent
         for m in PATH.finditer(pathlib.Path(doc).read_text()):
             name = m.group(1)
-            if name in UPSTREAM or name in tracked or name in basenames:
+            if name in UPSTREAM or name in OTHER_ENTRANTS or name in tracked or name in basenames:
                 continue
             if (here / name).exists() or pathlib.Path(name).exists():
                 continue
