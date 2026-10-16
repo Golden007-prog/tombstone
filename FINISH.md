@@ -67,31 +67,29 @@ a link to its project page. If the script could not reach `gh` it prints the exa
 One thing it does not do: the README's 60-second block has a **Live demo** line reading _"not
 deployed yet"_. Replace that with the URL — it is the first thing on the page a judge reads.
 
-## Before you submit: one ten-minute job needing Docker
+## Optional, if you have ten spare minutes with Docker up
 
-Three committed artefacts are **stale**, and it is my doing. A comment I added to `web/app.js`
-changed its hash, which the fingerprint system treats as the interface having moved — so
-`walkthrough-silent.mp4`, `depth-contrast.gif` and the two screenshots are no longer certified
-against the code they depict. The *content* is unaffected: the change was a comment, so the
-rendered UI is identical. The guarantee is what broke, not the pictures.
+Nothing is broken. The committed artefacts are certified against the code they depict — I staled
+them for about an hour with a comment and then un-staled them by moving the comment out of a
+fingerprinted file, which is written up in `docs/GROUND-TRUTH.md`.
 
-Nothing automated caught it, which is the more useful half. `scripts_check_shots_fresh.py` runs
-only in `./preflight.sh` — not in CI, not in the push gate — so two commits went past it with CI
-green. The check needs the app serving, which is why it was left out, but CI already serves the
-app for the UI check, so there is no good reason.
+Two things would still be better, and both need the app serving, so they share one window:
 
 ```bash
 ./run.sh                               # one shell
-python scripts_gen_readme_shots.py     # another
+python scripts_gen_readme_shots.py     # another — regenerate with phone-legible type
 python scripts_gen_depth_gif.py
 python scripts_build_walkthrough.py
-./preflight.sh                         # confirms all 23, including freshness
+./preflight.sh                         # all 23, including freshness and the live path.svg check
 ```
 
-While that is running it is also the moment to fix the figures' phone legibility — see
-**Honest limits** in the README — since regenerating is what that needs too. If you would rather
-not, say so: the artefacts are *correct*, merely uncertified, and Rule 10 cares that the video
-exists and shows the working product, which it does.
+The figures are desktop captures and illegible on a phone (measured; see **Honest limits** in the
+README), and `scripts_check_shots_fresh.py` runs only in `./preflight.sh` — not CI, not the push
+gate — which is why an hour passed before I noticed my own mistake. CI already serves the app for
+the UI check, so that check belongs there too, and once the figures are regenerated it can go in.
+
+Skip all of it if you would rather spend the time on the video. Rule 10 asks that the video exists
+and shows the working product; it does, and the figures are disclosed rather than hidden.
 
 ## 2. Record the video (~45 min including retakes)
 

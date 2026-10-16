@@ -1,6 +1,28 @@
 # FalkorDB ground truth — measured locally, not from docs
 Probed 2026-10-15 on falkordb/falkordb:latest, module ver 42201 (v4.22.1), Docker, 11 CPU / 8GB.
 
+## Phone-width budgets — MEASURED in a browser at 375x812, 16 Oct
+
+Kept here rather than beside the code it describes, and that is the point of the entry. I first
+wrote this as a comment in `web/app.js`, which is a **fingerprint source** for three committed
+artefacts — so a comment changed its hash and staled the walkthrough, the depth GIF and both
+screenshots, requiring a regeneration to re-certify pictures that had not changed by one pixel.
+A note about a file does not have to live inside it; this one lives where nothing hashes it.
+
+- **Chips.** `.chip` is `white-space:nowrap; flex-shrink:0`, so a label can neither wrap nor
+  compress — a long one overflows instead. The longest, *"Whose stepping back cost the most
+  connective authority?"* at 55 characters, renders **356px** against a 343px content box inside
+  `.wrap`'s 16px gutters. It spills into the gutter and the page still does not scroll sideways,
+  because 356 < 375. **Roughly three characters of headroom.** Not a rule — proportional font,
+  so "WWW" costs far more than "iii". Add a longer label and open the page at 375px.
+  (My paper estimate was 382px. The browser said 356. Measure.)
+- **Figures.** Every committed image is a desktop capture: `drafted-patch.png` and
+  `keyless-refusal.png` are 1280px native and scale to **0.268** in a 343px column, `path.svg`
+  to **0.399**, `depth-contrast.gif` to **0.451**. The path figure's `font-size="11"` labels land
+  at **4.4 real pixels**. The running app is defended against this — `renderPath` scales every
+  font size by the same factor, and `scripts_check_ui.py` fails the build on any that bypasses
+  the helper — but a check cannot police a PNG. Disclosed in the README's Honest limits.
+
 ## Operational gotchas (cost me time; document in README)
 - **Homebrew `redis-server` 8.2.1 squats 127.0.0.1:6379** and silently shadows Docker's `-p 6379:6379`.
   Symptom: `redis.exceptions.ResponseError: unknown command 'GRAPH.QUERY'`. Fix: map to **6380**.
