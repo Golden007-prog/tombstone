@@ -427,7 +427,19 @@ function renderPath(d) {
     }
     const anchor = n.x > W * 0.6 ? "end" : "start";
     const tx = anchor === "end" ? n.x - 14 : n.x + 14;
-    svg += `<text x="${tx}" y="${n.y + 3.5}" fill="${P.ink}" font-size="${fs(10.5)}" text-anchor="${anchor}">${esc(n.label)}<title>${esc(n.full || n.label)}</title></text>`;
+    // Fit the label to the room it actually has, rather than trusting the server's fixed-length
+    // truncation. That length is right for a wide screen and too long for a phone: the viewBox
+    // stays 560 wide while the container is 375, so fs() draws every label ~1.5x larger in viewBox
+    // units, and the area node's path ran off the right edge -- losing its own ellipsis, so it read
+    // as a path that simply stopped rather than one that was shortened. The full value is in the
+    // <title> either way, so nothing is lost by cutting it here.
+    const em = fs(10.5) * 0.55;                       // rough advance width of one character
+    const room = (anchor === "end" ? tx : W - tx) - 4;
+    let label = n.label;
+    if (label.length * em > room) {
+      label = label.slice(0, Math.max(1, Math.floor(room / em) - 1)) + "…";
+    }
+    svg += `<text x="${tx}" y="${n.y + 3.5}" fill="${P.ink}" font-size="${fs(10.5)}" text-anchor="${anchor}">${esc(label)}<title>${esc(n.full || n.label)}</title></text>`;
   });
 
   svg += `</svg>`;

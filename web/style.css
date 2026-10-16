@@ -78,6 +78,7 @@ button.primary:hover{filter:brightness(1.08);color:#fff}
 .panelhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
   padding:9px 12px;background:var(--bg);border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
 .legend{display:flex;gap:11px;flex-wrap:wrap;font-size:11.5px}
+.key{display:inline-flex;align-items:center;white-space:nowrap}
 .sw{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
 .sw.gone{background:var(--gone)} .sw.live{background:var(--live)} .sw.area{background:var(--area)}
 .sw.dec{background:var(--dec)} .sw.rej{background:var(--rej)}

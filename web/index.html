@@ -60,13 +60,18 @@
     <div id="graphwrap" class="graphwrap hidden">
       <div class="panelhead">
         <span>The path behind this answer</span>
+        <!-- Each swatch is paired with its label inside one .key. The legend is a flex container,
+             and a bare text node beside an <i> is its OWN anonymous flex item, so on a narrow
+             screen the swatch and the words it explains wrapped to different lines: the struck
+             square sat alone at the end of one row while "area with nobody left" began the next.
+             The one mark that carries a verdict was the one the wrap orphaned. -->
         <span class="legend">
-          <i class="sw gone"></i>stepped back
-          <i class="sw live"></i>still approves
-          <i class="sw area"></i>area
-          <i class="sw stranded"></i>area with nobody left
-          <i class="sw dec"></i>decision
-          <i class="sw rej"></i>rejected idea
+          <span class="key"><i class="sw gone"></i>stepped back</span>
+          <span class="key"><i class="sw live"></i>still approves</span>
+          <span class="key"><i class="sw area"></i>area</span>
+          <span class="key"><i class="sw stranded"></i>area with nobody left</span>
+          <span class="key"><i class="sw dec"></i>decision</span>
+          <span class="key"><i class="sw rej"></i>rejected idea</span>
         </span>
       </div>
       <div id="cy"></div>

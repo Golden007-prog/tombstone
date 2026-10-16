@@ -1311,3 +1311,40 @@ def test_an_out_of_domain_area_name_draws_nothing(agent):
     drawn = subgraph(handles=",".join(COHORT), stranded="not/a/real/OWNERS")
     struck = [n for n in drawn["nodes"] if n["kind"] == "area_stranded"]
     assert not struck, "a path that names no ownership file must not be drawn as a real area"
+
+
+def test_every_legend_swatch_is_paired_with_its_label():
+    """A swatch and the words it explains must wrap as one unit.
+
+    `.legend` is a flex container. Its children used to be the `<i class="sw">` marks and bare
+    text nodes, and a bare text node beside an element is its OWN anonymous flex item -- so on a
+    narrow screen the swatch and its label wrapped to different lines. On a phone the struck
+    square sat alone at the end of one row while "area with nobody left" began the next, which is
+    the one mark in the picture that carries a verdict rather than a category.
+
+    Found by opening the page at 375px and looking at it, not by any test, so here is the test.
+    """
+    import re
+
+    # Scanned over the whole file rather than a sliced-out legend block: swatches appear nowhere
+    # else, and slicing to the first "</span>" cut the block off after the first .key, which made
+    # this test fail against markup that was already correct.
+    html = open("web/index.html").read()
+    assert '<span class="legend">' in html, "the legend is gone from web/index.html"
+
+    swatches = re.findall(r'<i class="sw[^"]*"></i>', html)
+    assert swatches, "the legend has no swatches at all"
+
+    # Every swatch must sit inside a .key that also carries text; nothing may be loose.
+    keys = re.findall(r'<span class="key">\s*(<i class="sw[^"]*"></i>)\s*([^<]+?)\s*</span>', html)
+    assert len(keys) == len(swatches), (
+        f"{len(swatches)} swatches but only {len(keys)} are paired with a label inside a .key; "
+        f"a loose swatch wraps away from the words it explains")
+    for _mark, label in keys:
+        assert label.strip(), "a .key has a swatch but no label"
+
+    # And the pairing only holds if .key stops the line breaking inside it.
+    css = open("web/style.css").read()
+    key_rule = re.search(r"\.key\{([^}]*)\}", css)
+    assert key_rule, "web/style.css has no .key rule, so the pairing is markup-only"
+    assert "nowrap" in key_rule.group(1), ".key must not allow a break between swatch and label"
