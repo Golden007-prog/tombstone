@@ -181,5 +181,12 @@ def _check_ratio(label: str, measured: float) -> None:
 _check_ratio("betweenness", max(t_bc_nx, t_bc_fdb) / max(min(t_bc_nx, t_bc_fdb), 1e-9))
 _check_ratio("PageRank", max(t_pr_nx, t_pr_fdb) / max(min(t_pr_nx, t_pr_fdb), 1e-9))
 _check_ratio("WCC", max(t_wcc_nx, t_wcc_fdb) / max(min(t_wcc_nx, t_wcc_fdb), 1e-9))
+# The build and 2-hop rows were never reconciled, so the README's build range drifted out from
+# under an observation on this very machine: it said 94-99x while a run here gave 102x, and
+# nothing said so because nothing looked. A row printed in the table and not compared to the
+# page is a row that can only be checked by a human remembering to.
+_check_ratio("build graph", max(t_build_nx, t_build_fdb) / max(min(t_build_nx, t_build_fdb), 1e-9))
+_nxh, _fdh = statistics.median(nx_hops), statistics.median(fdb_hops)
+_check_ratio("2-hop neighbourhood", max(_nxh, _fdh) / max(min(_nxh, _fdh), 1e-9))
 print("\n  Ratios are reported, not gated: the same code gives betweenness 2x on a laptop and 6x\n"
       "  on a CI runner. What IS gated is the cross-check that both engines agree on the answer.")

@@ -614,8 +614,8 @@ three runs:
 
 | operation | networkx | FalkorDB v4.22.1 | winner, across runs |
 |---|---|---|---|
-| build graph *(not comparable — see below)* | 8 ms | 765–803 ms | networkx 94–99x |
-| 2-hop neighbourhood (p50) | 0.004 ms | 0.3 ms | **networkx 80–93x** |
+| build graph *(not comparable — see below)* | 8 ms | 765–818 ms | networkx 94–103x |
+| 2-hop neighbourhood (p50) | 0.004 ms | 0.3 ms | **networkx 80–103x** |
 | WCC | 2.1 ms | 5.4–10.2 ms | **networkx 2–5x** |
 | **betweenness (k=32, seed=42)** — *used by `stepped_back_bridges`* | 25 ms | 16 ms | FalkorDB 1–2x |
 | PageRank — *benchmarked, used by no tool* | 338–456 ms | 5.7–15.1 ms | FalkorDB **30–145x** |
