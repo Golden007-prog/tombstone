@@ -20,7 +20,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
-> - **Nothing here is asserted.** 127 tests, 31 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 128 tests, 31 graph claims, 18 rendered UI states, and **two of
 >   the five benchmarks** re-run by **31 CI steps on each push** — the other three build a thousand
 >   graphs or millions of edges, so they are dated measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
@@ -735,7 +735,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 127 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 128 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 31 graph claims
 ```
 
