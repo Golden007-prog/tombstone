@@ -127,6 +127,45 @@ for name, q, want in CLAIMS:
     fails += not ok
     print(f"  {'PASS' if ok else 'FAIL'}  {name:<34} claimed={want:<6} actual={got}")
 _as_of = datetime.datetime.fromtimestamp(AS_OF_MS / 1000).strftime("%Y-%m-%d")
+# How many claims this file checks is itself stated in prose, in four places, and nothing
+# connected those sentences to this list. FINISH.md said 21 while the list held 31 -- the third
+# stale figure found in that one file today, because FINISH.md appears in no checker's document
+# list and is the file read LAST, under deadline, with the answers to a judge's hard questions in
+# it. Asserted here, over whatever is tracked, rather than over a list of filenames that has
+# already been extended twice and missed this one both times.
+def _check_stated_count() -> int:
+    import re as _re
+    import subprocess as _subp
+    want, bad = len(CLAIMS), 0
+    docs = [d for d in _subp.run(["git", "ls-files", "*.md"], capture_output=True,
+                                 text=True).stdout.split() if os.path.exists(d)]
+    seen = 0
+    for doc in docs:
+        text = open(doc).read()
+        for pat in (r"(\d+) graph claims",
+                    r"verify_claims\.py`? re-(?:checks|queries) (?:all|the) (\d+)"):
+            for said in _re.findall(pat, text):
+                seen += 1
+                if int(said) != want:
+                    print(f"  FAIL  {doc} says {said} claims; this file checks {want}")
+                    bad += 1
+    if not seen:
+        print(f"  FAIL  no tracked document says how many claims this checks ({want})")
+        bad += 1
+    elif not bad:
+        print(f"  the claim count is stated {seen}x across the docs and every one says {want}")
+    return bad
+
+
+# Counted separately from `fails`, not added to it. Folding it in made a stale sentence in a
+# document print as "30/31 claims verified", which says a claim about the graph could not be
+# verified -- a different and more alarming thing than a number being out of date in prose.
+_doc_bad = _check_stated_count()
+
 print(f"\n{len(CLAIMS) - fails}/{len(CLAIMS)} claims verified "
       f"(as of {_as_of}; set AS_OF_MS to pin a different instant)")
-sys.exit(1 if fails else 0)
+if _doc_bad:
+    _noun = "document states" if _doc_bad == 1 else "documents state"
+    print(f"...but {_doc_bad} {_noun} the wrong number of claims, which is prose drift rather "
+          f"than a failed claim.")
+sys.exit(1 if (fails or _doc_bad) else 0)

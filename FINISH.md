@@ -35,10 +35,19 @@ and add the link to the top of `README.md` — the 60-second block has a slot fo
 `docs/DEMO-SCRIPT.md` is written and timed to 3:00, beat by beat, staged on the apiserver
 example (falls back to **one** approver — the sharpest row in the data).
 
-Two things that save a bad night:
+Three things that save a bad night:
 - **Record the voiceover separately** from the screen capture. Narrating live while clicking is
   the single biggest cause of ten retakes.
+- **Pre-click every chip, then run `./run.sh --forget` before you hit record.** Pre-clicking warms
+  the caches, but answering also *records* the answer, so without the clear every chip on camera
+  reads `ANSWERED_FROM_MEMORY` with a timestamp from before the take — and the 2:17 beat ends up
+  citing answers the viewer never saw you ask. Do not clear it again mid-take: 2:17 has nothing to
+  recall unless 0:32 ran earlier in the same recording.
 - **Record it twice.** The second take is always better and costs ten minutes.
+
+You do **not** need to fix ffmpeg first. It is broken on this machine and nothing here needs it:
+the voiceover goes over the capture in iMovie, and the committed artefacts that do call ffmpeg
+fall back to a container.
 
 Upload unlisted to YouTube, and set **"Not for Kids"** — that setting is what blocks judges from
 viewing. Then open the link in a private window and confirm it plays.
@@ -75,11 +84,13 @@ approver, so approval silently widened to people who never signed up for that co
 "orphaned" at first, was wrong, and the correction is in the README.
 
 **"Could a text search do this?"**
-Measured, not argued: `eval_graph_vs_text.py`, graph 7/8 versus TF-IDF 2/8 over the same 2,224
-documents. The graph loses the title-lookup question on purpose.
+Measured, not argued: `eval_graph_vs_text.py`, graph 19/20 versus TF-IDF 4/20 over the same 2,224
+documents. The graph loses the title-lookup question on purpose, and on the control category —
+lookups whose answer sits in one document — the text index ties it 4 to 4. Volunteer that tie: it
+is what makes the other sixteen mean anything.
 
 **"How do I know the numbers are real?"**
-`python verify_claims.py` re-checks all 21 against the live graph, and CI runs it on every push.
+`python verify_claims.py` re-checks all 31 against the live graph, and CI runs it on every push.
 Every row the product returns carries a `github.com` URL you can click.
 
 **"What's the weakest part?"**

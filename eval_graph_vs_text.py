@@ -266,23 +266,39 @@ def main() -> int:
     # nothing connected those sentences to this run. Every other number in this repo that was
     # typed into prose rather than derived from the thing it describes has gone stale, several of
     # them within a day, so this one is asserted where it is produced.
+    import os as _os
     import re as _re
+    import subprocess as _subp
     drift = []
-    for doc, pattern in (
-            ("README.md", r"\*\*(\d+)/(\d+) vs (\d+)/(\d+)\*\*"),
-            ("SUBMISSION.md", r"\*\*(\d+)/(\d+) versus (\d+)/(\d+)\*\*"),
-            # The explainer states it in words, and it was the one document left stating 7/8 after
-            # the eval grew -- found by grep, not by a check, which is the whole problem.
-            ("docs/EXPLAIN-IT.md",
-             r"\*\*(\d+) of (\d+) versus (\d+) of (\d+)\*\*")):
-        m = _re.search(pattern, open(doc).read())
-        if not m:
-            drift.append(f"{doc} no longer states this score in the form the check looks for")
-            continue
-        said_g, said_gn, said_t, said_tn = (int(x) for x in m.groups())
-        if (said_g, said_gn, said_t, said_tn) != (gw, n, tw, n):
-            drift.append(f"{doc} says {said_g}/{said_gn} vs {said_t}/{said_tn}; "
-                         f"this run measured {gw}/{n} vs {tw}/{n}")
+
+    # This was a hand-kept list of three filenames, and the comment on the third one said it had
+    # been "found by grep, not by a check, which is the whole problem" -- EXPLAIN-IT.md was still
+    # saying 7/8 after the eval grew to twenty questions. Adding one more name to the list did not
+    # fix the problem, it postponed it: FINISH.md was ALSO still saying 7/8, and FINISH.md is the
+    # file read last, under deadline, with the answers to a judge's hard questions in it. So the
+    # list is gone. Every tracked document that mentions the baseline is scanned, in any phrasing.
+    #
+    # The rule is denominator-first, which is what makes it phrasing-agnostic: this benchmark's
+    # denominator is the question count, so a pair in one of these paragraphs whose denominator is
+    # not n is stale by construction -- that is exactly the shape 7/8 and 2/8 have.
+    _docs = [d for d in _subp.run(["git", "ls-files", "*.md"], capture_output=True,
+                                  text=True).stdout.split() if _os.path.exists(d)]
+    _stated = 0
+    for doc in _docs:
+        for para in _re.split(r"\n\s*\n", open(doc).read()):
+            if not _re.search(r"TF-IDF|text baseline|text index", para, _re.I):
+                continue
+            for a, b in _re.findall(r"(\d+)\s*(?:/|\s+of\s+)\s*(\d+)", para):
+                a, b = int(a), int(b)
+                _stated += 1
+                if b != n:
+                    drift.append(f"{doc} scores this benchmark out of {b}; it has {n} questions "
+                                 f"(says {a}/{b}, so it predates the eval growing)")
+                elif a not in (gw, tw):
+                    drift.append(f"{doc} says {a}/{b}; this run measured {gw}/{n} for the graph "
+                                 f"and {tw}/{n} for the text baseline")
+    if not _stated:
+        drift.append("no tracked document states this score any more; at least one should")
     # ...and the per-category table the README prints, row by row. Writing that table by hand is
     # how the totals got stale in the first place.
     readme = open("README.md").read()
