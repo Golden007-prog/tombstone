@@ -42,6 +42,14 @@ degraded honestly, no hard failures), and — with FalkorDB killed inside the co
 down, returned `DEGRADED` for a question it had just answered, and kept serving the page. Re-run
 it yourself if you change anything before deploying; it needs no token.
 
+**That SHA is deliberately specific, and here is what has changed since it.** Exactly one file
+on the deploy surface: `deploy/README-hf-space.md`, which gained a `short_description` line and
+had its memory figure corrected. Nothing in the `Dockerfile`, the entrypoint, `deploy_hf.sh` or
+`scripts_verify_deploy.sh` — so the image that was verified is behaviourally the same image, and
+the Space README is not in it at all; the deploy swaps it in as the Space's own README. Its
+front-matter is validated on every push now. If you want the full end-to-end run again anyway
+it is one command and needs Docker, which is currently stopped on this machine.
+
 **Then verify it the way a judge will** — different network, private window, no sign-in:
 
 ```bash
