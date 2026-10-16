@@ -77,6 +77,21 @@ def main() -> int:
               f"{BASELINE_MB} MB baseline = {BASELINE_MB + mb:.0f} MB "
               f"({'inside' if BASELINE_MB + mb < CEILING_MB else 'OVER'} the "
               f"{CEILING_MB} MB serial ceiling)")
+    # Reconciled against the page, because the lesson from bench_vs_networkx.py is that a figure
+    # printed here and compared to nothing drifts off the README silently -- two of its five rows
+    # did exactly that, and were only caught by someone running it and reading both.
+    import re
+    readme = re.sub(r"\s*\n>?\s*", " ", open("README.md").read())
+    said = re.search(r"\*\*about (\d+) KB each\*\*", readme)
+    if not said:
+        print("\n  note  the README no longer states a per-answer cost in the form this reads")
+    else:
+        claimed = int(said.group(1))
+        near = abs(per / 1024 - claimed) <= max(2.0, claimed * 0.25)
+        print(f"\n  {'ok  ' if near else 'note'}  this run {per / 1024:.1f} KB, "
+              f"the README says about {claimed} KB"
+              + ("" if near else "  <- outside, re-measure before trusting either"))
+
     print("\n  Reported, not gated: this is a dated measurement on one machine, like the other")
     print("  benchmarks here. `./run.sh --forget` clears what it just wrote.")
     return 0
