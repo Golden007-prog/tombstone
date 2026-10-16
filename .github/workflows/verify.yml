@@ -108,6 +108,13 @@ jobs:
       - name: Every rendered answer state, checked for visible-but-empty panels
         run: python scripts_check_ui.py
 
+      # Was in ./preflight.sh and nowhere automated, which is how a comment of mine staled three
+      # artefacts and went unnoticed for two commits while CI stayed green. It was left out
+      # because it needs the app serving -- but the step above already serves it on the port this
+      # check probes, so that was an omission rather than a constraint.
+      - name: Committed artefacts still match the code and corpus they depict
+        run: python scripts_check_shots_fresh.py
+
       - name: FalkorDB vs networkx on the real graph (cross-checked, timings reported)
         run: |
           pip install -q networkx scipy
