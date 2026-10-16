@@ -1929,3 +1929,40 @@ def test_the_two_endpoints_agree_on_what_they_return(agent):
     for key in ("tool", "shape", "headline", "answer", "rows", "coverage", "note", "ms",
                 "cypher", "query_sha", "params"):
         assert key in payload, f"/api/ask payload has no {key!r}"
+
+
+def test_the_honest_negative_does_not_overstate_what_was_searched(agent, g):
+    """The sentence a judge is told to trust must not inflate the haystack.
+
+    `has_this_been_tried` answers through a vector index minted on :NamedOption, and its empty
+    answer used to report "958 rejected alternatives indexed" -- the whole :Alternative count,
+    27% larger than what the question was actually compared against, with "indexed" being exactly
+    the word that is false for the other 206. Overstating coverage in the honest negative is
+    worse than a wrong answer, because that sentence is the product's claim about its own limits.
+    """
+    named, total = g.ro_query(
+        "MATCH (a:Alternative) WITH count(a) AS total "
+        "MATCH (n:NamedOption) RETURN count(n), total").result_set[0]
+    assert named < total, "every alternative is indexed — this test would pass vacuously"
+
+    ans = agent.dispatch("has_this_been_tried",
+                         {"idea_text": "rewrite the control plane in COBOL on a mainframe",
+                          "max_dist": 0.15})
+    assert ans.shape == "NOT_IN_GRAPH", f"expected an empty result, got {ans.shape}"
+    ints = {k: v for k, v in (ans.coverage or {}).items() if isinstance(v, int)}
+    assert named in ints.values(), (
+        f"the coverage for a similarity answer never states the {named} it searched: {ints}")
+    assert total not in ints.values(), (
+        f"the coverage for a similarity answer claims {total} alternatives; only {named} are in "
+        f"the index it queried")
+
+    from tombstone.agent import render
+    prose = render(ans)
+    assert str(named) in prose and "similarity" in prose, prose[:200]
+
+    # The ownership tools traverse every alternative, so for them the full count is correct and
+    # must stay -- the fix is tool-specific, not a blanket edit.
+    other = agent.dispatch("who_owns",
+                           {"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS",
+                            "depth": 1})
+    assert total in {v for v in (other.coverage or {}).values() if isinstance(v, int)}

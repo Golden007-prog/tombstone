@@ -49,7 +49,7 @@ own wake-up before any of this starts. The whole thing peaks at about 400 MB, me
 runs inside a 512 MB container without being killed.
 
 The graph counts above — 681, 958, 794, 585 — are re-queried against the live database by
-scripts that run in CI on every push, along with 36 named claims and 133 tests. The boot and
+scripts that run in CI on every push, along with 36 named claims and 134 tests. The boot and
 memory figures are not: they need Docker and a built image, so they are measured by
 `scripts_verify_deploy.sh` on a developer machine and are dated readings rather than gates. This
 sentence used to say "every number above", which covered both and was true of only one.

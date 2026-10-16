@@ -56,32 +56,49 @@ class Tools:
         res = self.g.ro_query(cypher, params=params)
         return res.result_set, (time.perf_counter() - t0) * 1000
 
-    def _coverage(self) -> dict:
-        """What the graph actually contains, so a negative can be read honestly."""
+    def _coverage(self, similarity: bool = False) -> dict:
+        """What the graph actually contains, so a negative can be read honestly.
+
+        `similarity` is set by the one tool that answers through the vector index. It matters
+        because the honest negative used to say "958 rejected alternatives indexed" to someone
+        whose question had been compared against 752 of them -- the index is minted on
+        :NamedOption, and "indexed" was precisely the word that was false for the other 206.
+        Overstating the haystack by 27% in the sentence whose entire job is to say what was
+        searched is a worse failure than any wrong answer, because it is the sentence a judge is
+        told to trust when the product comes back empty.
+        """
         rows, _ = self._run(
             "coverage",
             """
             MATCH (k:Kep) WITH count(k) AS keps
             MATCH (a:Alternative) WITH keps, count(a) AS alts
-            MATCH (p:Person) WITH keps, alts, count(p) AS people
-            MATCH (o:OwnersFile) WITH keps, alts, people, count(o) AS owners
+            MATCH (n:NamedOption) WITH keps, alts, count(n) AS searchable
+            MATCH (p:Person) WITH keps, alts, searchable, count(p) AS people
+            MATCH (o:OwnersFile) WITH keps, alts, searchable, people, count(o) AS owners
             MATCH (m:MissingRecord)
-            RETURN keps, alts, people, owners, count(m) AS missing
+            RETURN keps, alts, searchable, people, owners, count(m) AS missing
             """,
             {},
         )
         if not rows:
             return {}
-        k, a, p, o, m = rows[0]
-        return {
-            "decisions_indexed": k,
-            "rejected_alternatives_indexed": a,
+        k, a, sch, p, o, m = rows[0]
+        out = {"decisions_indexed": k}
+        if similarity:
+            # What this tool actually compared the question against, and then the whole set, so
+            # the gap is visible rather than averaged into one flattering number.
+            out["rejected alternatives searched by similarity"] = sch
+            out["more rejected alternatives in the graph but outside that index"] = a - sch
+        else:
+            out["rejected_alternatives_in_graph"] = a
+        out.update({
             "people": p,
             "ownership_files": o,
             "missing_decision_records": m,
             "corpus": "kubernetes/enhancements + kubernetes/kubernetes OWNERS",
             "caveat": "An empty result means this corpus does not record it. It is not proof it never happened.",
-        }
+        })
+        return out
 
     def resolve_person(self, handle: str) -> str | None:
         rows, _ = self._run(
@@ -142,7 +159,8 @@ LIMIT $limit
                   "now": self.now_ms, "msYear": MS_PER_YEAR}
         rows, ms = self._run("has_this_been_tried", self.HAS_THIS_BEEN_TRIED, params)
         if not rows:
-            return Answer("NOT_IN_GRAPH", "has_this_been_tried", coverage=self._coverage(), ms=ms,
+            return Answer("NOT_IN_GRAPH", "has_this_been_tried",
+                          coverage=self._coverage(similarity=True), ms=ms,
                           cypher=self.HAS_THIS_BEEN_TRIED,
                           note="No recorded rejected alternative within the distance threshold.")
         return Answer("ANSWERED_WITH_PATH", "has_this_been_tried", rows=rows, ms=ms,

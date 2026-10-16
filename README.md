@@ -20,7 +20,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
-> - **Nothing here is asserted.** 133 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 134 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **31 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -736,7 +736,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 133 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 134 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1307,6 +1307,14 @@ times. Each fix made the claim narrower and more defensible.
   72.8%** to **45.8 / 61.8 / 69.8%** at k=1/3/8, while taking the excluded set from **0/25 to
   19/25** reachable. Three points of precision against structural reachability is a real trade and
   not an obvious one; the pre-filter stays, now for a measured reason rather than an assumed one.
+  The product now says this itself, at the only moment it matters. Its honest negative used to
+  report **"958 rejected alternatives indexed"** to someone whose question had been compared
+  against 752 — a haystack overstated by 27% in the one sentence whose entire job is to say what
+  was searched, with "indexed" being exactly the word that is false for the other 206. An empty
+  answer from the similarity tool now reads *"752 rejected alternatives searched by similarity,
+  206 more rejected alternatives in the graph but outside that index"*. The ownership tools do
+  traverse all 958, so for them the full count stays — the fix is per-tool, not a blanket edit,
+  and a test pins both halves.
   The labels were wrong too: nineteen read as `1.` because a leading list marker put the first
   sentence boundary two characters in, and one ran to 181 characters because the abbreviation
   guard was tested with `endswith`, so `"al."` matched `"proposal."`. Fixed — **0 list markers

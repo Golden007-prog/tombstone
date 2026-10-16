@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 133 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 134 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -66,7 +66,7 @@ means part of any graph-versus-text gap is a gap you authored.
 `Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
 PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
-tests to 133.** It is bigger and better-tested, it is honest about its own limits, and it is not
+tests to 134.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not.
 
@@ -155,7 +155,7 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Nothing here is asserted. **31 CI steps on every push** re-check it: 133 tests, 36 graph claims
+Nothing here is asserted. **31 CI steps on every push** re-check it: 134 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other four build a thousand graphs, millions of edges or a memory curve, so they are dated measurements with
