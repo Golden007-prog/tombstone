@@ -236,7 +236,8 @@ import json as _json
 # changed an edge LABEL in it: the video renders reasoning pictures, and the subgraph
 # endpoint decides what is in them. A server-side change to the drawing could have left
 # this video showing an edge name the product no longer uses, with every check green.
-_SOURCES = ("web/app.js", "web/style.css", "web/index.html",
+_SOURCES = ("scripts_build_walkthrough.py",
+            "web/app.js", "web/style.css", "web/index.html",
             "src/tombstone/tools.py", "src/tombstone/server.py", "src/tombstone/agent.py",
             "data/corpus.json.gz", "src/tombstone/build.py",
             # beat 4 renders draft_owners_patch, whose diffs are built in act.py

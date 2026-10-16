@@ -29,7 +29,8 @@ APP = os.environ.get("APP", "http://localhost:8099")
 # change -- "6 decisions" to "6 decisions, including" -- left all three artefacts stale
 # while every freshness check reported them current. tools.py was listed because frames
 # render query hashes; the sentence above the hash is at least as load-bearing.
-SHOT_SOURCES = ("web/app.js", "web/style.css", "web/index.html",
+SHOT_SOURCES = ("scripts_gen_readme_shots.py",
+                "web/app.js", "web/style.css", "web/index.html",
                 "src/tombstone/agent.py",
                 # The data in these frames comes from the corpus through build.py. A reseed
                 # changes names and counts on screen while every file above is untouched.

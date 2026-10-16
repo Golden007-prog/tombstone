@@ -67,6 +67,32 @@ a link to its project page. If the script could not reach `gh` it prints the exa
 One thing it does not do: the README's 60-second block has a **Live demo** line reading _"not
 deployed yet"_. Replace that with the URL — it is the first thing on the page a judge reads.
 
+## Before you submit: one ten-minute job needing Docker
+
+Three committed artefacts are **stale**, and it is my doing. A comment I added to `web/app.js`
+changed its hash, which the fingerprint system treats as the interface having moved — so
+`walkthrough-silent.mp4`, `depth-contrast.gif` and the two screenshots are no longer certified
+against the code they depict. The *content* is unaffected: the change was a comment, so the
+rendered UI is identical. The guarantee is what broke, not the pictures.
+
+Nothing automated caught it, which is the more useful half. `scripts_check_shots_fresh.py` runs
+only in `./preflight.sh` — not in CI, not in the push gate — so two commits went past it with CI
+green. The check needs the app serving, which is why it was left out, but CI already serves the
+app for the UI check, so there is no good reason.
+
+```bash
+./run.sh                               # one shell
+python scripts_gen_readme_shots.py     # another
+python scripts_gen_depth_gif.py
+python scripts_build_walkthrough.py
+./preflight.sh                         # confirms all 23, including freshness
+```
+
+While that is running it is also the moment to fix the figures' phone legibility — see
+**Honest limits** in the README — since regenerating is what that needs too. If you would rather
+not, say so: the artefacts are *correct*, merely uncertified, and Rule 10 cares that the video
+exists and shows the working product, which it does.
+
 ## 2. Record the video (~45 min including retakes)
 
 `docs/DEMO-SCRIPT.md` is written and timed to 3:00, beat by beat, staged on the apiserver
