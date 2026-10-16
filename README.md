@@ -197,7 +197,7 @@ cheaper than pretending otherwise.
 
 | Track 03 asks for | where it is here |
 |---|---|
-| *"Knowledge from docs, tickets, and chats in one graph"* | **Docs only, and deliberately.** 681 decision records and 585 ownership files, in one graph with the 958 rejected options pulled out of their prose as nodes. No tickets and no chats: the rules forbid private company data, and the alternative is a fabricated "Acme Corp" with invented tickets, which proves nothing. Kubernetes is a real organisation of thousands of people that publishes its decision records, its ownership map **and its own attrition**, under Apache-2.0 — so every number here is checkable by a judge in one `git clone`. The attrition is the part that cannot be substituted: `emeritus_approvers` is a field the project maintains about people who stepped back, and a fabricated company has nothing like it while a commit history only *implies* departure. Reading departure out of an implication is precisely the inference [this project got wrong and measured](#a-correction-i-made-and-why-it-is-in-the-readme) — **428 of 595 KEP authors were never approvers at all**, so absence means "never held it", not "has left". [The corpus, and what I refused to ingest from it](docs/K8S-CORPUS-VERIFIED.md). **The comparison I would rather make than have made for me:** another Track 3 entry, `kh-bikash/cairn`, does satisfy all three sources — by generating a fictional 24-person company and exporting it in real Slack, Jira and ADR formats, alongside a second workspace of real repositories. That is a legitimate answer to this bullet and a better literal fit than mine. I still chose real-only, and the reason is narrow: the finding this product leads with depends on `emeritus_approvers`, a field a real organisation maintains about people who actually stepped back. A generated company can export a Slack thread, but its attrition is authored by whoever generated it, so a finding about who left and what it cost is a finding about the generator. Fewer sources, and every row falsifiable against a public repository. |
+| *"Knowledge from docs, tickets, and chats in one graph"* | **Docs only, and deliberately.** 681 decision records and 585 ownership files, in one graph with the 958 rejected options pulled out of their prose as nodes. No tickets and no chats: the rules forbid private company data, and the alternative is a fabricated "Acme Corp" with invented tickets, which proves nothing. Kubernetes is a real organisation of thousands of people that publishes its decision records, its ownership map **and its own attrition**, under Apache-2.0 — so every number here is checkable by a judge in one `git clone`. The attrition is the part that cannot be substituted: `emeritus_approvers` is a field the project maintains about people who stepped back, and a fabricated company has nothing like it while a commit history only *implies* departure. Reading departure out of an implication is precisely the inference [this project got wrong and measured](#a-correction-i-made-and-why-it-is-in-the-readme) — **428 of 594 KEP authors were never approvers at all**, so absence means "never held it", not "has left". [The corpus, and what I refused to ingest from it](docs/K8S-CORPUS-VERIFIED.md). **The comparison I would rather make than have made for me:** another Track 3 entry, `kh-bikash/cairn`, does satisfy all three sources — by generating a fictional 24-person company and exporting it in real Slack, Jira and ADR formats, alongside a second workspace of real repositories. That is a legitimate answer to this bullet and a better literal fit than mine. I still chose real-only, and the reason is narrow: the finding this product leads with depends on `emeritus_approvers`, a field a real organisation maintains about people who actually stepped back. A generated company can export a Slack thread, but its attrition is authored by whoever generated it, so a finding about who left and what it cost is a finding about the generator. Fewer sources, and every row falsifiable against a public repository. |
 | *"Who owns what, and who knows what"* | Two different questions, and the gap between them is the product. 585 ownership files say who owns what *on paper*; **729 of the 794 people** carry expertise edges to decisions they authored, approved or reviewed. **83 people are listed as emeritus somewhere and hold no current approval anywhere** — they are who knows, minus who owns. |
 | *"Tracing decisions back to their source"* | **681 of 681** decision records carry their source URL, so every row of every answer traces to the document it came from. Not a sample — all of them, asserted in CI. |
 | *"Keeping knowledge current as things change"* | Honest size: 9 `REPLACES`/`SUPERSEDED_BY` edges and **47 records cited by name that do not exist** — knowledge that has already rotted, found structurally. `stale_knowledge` asks what still cites a decision that was replaced, and the agent's own memory stops answering from a remembered finding once the records it cited no longer resolve. |
@@ -308,7 +308,7 @@ KEP-2149 "ClusterID for ClusterSet Identification"
 who still holds an approver role.**
 
 The wording matters, and my first version got it wrong. I inferred "no living author" from the
-*absence* of an approver role — but **428 of 595 KEP authors (72%) appear in no OWNERS file at
+*absence* of an approver role — but **428 of 594 KEP authors (72%) appear in no OWNERS file at
 all**, so absence mostly means "was never an approver", not "has left". Only `emeritus_approvers`,
 an explicit published statement that someone stepped back, is counted as departure; everyone else
 is reported as *status not recorded*. `test_absence_from_owners_is_not_treated_as_departure`
@@ -907,7 +907,7 @@ approvers at all. A test now refuses any drawn label that is neither a real type
 
 Findings that fall straight out of it, each checkable:
 
-- **55 of 358 internal decision pointers (15.4%) don't resolve.** One missing record,
+- **55 of 366 internal decision pointers (15.0%) don't resolve.** One missing record,
   `/keps/sig-api-machinery/0006-apply.md`, is cited by **four** separate decisions.
 - **83 of 111 people listed as emeritus hold no approval authority anywhere.**
 - **7 areas lost every *dedicated* approver** — see the correction below; they are not unowned.
@@ -921,7 +921,7 @@ Findings that fall straight out of it, each checkable:
 
 ## The agent
 
-Eleven tools. The model picks one and fills its arguments; hand-written Cypher answers; a
+Thirteen tools. The model picks one and fills its arguments; hand-written Cypher answers; a
 deterministic renderer phrases it. **The model never writes a query and never phrases a finding**,
 so it cannot soften a negative into a maybe or name someone who isn't in the graph.
 
@@ -1229,7 +1229,7 @@ real signal rather than a restatement of the field's definition. Claim survives.
 **"X% of internal decision pointers don't resolve" — decay, or just moved files?**
 Partly the latter, and my first number was inflated. Two references point at legacy flat-layout
 `.md` records that still exist, and one used `/kep/` instead of `/keps/` — a typo whose target is
-unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 55/358 (15.4%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
+unambiguous. Resolving those honestly moves the figure from **63/363 (17.4%) down to 55/366 (15.0%)**. The corrected resolver is in `corpus.py`, and the 19 legacy records are carried in the
 snapshot so a snapshot build and a live build cannot disagree.
 
 **"It remembers what it learns" — did I ever check that on the demo people actually use?**

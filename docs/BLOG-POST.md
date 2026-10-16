@@ -62,7 +62,7 @@ to the decision that recorded it, which links to the people who approved it, whi
 those people still approve anything.
 
 The second latent node is stranger. KEPs cite each other through `replaces`, `superseded-by` and
-`see-also`. I resolved all of them and **55 of 358 internal pointers (15.4%) go nowhere**. So I made
+`see-also`. I resolved all of them and **55 of 366 internal pointers (15.0%) go nowhere**. So I made
 the *absent* record a node too.
 
 (My first number here was **63 of 363, 17.4%**, and it was inflated. Two of those references point

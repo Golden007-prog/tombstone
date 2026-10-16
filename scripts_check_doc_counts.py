@@ -396,14 +396,101 @@ _tools = len(re.findall(r'^\s{4}"(\w+)":', open("src/tombstone/tools.py").read()
 _WORDS_T = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen"}
 for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md"):
     _txt = _flat(open(_doc).read())
+    # re.I, because the instance this check was WRITTEN for was "Eleven tools." at the head of a
+    # sentence, and without it the guard swept right past the one error it existed to catch for
+    # five days. An exclusion keyed on casing rather than on meaning is this repo's oldest bug.
     for _w in re.findall(r"\b(eleven|twelve|thirteen|fourteen|fifteen)\s+(?:tools|queries|chips)\b",
-                         _txt):
-        if _w != _WORDS_T.get(_tools):
+                         _txt, re.I):
+        if _w.lower() != _WORDS_T.get(_tools):
             problems.append(f"{_doc}: says '{_w} tools', the catalogue has {_tools} "
                             f"({_WORDS_T.get(_tools)})")
         else:
             checked += 1
 print(f"  the catalogue has {_tools} tools and every document that spells it agrees")
+
+# Fractions where BOTH halves are graph facts. Every number-vs-graph check in this file had been
+# scanning for single figures, so "N of M" pairs were only ever half-checked -- the numerator got
+# a query and the denominator was prose. Both of the repo's live fractions had drifted in the
+# denominator, one of them inside the corrections box whose whole job is to carry fixed figures.
+# The percentage is recomputed too, because that is the number a reader actually remembers.
+_FRACTIONS = (
+    # (label, numerator, denominator, required context words, pattern)
+    # The percentage sits in a different place in every document -- after the noun in README and
+    # BLOG-POST, with no noun at all in the corrections box ("it is **55 of 366 (15.0%)**"). The
+    # first version of this check put the percent group before the noun, so it matched nothing
+    # and a deliberately wrong 15.4% passed. So the pattern allows the noun to be absent and the
+    # match is instead admitted by CONTEXT: the words have to be nearby. That keeps it keyed on
+    # meaning rather than on word order, and stops it matching an unrelated "3 of 4 (75.0%)".
+    ("internal decision pointers",
+     # SEE_ALSO + REPLACES + SUPERSEDED_BY are Kep->Kep and resolve; CITES_MISSING is Kep->
+     # MissingRecord and does not. CITED is Answer->entity, the agent's own memory, and is NOT
+     # lineage -- established with db.relationshipTypes() and the endpoint labels, not assumed.
+     count("MATCH ()-[r:CITES_MISSING]->() RETURN count(r)"),
+     count("MATCH ()-[r:SEE_ALSO|REPLACES|SUPERSEDED_BY|CITES_MISSING]->() RETURN count(r)"),
+     ("internal", "pointer"),
+     r"(\d+)\s*(?:of|/)\s*(\d+)(?:\s+internal (?:decision )?pointers)?\s*\((\d+\.\d)%\)"),
+    ("KEP authors in no OWNERS file",
+     count("MATCH (p:Person)-[:AUTHORED|APPROVED]->(:Kep) "
+           "WHERE NOT (p)-[:APPROVES|EMERITUS_OF]->(:OwnersFile) RETURN count(DISTINCT p)"),
+     count("MATCH (p:Person)-[:AUTHORED|APPROVED]->(:Kep) RETURN count(DISTINCT p)"),
+     ("KEP authors",),
+     r"(\d+) of (\d+) KEP authors(?: \((\d+)%\))?"),
+)
+# docs/K8S-CORPUS-VERIFIED.md is scanned HERE and deliberately not added to `files`. Its own job
+# is to carry figures that were wrong once, and most of it is retired exploration notes over the
+# previous schema (WAS_APPROVER, WORKED_ON, 684 KEPs), so the general count scanner would flag
+# numbers that are meant to be historical. But its warning box states the two CURRENT corrected
+# fractions, which is the one thing in it that must stay true -- and that box is exactly where the
+# wrong "55 of 358" sat, unscanned, while this file's comment cited that very document as proof
+# the risk was not hypothetical.
+_FRAC_FILES = files + [pathlib.Path("docs/K8S-CORPUS-VERIFIED.md")]
+_FRAC_FILES = [f for f in _FRAC_FILES if f.exists()]
+_frac_hits, _pct_hits = 0, 0
+for _label, _num, _den, _need, _pat in _FRACTIONS:
+    for _doc in _FRAC_FILES:
+        _txt = _flat(_doc.read_text())
+        for _m in re.finditer(_pat, _txt):
+            _left = _txt[max(0, _m.start() - 200):_m.start()]
+            _near = _left + _m.group(0)
+            if not all(_w.lower() in _near.lower() for _w in _need):
+                continue
+            # A historical figure says so in its SENTENCE, not inside the fraction: "moves the
+            # figure from 63/363 (17.4%) down to 55/366" is a correction being narrated, and
+            # testing HISTORY against the matched digits alone can never see that.
+            if HISTORY.search(_txt[max(0, _m.start() - 160):_m.end() + 80]):
+                continue
+            # The corrections box states a retraction as GRAMMAR, not as a keyword:
+            #     **"74 of 370 internal pointers (20.0%) do not resolve"** - it is **55 of 366**
+            # Both halves match the pattern, and HISTORY's vocabulary ("previously", "corrected")
+            # appears nowhere on the line. The withdrawn figure is the one followed by "it is",
+            # and the live figure is the one after it -- which is still checked, so the box's
+            # corrected numbers are not exempted, only its quotation of the old ones.
+            if re.match(r'[^.]{0,40}?(?:—|--|-)\s*it is\s', _txt[_m.end():_m.end() + 48]):
+                continue
+            _frac_hits += 1
+            _gn, _gd = int(_m.group(1)), int(_m.group(2))
+            if (_gn, _gd) != (_num, _den):
+                problems.append(f"{_doc}: says {_gn} of {_gd} {_label}; the graph has "
+                                f"{_num} of {_den}  --  \"{_m.group(0)[:70]}\"")
+                continue
+            _said_pct = _m.group(3) if _m.lastindex and _m.lastindex >= 3 else None
+            if _said_pct:
+                # Compared at the precision the document chose: 428/594 is 72.05%, and a document
+                # that writes "72%" is right. Demanding a decimal of a figure stated without one
+                # reports a rounding convention as an error.
+                _pct_hits += 1
+                _real = 100 * _num / _den
+                _dp = len(_said_pct.split(".")[1]) if "." in _said_pct else 0
+                if abs(float(_said_pct) - round(_real, _dp)) > 1e-9:
+                    problems.append(f"{_doc}: says {_said_pct}% for {_label}; "
+                                    f"{_num}/{_den} is {_real:.{max(_dp, 1)}f}%")
+if _frac_hits == 0 or _pct_hits == 0:
+    problems.append(f"fractions matched {_frac_hits} times and percentages {_pct_hits} times -- "
+                    f"a zero on either half means this check is passing over an empty set, which "
+                    f"is exactly how the wrong 15.4% survived its first negative test")
+else:
+    checked += _frac_hits
+    print(f"  {_frac_hits} fractions check out, denominators and {_pct_hits} percentages included")
 
 print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
 

@@ -16,7 +16,7 @@ The rules are the ones the README documents, restated here independently rather 
   * An OWNERS file's approvers may name an ALIAS rather than a person. Aliases expand through
     OWNERS_ALIASES; a name that is not an alias is a person.
   * `emeritus_approvers` is the project's own explicit record that someone stepped back. Absence
-    from a file is not departure -- 428 of 595 KEP authors appear in no OWNERS file at all, and
+    from a file is not departure -- 428 of 594 KEP authors appear in no OWNERS file at all, and
     reading that as attrition is the mistake this product's README documents making.
 
 Run: PYTHONPATH=src python eval_gold.py
@@ -318,8 +318,17 @@ def main() -> int:
     for pattern, live, label in (
             (r"it is \*\*(\d+) of 111\*\*", g["people emeritus somewhere and approving nowhere"],
              "departed owners with no current role"),
-            (r"it is \*\*(\d+) of 358", q("MATCH ()-[r:CITES_MISSING]->() RETURN count(r)")
-             .result_set[0][0], "internal pointers that do not resolve")):
+            # The denominator used to be baked into this pattern as a literal 358 while only
+            # the numerator was compared against the graph -- so when the real total turned out
+            # to be 366 (the resolver counts SEE_ALSO, REPLACES, SUPERSEDED_BY and CITES_MISSING,
+            # and 358 had missed the eight REPLACES), this check could not see it. Both halves
+            # now come from the graph, and scripts_check_doc_counts.py checks the same pair and
+            # its percentage across every document that states it.
+            (r"it is \*\*(\d+) of " + str(q(
+                "MATCH ()-[r:SEE_ALSO|REPLACES|SUPERSEDED_BY|CITES_MISSING]->() RETURN count(r)"
+             ).result_set[0][0]),
+             q("MATCH ()-[r:CITES_MISSING]->() RETURN count(r)").result_set[0][0],
+             "internal pointers that do not resolve")):
         m3 = re.search(pattern, corpus_doc)
         if not m3:
             fails.append(f"the corpus record's warning no longer states {label}")
