@@ -23,7 +23,7 @@ The decisions your org already made and forgot. Asked as a graph.
 
 ## If the form caps the description
 
-*Nobody can see the form's fields until you are registered, and the Description below is 3556 characters. These are the same pitch at two shorter lengths so a character limit is a paste, not a rewrite at 11pm.*
+*Nobody can see the form's fields until you are registered, and the Description below is 3654 characters. These are the same pitch at two shorter lengths so a character limit is a paste, not a rewrite at 11pm.*
 
 **~273 characters:**
 
