@@ -1,5 +1,11 @@
 # Submission — ready to paste
 
+**How to use this file.** Everything down to the pre-submit checklist is copy for the form, and
+each section is the answer to one field. Two places carry reasoning *for you* rather than text to
+paste, and both say so where they start: the second-track decision under **Track**, and the
+checklist at the end. If you are filling the form at speed, the rule is simple — paste what is in
+a section, skip what is in italics under one.
+
 Everything the WeMakeDevs panel asks for, written out so none of it is composed at 11pm on the
 18th. Rule 10's six required items are mapped in the README; this is the copy.
 
@@ -17,7 +23,11 @@ The decisions your org already made and forgot. Asked as a graph.
 
 ## Track
 
-**Track 03 — Company Brain.**
+> **Track 03 — Company Brain.**
+
+That line is the whole answer; everything below it is for your decision, not for the form.
+
+---
 
 *Second track, if entering more than one.* The field as of 16 Oct, from public repositories
 rather than from a gallery — there is none. Fifteen-plus entries are now public, and at least
