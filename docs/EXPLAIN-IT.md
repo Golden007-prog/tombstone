@@ -128,7 +128,7 @@ outright. Volunteer both before anyone finds them.
 
 ## "How do you know any of this is true?"
 
-One command: `./preflight.sh` — twenty-one checks. The graph counts are re-derived against the
+One command: `./preflight.sh` — twenty-two checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
 31 CI steps on every push, 33 runs because two repeat across Python 3.11 and 3.14. 128 tests. Each answer in the UI carries its Cypher, that query's hash,
 a coverage statement, and a line saying no model wrote the prose.

@@ -92,8 +92,19 @@ def main() -> int:
               f"the README says about {claimed} KB"
               + ("" if near else "  <- outside, re-measure before trusting either"))
 
+    # Clean up after itself, which is what lets this live in ./preflight.sh. Only the rows this
+    # run created are removed -- matched by the "(variant N)" suffix it writes -- because a
+    # benchmark that wipes a developer's or a judge's accumulated memory to measure something is
+    # a worse neighbour than one that is never run.
+    removed = int(graph.query(
+        "MATCH (a:Answer) WHERE a.question CONTAINS '(variant ' "
+        "WITH a, count(a) AS _ DETACH DELETE a RETURN count(_)").result_set[0][0] or 0)
+    left = count()
+    print(f"\n  cleaned up {removed} of its own rows; {left} answers remain, "
+          f"which is what was here before it ran")
+
     print("\n  Reported, not gated: this is a dated measurement on one machine, like the other")
-    print("  benchmarks here. `./run.sh --forget` clears what it just wrote.")
+    print("  benchmarks here. `./run.sh --forget` clears everything, not just this.")
     return 0
 
 

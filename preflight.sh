@@ -95,6 +95,10 @@ run "the demo script's facts"              "$PY" scripts_check_demo_facts.py
 run "the demo script's timing"             python3 scripts_check_demo_timing.py
 run "the premise measurement"              "$PY" measure_repeat_rejections.py
 run "GRAPH.COPY carries the whole graph"   "$PY" bench_copy.py
+# The memory-growth figure the README states was measured by a script that ran in no gate
+# at all, so its reconciliation against the page only happened when someone remembered.
+# It cleans up the rows it writes, which is what makes it safe to run here.
+run "what the agent's memory costs to keep" "$PY" bench_memory_growth.py
 run "the blog post's claims"               "$PY" verify_blog.py
 run "corpus counts across every doc"       "$PY" scripts_check_doc_counts.py
 run "the README renders on GitHub"         "$PY" scripts_check_markdown_renders.py
