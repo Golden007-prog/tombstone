@@ -140,4 +140,22 @@ for _m in _re.finditer(r'\*\[Click [^]]*?"([^"]+)"', _script):
           any(_want == lab for lab in _labels),
           "no chip with that label" if not any(_want == lab for lab in _labels) else "")
 
+# Same idea for the commands. The checklist above the beats tells you to RUN things, and a
+# checklist that names a command which does not work is how the quickstart broke once already:
+# it said `python3.13`, which is `command not found` on most machines. A chip label is checked
+# against the chip list, so a command should be checked against the file it invokes -- including
+# its flag, since `./run.sh --forget` silently starting a server would be worse than an error.
+import os as _os
+
+for _m in _re.finditer(r"`\./([\w.-]+\.sh)((?:\s+--[\w-]+)*)`", _script):
+    _cmd, _flags = _m.group(1), _m.group(2).split()
+    check(f"the script tells you to run ./{_cmd} and it is executable",
+          _os.access(_cmd, _os.X_OK),
+          "missing or not executable" if not _os.access(_cmd, _os.X_OK) else "")
+    _body = open(_cmd).read() if _os.path.exists(_cmd) else ""
+    for _flag in _flags:
+        check(f"./{_cmd} handles {_flag}", f'"{_flag}"' in _body or f"'{_flag}'" in _body,
+              "the flag appears nowhere in the script, so it would be ignored"
+              if f'"{_flag}"' not in _body and f"'{_flag}'" not in _body else "")
+
 sys.exit(1 if fails else 0)
