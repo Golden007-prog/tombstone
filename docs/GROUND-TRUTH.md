@@ -357,6 +357,18 @@ near-tie — both tools above `MIN_SCORE` and within `MIN_MARGIN` — and there 
 a request to fix a unit test, and a question with no argument are each offered nothing. Caught by
 pulling a frame out of the walkthrough and reading the sentence under the buttons.
 
+**Three corrections in one night, all in the prose, all flattering.** The repository's claims are
+machine-checked; the sentences I write *about* them are not, and that is exactly where the night's
+errors landed. "Every benchmark re-run on each push" — two of five. "CI is green" — it had been red
+for three pushes and I had read a stale run. "The video is showing a hash that no longer exists" —
+that tool's answer is 2,908 characters, so its hash is below the fold and was never on screen.
+
+None was a lie. Each was a sentence that sounded like diligence, written faster than it was
+checked, and each ran the same way: toward the version that made the work look more rigorous than
+it was. The fix for the second one was mechanical — the submission audit reads CI for HEAD now. The
+other two have no mechanism, which is the point worth keeping: a repository can make its claims
+checkable and still be narrated carelessly, and the narration is what a reader meets first.
+
 **Wanting a number to be checkable does not make it so.** Absolute benchmark milliseconds are
 machine-dependent, so I did not assert them — and then asserted the *ratios*, reasoning that a
 ratio survives a change of machine. CI disproved that inside an hour: betweenness measures 2x on
