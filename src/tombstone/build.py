@@ -374,7 +374,79 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
     ).result_set[0][0]
     stats["CO_AUTHORED_ms"] = round((__import__("time").perf_counter() - t_proj) * 1000, 1)
 
+    stats.update(_constraints(g))
     return stats
+
+
+# Identity and traceability, enforced by the database rather than by this file being careful.
+#
+# UNIQUE on each label's `key`: every one of these is created once per key by Ingestor.nodes(),
+# which also creates `CREATE INDEX FOR (n:Label) ON (n.key)` -- and a UNIQUE constraint requires
+# exactly that exact-match index to exist first, so the index this build already makes is what
+# makes the constraint possible. A duplicate :Person or :Kep would be a corpus-parsing bug that
+# currently shows up as inflated counts; now the write is rejected instead.
+#
+# MANDATORY on Kep.url and OwnersFile.path/url: Track 3's own second bullet is "Tracing decisions
+# back to their source", and a decision node with no source URL would make that claim false
+# node-by-node. Both are built with an unconditional f-string in this file, so the constraint
+# encodes an invariant the code already guarantees -- which is the point of a constraint rather
+# than an argument for one.
+_CONSTRAINTS = (
+    ("unique", "Kep", ("key",)),
+    ("unique", "Alternative", ("key",)),
+    ("unique", "MissingRecord", ("key",)),
+    ("unique", "Person", ("key",)),
+    ("unique", "OwnersFile", ("key",)),
+    ("unique", "Sig", ("key",)),
+    ("mandatory", "Kep", ("url",)),
+    ("mandatory", "OwnersFile", ("path",)),
+)
+
+
+def _constraints(g) -> dict:
+    """Declare the constraints, best-effort, and wait for the engine to finish building them.
+
+    ADDITIVE AND NON-FATAL, deliberately. This runs on every boot, including the Space's, and a
+    constraint that cannot be created must never stop the graph from serving answers -- the same
+    rule the memory writes in agent.py follow. Failures are counted and reported, not raised.
+
+    Creation is ASYNCHRONOUS: the command replies PENDING and the constraint then moves through
+    UNDER CONSTRUCTION to OPERATIONAL or FAILED. This repository has already been caught once by
+    asking an async FalkorDB operation for its result on the next line -- the vector index drop --
+    so this polls `list_constraints()` instead of assuming, and reports what it actually reached.
+    """
+    import time as _t
+    made, failed = 0, []
+    for kind, label, props in _CONSTRAINTS:
+        fn = (g.create_node_unique_constraint if kind == "unique"
+              else g.create_node_mandatory_constraint)
+        try:
+            fn(label, *props)
+            made += 1
+        except Exception as exc:
+            # Already present is the normal case on a graph that was not dropped.
+            if "already" not in str(exc).lower():
+                failed.append(f"{kind} {label}.{'+'.join(props)}: {str(exc).splitlines()[0]}")
+
+    pending, operational = [], 0
+    for _ in range(50):
+        try:
+            rows = g.list_constraints()
+        except Exception as exc:
+            return {"constraints": made, "constraints_status": f"unlistable: {exc}"}
+        pending = [c for c in rows if str(c.get("status", "")).upper() != "OPERATIONAL"]
+        operational = len(rows) - len(pending)
+        if not pending:
+            break
+        _t.sleep(0.1)
+
+    out = {"constraints": operational}
+    if failed:
+        out["constraints_failed"] = failed
+    if pending:
+        out["constraints_pending"] = [
+            f"{c.get('label')}.{c.get('properties')}={c.get('status')}" for c in pending]
+    return out
 
 
 if __name__ == "__main__":

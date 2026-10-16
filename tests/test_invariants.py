@@ -2206,3 +2206,65 @@ def test_the_public_subgraph_endpoint_cannot_be_crashed_by_its_limit():
             assert r.status_code == 200, f"{params} returned HTTP {r.status_code}"
             body = r.json()
             assert "nodes" in body and "edges" in body, f"{params} returned {str(body)[:120]}"
+
+
+# Constraints: identity and traceability enforced by the engine rather than by the build script
+# being careful. Two tests, because a declared constraint that rejects nothing is decoration --
+# the second one makes the database actually refuse a write.
+
+def test_the_graph_declares_its_identity_and_traceability_constraints(g):
+    from tombstone.build import _CONSTRAINTS
+    rows = g.list_constraints()
+    assert rows, "the graph declares no constraints at all"
+    got = {(str(c.get("type", "")).lower(), c.get("label"),
+            tuple(c.get("properties") or ())) for c in rows}
+    for kind, label, props in _CONSTRAINTS:
+        assert (kind, label, props) in got, (
+            f"{kind} constraint on {label}.{'+'.join(props)} is missing; the graph has "
+            f"{sorted(got)}")
+    bad = [c for c in rows if str(c.get("status", "")).upper() != "OPERATIONAL"]
+    assert not bad, (
+        f"constraints exist but are not OPERATIONAL: "
+        f"{[(c.get('label'), c.get('status')) for c in bad]} -- creation is asynchronous, so a "
+        f"build that does not wait reports success while the engine is still working")
+
+
+def test_a_unique_constraint_actually_rejects_a_duplicate():
+    """On a throwaway graph, so a missing constraint cannot pollute the real one.
+
+    Asserting enforcement against tomb:k8s would mean attempting a duplicate write there: fine
+    while the constraint holds, and a silent corpus corruption on the day it does not.
+    """
+    import time
+    from graphkit.ingest import connect
+    db = connect()
+    scratch = db.select_graph("tomb:constrainttest")
+    try:
+        scratch.query("CREATE (:Thing {key: 'a'})")
+        scratch.create_node_range_index("Thing", "key")
+        scratch.create_node_unique_constraint("Thing", "key")
+        for _ in range(50):
+            rows = scratch.list_constraints()
+            if rows and all(str(c.get("status", "")).upper() == "OPERATIONAL" for c in rows):
+                break
+            time.sleep(0.1)
+        else:
+            raise AssertionError(f"constraint never became OPERATIONAL: {scratch.list_constraints()}")
+
+        scratch.query("CREATE (:Thing {key: 'b'})")      # a different key is fine
+        try:
+            scratch.query("CREATE (:Thing {key: 'a'})")  # a duplicate must be refused
+        except Exception:
+            pass
+        else:
+            raise AssertionError(
+                "the unique constraint accepted a duplicate key, so it is declared and not "
+                "enforced -- which is worse than not declaring it, because the README now says "
+                "the database enforces identity")
+        n = scratch.ro_query("MATCH (t:Thing) RETURN count(t)").result_set[0][0]
+        assert n == 2, f"expected the duplicate to leave 2 nodes, found {n}"
+    finally:
+        try:
+            scratch.delete()
+        except Exception:
+            pass

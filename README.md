@@ -30,7 +30,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   depth 1 returns nothing, depth 4 explains why. There is also an
 >   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (706 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 145 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 147 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **36 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -835,7 +835,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 145 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 147 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
