@@ -186,7 +186,7 @@ def main() -> int:
     field = ""
     if "\n## Track\n" in sub:
         after = sub.split("\n## Track\n", 1)[1]
-        field = re.split(r"\n---|\n## ", after, 1)[0]
+        field = re.split(r"\n---|\n## ", after, maxsplit=1)[0]
     stated = sorted(set(re.findall(r"Track 0?(\d)", field)))
     other.append(("Every track entered is named (Rule 5)", OK if stated else NO,
                   f"the Track field names Track {', '.join(stated)}, and nothing else in it"
