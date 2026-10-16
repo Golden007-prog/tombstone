@@ -859,6 +859,14 @@ tool name and fills its arguments, and no model output is ever concatenated into
 
 ```cypher
 CALL db.idx.vector.queryNodes('NamedOption', 'emb', $k, vecf32($qvec)) YIELD node AS alt, score
+// Seven titles in this corpus are section headings the extractor lifted as if they were options
+// -- 'Pros', 'Cons', 'Pros/Cons' and friends, twelve nodes in all. They are embedded, so a vague
+// question reaches them: "what are the tradeoffs here" answered with 'Pros/Cons', a heading
+// dressed as a rejected idea. Excluded by name rather than by pattern, because ACL, API and VPA
+// are three letters long and are real options. Re-extracting the corpus is the proper fix and is
+// not a thing to start two days from a deadline.
+WITH alt, score
+WHERE NOT alt.title IN ['Cons', 'Cons:', 'Not', 'Other Solutions:', 'Pros', 'Pros/Cons', 'Pros:']
 WITH alt, score WHERE score <= $maxDist
 MATCH (kep:Kep)-[:CONSIDERED]->(alt)
 OPTIONAL MATCH (kep)-[:OWNED_BY]->(sig:Sig)
@@ -884,7 +892,7 @@ RETURN alt.title                             AS rejected_idea,
 ORDER BY score ASC
 LIMIT $limit
 ```
-`query_sha` = `52f160988857` — stamped on every answer this query produces.
+`query_sha` = `3fbc6d5ae250` — stamped on every answer this query produces.
 
 ### `ownership_dilution` — Which areas lost every DEDICATED approver, and which broader group inherits them now?
 
@@ -1175,17 +1183,18 @@ times. Each fix made the claim narrower and more defensible.
 
 ## Honest limits
 
-- **A few embedded options are section headings, not alternatives.** Lifting named options out of
-  prose is a regex over sub-headings, and it is not perfect: of the 752 titles that get embedded
-  and are therefore reachable by `has_this_been_tried`, **13 are artefacts** — `Pros`, `Cons`,
-  `Pros:`, `Cons:`, and a handful of three-letter fragments, though `ACL`, `API` and `VPA` in that
-  group are real option names. The practical effect is narrow and I measured it rather than
-  guessed: of six questions, five return genuine alternatives and only the vague one does not —
-  *"what are the tradeoffs here"* answers with **`Pros/Cons`**, a heading dressed as a rejected
-  idea. A specific question does not reach them, because the distance threshold keeps weak matches
-  out. Fixing it properly means re-extracting the corpus and re-verifying every number that rests
-  on it, which is not a thing to start two days from a deadline; `eval_gold.py` pins the count so
-  it cannot grow unnoticed.
+- **A few embedded options are section headings, and the query now excludes them.** Lifting named
+  options out of prose is a regex over sub-headings and it is not perfect: of the 752 titles that
+  get embedded, **seven are headings rather than alternatives** — `Pros`, `Cons`, `Pros/Cons`,
+  `Other Solutions:` and so on, twelve nodes in all. They were reachable, and I found it by asking
+  a deliberately vague question: *"what are the tradeoffs here"* used to answer **`Pros/Cons`**, a
+  heading dressed as a rejected idea. `has_this_been_tried` now excludes those seven titles **by
+  name**, not by pattern, because `ACL`, `API` and `VPA` are also three letters long and are real
+  options. The same question now answers *"Offset-based pagination"*, and the specific questions
+  are unchanged. The nodes stay in the graph, because they are what the corpus says; they are just
+  not in the haystack. Re-extracting the corpus is the proper fix and not a thing to start two days
+  from a deadline, so `eval_gold.py` pins the count and asserts the exclusion holds.
+
 - **KEP numbers are not unique, and one pair proves it.** 681 decision records carry 680 distinct
   numbers: **2133 exists under both `sig-cloud-provider` and `sig-node`**, because Kubernetes
   reused it when *Kubelet Credential Providers* superseded *Out-of-Tree Credential Providers*. The

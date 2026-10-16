@@ -273,6 +273,17 @@ def main() -> int:
         fails.append(f"extraction has got worse: {len(_arte)} artefact titles among the embedded "
                      f"options, up from the 13 the README documents")
 
+    # They stay in the graph -- they are what the corpus says -- but the search must not reach
+    # them. Asking the vague question that used to surface one is the test that matters.
+    _vague = agent.dispatch("has_this_been_tried", {"idea_text": "what are the tradeoffs here"})
+    _tops = [r[0] for r in (_vague.rows or [])]
+    _HEADINGS = {"Cons", "Cons:", "Not", "Other Solutions:", "Pros", "Pros/Cons", "Pros:"}
+    _leaked = [t for t in _tops if t in _HEADINGS]
+    print(f"  {'PASS' if not _leaked else 'FAIL'}  a vague question reaches no section heading "
+          f"(top hit: {_tops[0] if _tops else 'none'})")
+    if _leaked:
+        fails.append(f"has_this_been_tried surfaced {_leaked} — the exclusion has stopped working")
+
     # The README states this result by name, so it is read back out of the page rather than
     # trusted. A number nobody derives goes stale within a day; a NAME in a claim about a real
     # person is worse, because it reads as authoritative and nothing about it looks approximate.

@@ -105,6 +105,14 @@ class Tools:
     # ---------- TOOL 1 ----------
     HAS_THIS_BEEN_TRIED = """
 CALL db.idx.vector.queryNodes('NamedOption', 'emb', $k, vecf32($qvec)) YIELD node AS alt, score
+// Seven titles in this corpus are section headings the extractor lifted as if they were options
+// -- 'Pros', 'Cons', 'Pros/Cons' and friends, twelve nodes in all. They are embedded, so a vague
+// question reaches them: "what are the tradeoffs here" answered with 'Pros/Cons', a heading
+// dressed as a rejected idea. Excluded by name rather than by pattern, because ACL, API and VPA
+// are three letters long and are real options. Re-extracting the corpus is the proper fix and is
+// not a thing to start two days from a deadline.
+WITH alt, score
+WHERE NOT alt.title IN ['Cons', 'Cons:', 'Not', 'Other Solutions:', 'Pros', 'Pros/Cons', 'Pros:']
 WITH alt, score WHERE score <= $maxDist
 MATCH (kep:Kep)-[:CONSIDERED]->(alt)
 OPTIONAL MATCH (kep)-[:OWNED_BY]->(sig:Sig)
