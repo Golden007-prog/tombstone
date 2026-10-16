@@ -166,7 +166,16 @@ def main() -> int:
     if better:
         print("\nTwo would be materially stronger, and both need a human:")
         print("  - a live Space:      export HF_TOKEN=hf_... && ./deploy_hf.sh")
-        print("  - a narrated video:  brew reinstall ffmpeg, then docs/DEMO-SCRIPT.md (3:00)")
+        # This used to say "brew reinstall ffmpeg" first, which was wrong in a way that costs
+        # time at the moment it is least available. Local ffmpeg IS broken here, but nothing on
+        # the recording path needs it: the voiceover is laid over the capture in iMovie, and the
+        # two committed artefacts that do call ffmpeg fall back to linuxserver/ffmpeg in Docker,
+        # verified working. An unnecessary package reinstall listed as step one invites someone to
+        # spend twenty minutes on Homebrew instead of recording.
+        print("  - a narrated video:  ./run.sh, then ./run.sh --forget, then record to "
+              "docs/DEMO-SCRIPT.md (3:00)")
+        print("                       screen capture + voiceover laid together in iMovie; "
+              "no ffmpeg needed")
     blocked = [n for n, s, _ in extra if s != OK]
     if blocked:
         print("\nStill to do, outside the rules:")
