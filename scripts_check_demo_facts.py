@@ -44,18 +44,30 @@ vec = list(agent.embedder().embed(["has anyone tried moving this into the kubele
 tried = agent.tools.has_this_been_tried(vec, max_dist=0.45)
 check("beat 4 narrates KEP-6061", "6061" in script and "6061" in render(tried))
 
-# Beat 5 — the point of the beat is that centrality is NOT file count. The script says the person
-# with the most areas is only third, and the top of the list left five.
+# Beat 5 — the point of the beat is that centrality is NOT file count. Matched on the CLAIM, not
+# on one phrasing of it, which is the same lesson as beat 6 below and was learned here one beat
+# late. These checks used to demand the literal strings "only third" and "left five". Both were
+# true of a ranking produced by sampling 32 of 727 source nodes -- and exact Brandes over all 727
+# swaps the top two, with 80% of random samples disagreeing with the published order. So the beat
+# was rewritten to claim only what holds under BOTH the sampled tool a judge clicks and an exact
+# computation, and these went red for the phrasing while the new claim was true. See the
+# betweenness entry in README's Honest limits for the measurement.
 bridges = agent.dispatch("stepped_back_bridges", {"min_areas": 3})
 rows = bridges.rows
 top_areas = int(rows[0][2])
+most_areas = max(int(r[2]) for r in rows)
 most_areas_rank = 1 + max(range(len(rows)), key=lambda i: int(rows[i][2]))
 check("beat 5: top of the ranking did NOT leave the most areas",
       most_areas_rank != 1, f"top left {top_areas}, the most-areas person ranks {most_areas_rank}")
-check("beat 5 says 'only third'", "only third" in script and most_areas_rank == 3,
+check("beat 5 names the most-areas figure and the graph agrees",
+      bool(re.search(r"\bthirty-one\b", script)) and most_areas == 31,
+      f"the most areas anyone left is {most_areas}")
+check("beat 5 says that person is not at the top",
+      bool(re.search(r"\bnot at the top\b", script)) and most_areas_rank != 1,
       f"most-areas person ranks {most_areas_rank}")
-check("beat 5 says the top left five", "left five" in script and top_areas == 5,
-      f"top left {top_areas}")
+check("beat 5 says whoever is at the top left far fewer",
+      bool(re.search(r"\bleft far fewer\b", script)) and top_areas < most_areas,
+      f"top left {top_areas}, against {most_areas}")
 
 # Beat 6 — the drafting action: three candidates, two drafted, one refused.
 drafted = agent.dispatch("draft_owners_patch", {})
