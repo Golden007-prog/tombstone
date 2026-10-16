@@ -78,7 +78,10 @@ fully public. Every number below is checkable with one `git clone`.
 
 No *scored* criteria are published — I checked both the
 [event page](https://www.wemakedevs.org/hackathons/falkordb) and the
-[rules](https://www.wemakedevs.org/hackathons/falkordb/rules). The two published standards that do
+[rules](https://www.wemakedevs.org/hackathons/falkordb/rules), **and re-read both on 16 Oct rather
+than trusting the note I made when I started**: still eighteen rules, still no rubric and no
+weights, and the track pages still publish "Key focus" bullets rather than scored dimensions. The
+two published standards that do
 exist are Rule 10's six-item submission checklist and the track's own
 ["Key focus" bullets, mapped line by line above](#track-03s-own-key-focus-line-by-line) — including
 the one of the five this does not do. Rather than guess at a rubric, here is Rule 10's checklist
@@ -90,7 +93,7 @@ with the exact location of each item and an honest status.
 | A README with setup instructions and the graph data model | [Quickstart](#quickstart) and [The graph data model](#the-graph-data-model) | **done** |
 | The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — every query generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source** | **done** |
 | A demo video of the working project | **[▶ watch the 86-second walkthrough](docs/video/walkthrough-silent.mp4)** — plays in the browser, no clone and no server; every frame is a real screenshot of the running app, captioned | silent walkthrough committed; narrated cut to follow |
-| A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup. The hosted deploy is verified end to end by `./scripts_verify_deploy.sh`, which builds the image for `linux/amd64` and runs it as a non-root user exactly as a Space does; it serves, seeds and answers. Only the account token is outstanding. |
+| A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup **plus a video, which is how the FAQ words the fallback** — not "either/or" but *complete local setup instructions **and** a working demo video* if you cannot deploy; Rule 10 requires the video separately, so both halves are present. The hosted deploy is verified end to end by `./scripts_verify_deploy.sh`, which builds the image for `linux/amd64` and runs it as a non-root user exactly as a Space does; it serves, seeds and answers. Only the account token is outstanding. |
 | The track you are entering | **Track 3, Company Brain**, stated at the top of this README | **done** |
 
 Two rules beyond the checklist:
