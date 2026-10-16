@@ -58,13 +58,15 @@ attention on the axis where it is strongest. Decide deliberately; do not drift i
 ## Description
 
 Large engineering orgs keep re-proposing things they already rejected, because the rejection was
-never a thing you could look up. (I tried to measure that premise on this corpus and could not
-confirm it — the measurement is in the README, along with the weaker claim that *is* demonstrated:
-a rejected option is not retrievable at all today, so the question cannot be asked by anyone.)
-The rejected option is not a document — it is a 200-word
+never a thing you could look up. The rejected option is not a document — it is a 200-word
 subsection buried inside a 4,000-word proposal about something else. It has no identity, so you
 cannot count how often an idea was refused, you cannot ask who refused it, and you cannot find out
 whether anyone who knows why is still around.
+
+I tried to measure that premise on this corpus and **could not confirm it**. The measurement is in
+the README, next to the weaker claim that *is* demonstrated: a rejected option is not retrievable
+at all today, so the question cannot be asked by anyone. Leading with a premise I could not prove
+would have been the easier pitch, and this project is about not doing that.
 
 Tombstone makes the rejected alternative a first-class node, attaches the person who killed it,
 and answers questions that are each a traversal rather than a lookup: has this been tried, who
