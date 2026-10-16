@@ -45,6 +45,11 @@ run "the demo script is speakable"  python3 scripts_check_demo_timing.py
 # thing that happens to this repository is somebody exporting HF_TOKEN and running a deploy. The
 # deploy script reads it from the environment and never writes it down, and .env is ignored -- but
 # the cost of being wrong once is a revoked key and a public credential, and the check is a grep.
+# Needs no database, so it belongs here rather than in CI: a sentence that overclaims this
+# project's own verification should be stopped before it is pushed, not reported after. Five of
+# them shipped before this existed.
+run "no universal claims about checking" "${YAML_PY:-python3}" scripts_check_verification_claims.py
+
 run "no credential-shaped strings in what is being pushed" sh -c '
   if git grep -nIE "(hf_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)" -- . >/tmp/pp-secrets 2>/dev/null; then
     echo "credential-shaped strings found in tracked files:"; cat /tmp/pp-secrets; exit 1
