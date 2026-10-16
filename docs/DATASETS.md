@@ -21,12 +21,29 @@
 - **GDELT**: HTTP 429, hard 1-request-per-5s limit. Unusable for bulk ingest in a sprint.
 - **arXiv**: HTTP 301 (use the https endpoint).
 
-## Field context (verified)
-~95% of the ~110 Graph Hacks entries use an INVENTED Acme-style synthetic company. Only four use real
-public data: shaky-ground (Retraction Watch/Crossref/OpenAlex), downstream (real PyPI), ripplekg (real
-disruptions + stock events), gaming-multiverse-reasoner (IGDB). shaky-ground is the only entry in the
-field with verifiable numbers in its README.
-=> Real public data is itself a differentiator worth more than most features.
+## Field context — ~~probed 15 Oct~~ SUPERSEDED, re-measured 16 Oct
+~~95% of the ~110 Graph Hacks entries use an INVENTED Acme-style synthetic company. Only four use
+real public data: shaky-ground (Retraction Watch/Crossref/OpenAlex), downstream (real PyPI),
+ripplekg (real disruptions + stock events), gaming-multiverse-reasoner (IGDB). shaky-ground is the
+only entry in the field with verifiable numbers in its README.~~
+
+**Struck rather than deleted, because every clause of it is now contradicted by a better
+measurement in this same repository.** `scripts_survey_field.py`, run on 16 Oct, counts **123
+repositories created in the window and 85 Track 3 entries**, not ~110 overall. A census of the 20
+largest Track 3 entries finds **5 naming a real public corpus** — `cairn` (13 FalkorDB-org repos),
+`lineage` (CPython and discuss.python.org), this one (Kubernetes), `decision-brain` (Kubernetes)
+and `Onix` (arXiv) — and **not one of them is among the four named above**, so the original list
+was not a census of anything; it was the four I happened to have seen on day one. "The only entry
+with verifiable numbers" does not survive either: `cairn` publishes a four-system eval graded
+twice, and `keystone` checks each quoted decision against its source text in code.
+
+What survives is the weaker claim, which is still the useful one: **real public data is the rarer
+choice** — a quarter of the serious end of the field, measured rather than estimated — and it is
+not this entry's private territory. See SUBMISSION.md for the census and the caveat that it reads
+what a README *claims*, not what its code does.
+
+This is the same failure the README documents about its own numbers: a figure written once from a
+quick look, never revisited, and left to contradict a later measurement sitting two files away.
 
 ## Data-policy note
 Rules allow "public, synthetic, or their own" and forbid "private, login-protected, paywalled, personal
