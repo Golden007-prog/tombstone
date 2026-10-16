@@ -50,9 +50,17 @@ on the next visit — which the fast boot makes tolerable.
 
 ## Render (free)
 
-`deploy/render.yaml` is ready. Caveat worth knowing: free web services **spin down after 15 minutes**
-of no traffic and take ~1 minute to wake, so a judge's first click can hit a blank page. Acceptable
-only if the submission says so.
+`deploy/render.yaml` is ready, and **validated against Render's current blueprint spec on 16 Oct**:
+`runtime: docker` (the field that replaced the deprecated `env`), `plan: free`, `dockerfilePath`
+and `healthCheckPath` all current, nothing deprecated. The container's entrypoint binds
+`${PORT:-8099}`, so it honours the port Render injects rather than hard-coding one.
+
+Two caveats, and they are the reason this is the fallback rather than the plan. Free web services
+**spin down after 15 minutes** of no traffic and take ~1 minute to wake, so a judge's first click
+can hit a blank page — acceptable only if the submission says so. And the free plan is **0.1 CPU
+and 512 MB**: serial use at ~450 MiB fits, one counterfactual at a time is fine, and six at once
+(~900 MB, measured) will be killed. On a tenth of a CPU the first boot will also be slow, which
+the `healthCheckPath` needs to outlast.
 
 ## Fly.io
 
