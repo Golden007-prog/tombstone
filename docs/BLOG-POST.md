@@ -77,7 +77,7 @@ You cannot find that by searching. You find it by counting inbound edges to a ga
 
 ---
 
-## Nine things FalkorDB taught me the hard way
+## Ten things FalkorDB taught me the hard way
 
 I measured rather than trusted, and most of what follows cost me time.
 
@@ -140,6 +140,20 @@ titled subset, and put the vector index on the narrower label. You get a genuine
 index instead of a post-filtered one. For tenancy, the same logic says one graph per tenant — which
 is FalkorDB's headline feature and, as it turns out, a correctness requirement rather than a
 preference.
+
+**What that choice costs, measured, because I only argued it at first.** Minting the narrow label
+leaves 206 of my 958 nodes outside the index, and an unindexed node has probability zero of being
+returned for *any* query — a structural hole, not a scoring miss. It is worth knowing the size of
+the trade before defending it, so I built both and scored them: pooling all 958 into one index
+moves retrieval on the named subset from **48.2 / 64.8 / 72.8%** to **45.8 / 61.8 / 69.8%** at
+k=1/3/8, while taking the excluded 206 from **0/25 to 19/25** reachable. Three points of precision
+against structural reachability. I kept the pre-filter, and the script that would have overturned
+that decision is committed next to the one that justifies it.
+
+Two things I had wrong on the way there. I described those 206 as "not embedded" — they are all
+embedded, and re-embedding one reproduces its stored vector at cosine 1.0000, which also told me
+the embedding is over the body and the title is display text only. And I had been counting their
+substance by *title* length, which measures the extractor, not the corpus.
 
 ### 5. Betweenness is sampled, and unseeded it is not reproducible
 
@@ -247,6 +261,24 @@ construct it *did* think you were writing. "Expected a map key" meant "I have ne
 `EXISTS {`". Checking the version's own documentation for the clause is faster than believing the
 error.
 
+### 10. Creating *and dropping* a vector index are both asynchronous
+
+`CREATE VECTOR INDEX` returns before the index exists. HNSW builds in the background, and
+`CALL db.indexes()` reports a `numDocuments` that climbs toward the real count — so a benchmark
+that creates an index and immediately queries it is scoring whatever happened to land. Poll until
+`numDocuments` reaches what you expect, and refuse to report if it never does.
+
+`DROP VECTOR INDEX` has the same property and it is easier to get bitten by, because the failure
+looks like the opposite of what it is. I had a script that created a temporary index, measured,
+dropped it, then re-read the index list to prove it had cleaned up after itself — and it reported
+that it had *dirtied* the graph it measured. It had not; the drop had simply not landed yet one
+line later. A cleanup check that races the cleanup cries wolf about state, which is worse than no
+check: the first thing I did was go looking for a leak that did not exist.
+
+One more trap in reading that index list. I filtered it by matching `"VECTOR"` against the whole
+printed row, which reports a label as still having a vector index when all it has is a `RANGE`
+index on some other property. Read the per-field types, not the row.
+
 ## "Why not just use networkx?" — I had this wrong
 
 Someone asked me this and it is the right question. My graph is about 3,000 nodes. That fits in
@@ -351,12 +383,27 @@ honestly say nothing is there, and that is only worth anything if the claim is b
 
 ## The checks lied to me more often than the code did
 
-I ended up writing a lot of verification — a script that re-queries the README's thirty-one graph
+I ended up writing a lot of verification — a script that re-queries the README's thirty-six graph
 claims against the live database, another that drives every rendered answer state through a
 headless browser, another that reads the demo script's narration and asserts the app actually
 returns what it claims.
 Thirty-one CI steps. The thing nobody warns you about is that **the checks fail in their own
 ways**, and a check that fails for the wrong reason costs more than the bug it was meant to catch.
+
+The sharpest example came from measuring memory. `INFO memory`'s `used_memory` is *instance-wide*,
+so once you have deleted rows the allocator hands their space to the next insert and a growth
+delta understates by whatever it reuses. Run the same benchmark twice and the second run reports
+the first block at **-0.1 KB per answer** — memory apparently falling while two hundred rows are
+added. That is not evidence against the figure; it is an instrument that has gone blind in that
+instance, and reporting it as a failure would be a lie about which thing is broken. The benchmark
+says so now, and names what to restart.
+
+The same measurement taught me something duller and more expensive. I had published **about 12 KB
+per stored answer**, reproducing at 11.9, 11.6 and 12.2 across three runs — real runs, and all
+three started from an *empty* memory, where the first two hundred answers also pay around 1.7 MB
+of one-time vector-index structure. Block by block it is 12.2 then 3.6. A first-batch average
+multiplied by ten thousand is not a projection, and mine overstated the ceiling by about 3x. The
+number was reproducible and wrong, which is the combination to watch for.
 
 Four that cost me the most:
 
@@ -442,6 +489,6 @@ on a CI runner.*
 
 *This footer used to say "every number here comes from a benchmark" and that a script "re-checks
 each factual claim". Neither was quite true — the corpus counts come from the graph, not a
-benchmark, and the script checks thirty-one claims rather than all of them. I found it by grepping
+benchmark, and the script checks thirty-six claims rather than all of them. I found it by grepping
 my own writing for sentences that assert verification, which is a thing I recommend, and which is
 how the sentence two paragraphs above this one got fixed as well.*

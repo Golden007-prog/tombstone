@@ -70,7 +70,7 @@ viewing. Then open the link in a private window and confirm it plays.
 
 ## 3. Publish the blog post (~45 min, most of it reading)
 
-`docs/BLOG-POST.md` is finished, ~4,200 words — long enough that the read-through is most
+`docs/BLOG-POST.md` is finished, ~4,800 words — long enough that the read-through is most
 of the 45 minutes, and worth doing, because it goes out under your name to people who
 cannot run anything. Its factual claims are re-checked against the live graph by
 `verify_blog.py`, which runs in `./preflight.sh`. Publish to **dev.to**, tagged `falkordb` and

@@ -153,6 +153,29 @@ _as_of = datetime.datetime.fromtimestamp(AS_OF_MS / 1000).strftime("%Y-%m-%d")
 # list and is the file read LAST, under deadline, with the answers to a judge's hard questions in
 # it. Asserted here, over whatever is tracked, rather than over a list of filenames that has
 # already been extended twice and missed this one both times.
+_ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+         "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+         "eighteen", "nineteen"]
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70,
+         "eighty": 80, "ninety": 90}
+
+
+def _as_int(token: str):
+    """A count written in digits or in words, or None when it is not a number at all."""
+    t = token.strip().lower()
+    if t.isdigit():
+        return int(t)
+    if t in _ONES:
+        return _ONES.index(t)
+    if t in _TENS:
+        return _TENS[t]
+    if "-" in t:
+        head, _, tail = t.partition("-")
+        if head in _TENS and tail in _ONES[1:10]:
+            return _TENS[head] + _ONES.index(tail)
+    return None
+
+
 def _check_stated_count() -> int:
     import re as _re
     import subprocess as _subp
@@ -166,12 +189,25 @@ def _check_stated_count() -> int:
         docs.append("scripts_build_walkthrough.py")
     seen = 0
     for doc in docs:
-        text = open(doc).read()
-        for pat in (r"(\d+) graph claims",
-                    r"verify_claims\.py`? re-(?:checks|queries) (?:all|the) (\d+)"):
-            for said in _re.findall(pat, text):
+        # Whitespace-flattened before scanning. The blog post wraps this very phrase as
+        # "thirty-six graph\nclaims", and a pattern with a literal space between the words
+        # matches nothing across that line break -- the third time in two days that wrapped
+        # prose has silently disabled a regex in this repository.
+        text = " ".join(open(doc).read().split())
+        # Digits AND the spelled form. The blog post wrote "thirty-one graph claims", this scan
+        # matched only \d+, and so the one document written for a separate prize kept a stale
+        # count through every green build -- while the eval's own checker had already learned
+        # this exact lesson and carries a spelling map for it. A number spelled out drifts
+        # exactly as readily as one in digits and is harder to grep for.
+        for pat in (r"([\d]+|[a-z]+(?:-[a-z]+)?) graph claims",
+                    r"verify_claims\.py`? re-(?:checks|queries) (?:all|the) ([\d]+|[a-z]+(?:-[a-z]+)?)",
+                    r"the script checks ([\d]+|[a-z]+(?:-[a-z]+)?) claims"):
+            for said in _re.findall(pat, text, _re.I):
+                parsed = _as_int(said)
+                if parsed is None:
+                    continue          # an adjective, not a count: "the graph claims" and friends
                 seen += 1
-                if int(said) != want:
+                if parsed != want:
                     print(f"  FAIL  {doc} says {said} claims; this file checks {want}")
                     bad += 1
     if not seen:
