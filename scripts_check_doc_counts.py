@@ -410,9 +410,18 @@ _substantive = count("MATCH (n:Alternative) WHERE NOT n:NamedOption AND size(tri
                      "RETURN count(n)")
 _markers = count("MATCH (n:Alternative) WHERE NOT n:NamedOption "
                  "AND size(trim(n.title)) <= 6 RETURN count(n)")
-for _doc in ("README.md", "docs/EXPLAIN-IT.md"):
+# Every tracked document, not the two that happened to state it when this was written. A
+# "what I would do next" answer in SUBMISSION.md now calls these "the 163 rejections the search
+# cannot see", which is the same figure in a form neither pattern below would have matched --
+# so if the number moved, EXPLAIN-IT would fail and the submission copy would quietly keep the
+# old one. Its phrasing is recognised too.
+for _doc in _docs:
     _t = open(_doc).read()
-    for _said in re.findall(r"\*\*(\d+) are 60", _t) + re.findall(r"\*\*(\d+) are 60\+", _t):
+    for _said in (re.findall(r"\*\*(\d+) are 60", _t) + re.findall(r"\*\*(\d+) are 60\+", _t)
+                  # \s and an optional ">" because the sentence wraps inside a blockquote,
+                  # so the phrase is split by "\n> " in the file and a literal-space pattern
+                  # matched nothing -- the same wrapped-prose miss as the demo-timing check.
+                  + re.findall(r"(\d+) rejections the search cannot\s+>?\s*see", _t)):
         if int(_said) != _substantive:
             problems.append(f"{_doc}: says {_said} substantive excluded alternatives, "
                             f"the graph has {_substantive}")

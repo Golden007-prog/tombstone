@@ -188,6 +188,29 @@ asks for tenant isolation, an honest **partly**: the app is single-tenant, so wh
 Worth saying in the submission because it was not designed to match: I found the article in the
 Resources page after building this.
 
+## Team
+
+> Solo.
+
+## Built with
+
+> FalkorDB v4.22.1 (pinned — not `:latest`), Python, FastAPI, fastembed with BAAI/bge-small-en-v1.5
+> running locally at ~5ms a query with no API key and no cost, Docker, and hand-written SVG for the
+> reasoning path — no graph-drawing library. Graph features used: variable-length traversal over
+> the OWNERS inheritance tree, `algo.betweenness` (seeded), `algo.labelPropagation`, `GRAPH.COPY`
+> for counterfactuals, and a vector index composed with traversal in a single query.
+
+## What I would do next
+
+> Three things, in the order they would matter. **Reach the 163 rejections the search cannot
+> see** — they are in the graph and the lineage queries find them, but their extracted titles came
+> out as sentences so they were never embedded, which makes them invisible to the one tool whose
+> job is finding rejections. **Earn the tenancy claim**: the mechanism is measured to 1,000 graphs
+> but this app is single-tenant and never switches graphs, so what is demonstrated is that it
+> works, not that this uses it. **Ingest something that is not a document** — the rules rightly
+> forbid private tickets and chats, and a fabricated company proves nothing, so this is docs only
+> until there is a public corpus with real tickets attached to real decisions.
+
 ## Links
 
 | | |
