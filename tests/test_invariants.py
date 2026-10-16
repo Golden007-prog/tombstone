@@ -2103,3 +2103,49 @@ def test_retire_leaves_reviewers_alone_when_the_handle_is_not_one():
     after = act.retire({"approvers": ["a", "x"], "reviewers": ["a"]}, "x")
     assert after["reviewers"] == ["a"]
     assert "x" not in after["approvers"]
+
+
+# Parser debris in the Person half of the graph, pinned so it cannot grow. Found by listing every
+# key and testing it against GitHub's handle grammar -- not by looking at the total, which is why
+# no count check saw it: 794 is a true count of Person nodes and nine of them are not people.
+# Disclosed in README's Honest limits with the per-edge-type measurement.
+#
+# The assertion is one-directional on purpose. Growth is a parser regression and fails here.
+# Shrinking is a fix and passes here, then fails the README's stated figure -- which is the right
+# way round, because a fix should force the disclosure to be rewritten rather than silently
+# outdating it.
+NON_HANDLE_PERSON_KEYS = {
+    "bowei - for networking/proxy portion of kep",
+    "deads2k - for kube api server portion of kep",
+    "kubernetes/wg-component-standard",
+    "quinton_hoole",
+    "with input from @bgrant0607, @dchen1107, @yujuhong, @lavalamp",
+    "\u201c@ixdy\u201d", "\u201c@mortent\u201d", "\u201c@neolit123\u201d", "\u201c@sjenning\u201d",
+}
+
+
+def test_parser_debris_in_person_keys_does_not_grow(g):
+    import re
+    handle = re.compile(r"^[a-z0-9][a-z0-9-]{0,38}$")
+    keys = [r[0] for r in g.ro_query("MATCH (p:Person) RETURN p.key").result_set]
+    assert keys, "no Person nodes -- the graph is not seeded"
+    bad = {k for k in keys if not isinstance(k, str) or not handle.match(k)}
+    new = bad - NON_HANDLE_PERSON_KEYS
+    assert not new, (
+        f"the reviewer-line parser produced {len(new)} new non-handle Person key(s): {sorted(new)}"
+        f" -- either fix the parser or, if these are legitimate, add them here AND to the figure "
+        f"in README's Honest limits")
+    # Anti-vacuity: if the shape test ever stops matching anything, this proves nothing.
+    assert bad, ("no malformed keys matched at all -- either the corpus was cleaned (update the "
+                 "README disclosure and this set) or the handle grammar above has gone wrong")
+
+
+def test_the_owners_half_of_the_graph_carries_no_parser_debris(g):
+    """The disclosure's load-bearing half: APPROVES and EMERITUS_OF come from YAML, not prose."""
+    for rel in ("APPROVES", "EMERITUS_OF"):
+        n = g.ro_query(f"MATCH (p:Person)-[r:{rel}]-() WHERE p.key IN $b RETURN count(r)",
+                       params={"b": sorted(NON_HANDLE_PERSON_KEYS)}).result_set[0][0]
+        assert n == 0, (
+            f"{n} {rel} edges now hang off a malformed Person key. README's Honest limits states "
+            f"that the ownership half is unaffected because it is parsed from YAML; that is no "
+            f"longer true and the disclosure is now wrong.")

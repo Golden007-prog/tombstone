@@ -26,7 +26,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   depth 1 returns nothing, depth 4 explains why. There is also an
 >   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (709 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 139 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 141 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **33 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -781,7 +781,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 139 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 141 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1290,6 +1290,36 @@ failure its design warns about — *"an empty traversal means your graph does no
 times. Each fix made the claim narrower and more defensible.
 
 ## Honest limits
+
+- **Nine of the 794 `Person` nodes are not people, and they hold 84 edges.** Found by listing
+  every key and testing it against GitHub's handle grammar rather than by looking at the total,
+  which is why no count check saw it: 794 is a true count of `Person` nodes and nine of those
+  nodes are parser debris. Four are the same real people twice, their handles wrapped in
+  typographic quotes the reviewer-line parser did not strip — `“@neolit123”` carries 19 edges,
+  `“@ixdy”`, `“@mortent”` and `“@sjenning”` six or seven each — so those contributors are split
+  across two nodes and both are undercounted. Two are a KEP's reviewer annotation swallowed
+  whole: `bowei - for networking/proxy portion of kep` and `deads2k - for kube api server portion
+  of kep`, twelve edges each. One is a whole sentence, `with input from @bgrant0607, @dchen1107,
+  @yujuhong, @lavalamp`. One is a team, `kubernetes/wg-component-standard`. One is
+  `quinton_hoole`, an underscore where GitHub permits none.
+  **What it does and does not affect, measured rather than assumed.** Counting the debris's edges
+  by type: `APPROVES` **0**, `EMERITUS_OF` **0**, `AUTHORED` **1**, `APPROVED` **2**, `REVIEWED`
+  **7**, `CO_AUTHORED` **74**. So the OWNERS half of the graph is genuinely untouched — it is
+  parsed from YAML, not from prose — and every finding on this page that rests on who approves
+  what is unaffected, including the headline. Ten real corpus edges are misattributed. The 74 are
+  the co-authorship projection derived from those ten, and that projection is what the two
+  whole-graph algorithms run over, so nine non-people do take part in the centrality computation.
+  I checked whether any of them surfaces where it would be read: the seeded betweenness top twelve
+  is `liggitt`, `johnbelamaric`, `haircommander`, `derekwaynecarr`, `mrunalp`, `jpbetz`, `thockin`,
+  `dchen1107`, `msau42`, `jeremyot`, `dims`, `deads2k` — all well-formed, no debris. The effect is
+  real and it is in the tail.
+  **Why it is still here.** The fix is in the parser, and the raw corpus is not in this
+  repository — `data/corpus.json.gz` is the committed snapshot, so correcting it means re-fetching
+  upstream Kubernetes and re-deriving every number downstream of `Person`, including the 36 claims
+  CI re-checks, two days before the deadline. The trade I took was to measure it exactly, write it
+  down, and pin it: a test asserts this set cannot grow, so a parser regression that adds a tenth
+  fails the build. Shrinking it is allowed and will fail the stated count here, which is the right
+  way round.
 
 - **The co-authorship projection is directional, so betweenness is computed over a handle-ordered
   graph.** The projection is printed verbatim in the schema section above, `WHERE a.key < b.key`

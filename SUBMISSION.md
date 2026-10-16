@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 139 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 141 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -70,7 +70,7 @@ means part of any graph-versus-text gap is a gap you authored.
 `Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
 PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
-tests to 139.** It is bigger and better-tested, it is honest about its own limits, and it is not
+tests to 141.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not — and there is now a number for that rather
 than a caution: **6 of the 20 largest Track 3 entries name a specific real public corpus** in
@@ -106,14 +106,28 @@ does not. It also carries nineteen test modules, an MCP server, an agent loop wi
 trace, a fixes engine and a networkx cross-check.
 
 So, honestly, what is left: the corpus is shared, the attrition signal is shared, and what differs
-is what gets done with them. From its tree, understudy has no web surface, no rendered figures and
-no reachable demo. This has an answer surface where every reply carries its Cypher, that query's
-hash and the arguments it was answered with; a drawn path a judge can read without running
-anything; a graph-versus-text evaluation over the same documents (24/25 against 9/25 for TF-IDF
-and 10/25 for dense retrieval); 36 claims re-derived against the live database on every push; and
-a counterfactual that forks the graph with `GRAPH.COPY`. Those are the claims to defend. "Only
-entry on this corpus" is not one of them any more — and finding that out from a stranger's
-repository two days before the deadline is a great deal cheaper than having a judge find it.
+is what gets done with them. **An earlier version of this paragraph said understudy had "no web
+surface, no rendered figures and no reachable demo". That was true of the tree I read on the
+morning of 16 Oct and false by that afternoon** — they pushed a forty-file React frontend at
+16:37 (`frontend/src/App.tsx`, five components, `api.ts`, its own unit tests). Writing a
+competitor's absence into a submission is a claim with a shelf life measured in hours, and this
+one expired in six. It is corrected here rather than quietly deleted, because the correction is
+the more useful fact: **two entries now do this on the same corpus, and the gap is narrower than
+one morning's reading suggested.**
+
+What this still has that I could not find in theirs: an answer surface where every reply carries
+its Cypher, that query's hash and the arguments it was answered with; a drawn path a judge can
+read without running anything; a graph-versus-text evaluation over the same documents (24/25
+against 9/25 for TF-IDF and 10/25 for dense retrieval); 36 claims re-derived against the live
+database on every push; and the engine-level work in Honest limits, where the directedness of
+`algo.betweenness` is derived from the vendor's own worked example because they do not document
+it. **What understudy has that this does not: a pre-registered backtest that asks whether its own
+central number predicts anything, and reports a null.** That is a better scientific instinct than
+any feature on this page, and the honest thing to say about it is that I did not do it.
+
+"Only entry on this corpus" is not a claim to defend any more — and finding that out from a
+stranger's repository two days before the deadline is a great deal cheaper than having a judge
+find it.
 
 The others each chose their own: threadline reads the FalkorDB org's GitHub history, orion a
 synthetic company of people, teams, systems and customers, lineage the Python PEPs and the forum
@@ -239,7 +253,7 @@ vendored from another repository and the exclusion lives in the Cypher; the one 
 refuse is refused because the person's handle is not in the file at all — an alias expands
 to them, so no edit to that file would remove them.
 
-Nothing here is asserted. **33 CI steps on every push** re-check it: 139 tests, 36 graph claims
+Nothing here is asserted. **33 CI steps on every push** re-check it: 141 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other five build a thousand graphs, millions of edges, a memory curve or a second vector index, so they are dated measurements with
