@@ -45,8 +45,8 @@ snapshot on every boot, so there is nothing to go stale and no external database
 Measured on the image this Space is built from: **3.7 s** from container start to the health
 endpoint reporting FalkorDB up, and **1.5 s** more for the first real answer. That was an
 M-series laptop; a Space's shared CPU will be slower, and a Space that has gone to sleep pays its
-own wake-up before any of this starts. The whole thing peaks at about 400 MB, measured, and
-runs inside a 512 MB container without being killed.
+own wake-up before any of this starts. The whole thing peaks at about 450 MiB in serial use, measured on the real
+linux/amd64 image, and runs inside a 512 MB container without being killed.
 
 The graph counts above — 681, 958, 794, 585 — are re-queried against the live database by
 scripts that run in CI on every push, along with 36 named claims and 134 tests. The boot and

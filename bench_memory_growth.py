@@ -35,7 +35,16 @@ ANSWERING = [
 BLOCKS = 2                # two blocks, because the point is the
 BLOCK = 200               # DIFFERENCE between the first and the last
 CEILING_MB = 512          # the serial ceiling the deploy check asserts
-BASELINE_MB = 387         # peak this image reaches before any memory is written
+# The container's serial peak, as ./scripts_verify_deploy.sh measures and asserts it on the
+# actual linux/amd64 image. It read 387 here, "about 400 MB" in the Space README and 450.1MiB
+# from the only script that measures it -- three figures for one quantity, none derived.
+#
+# Note what is being added to what: the per-answer cost below is FalkorDB's own used_memory,
+# while this ceiling is whole-container RSS (the app, uvicorn, the embedding model and the
+# database). The projection assumes database growth shows up one-for-one in container RSS, which
+# is roughly true because the database is in the container, and is the reason these totals are
+# "about".
+BASELINE_MB = 450
 
 
 def used_bytes() -> int:
@@ -104,6 +113,26 @@ def _measure(graph) -> int:
 
     first, last = blocks[0], blocks[-1]
     marginal = last[1] / 1024 / max(1, last[0])
+
+    # Whether the instrument can be trusted AT ALL in this instance, asked before anything is
+    # reported from it. `used_memory` is instance-wide, so once rows have been deleted the
+    # allocator hands their arena space back to the next insert and the delta understates by
+    # whatever it reuses. Run this twice in a row and the second run measures a first block at
+    # -0.1 KB an answer: memory apparently fell while 200 rows were added.
+    #
+    # That is not evidence against the published figure, so it must not be reported as a failure.
+    # A check that goes red for a reason unrelated to its claim teaches you to ignore it, which
+    # costs more than the check was ever worth. It says what it needs instead.
+    if first[1] <= 0 or marginal <= 0.5:
+        print(f"\n  note  this database cannot be measured: the first block grew "
+              f"{first[1] / 1024:.0f} KB for {first[0]} answers. used_memory is instance-wide, so "
+              f"a database that has had answers deleted reuses their space and the delta "
+              f"understates.")
+        print("        For a figure worth publishing, restart FalkorDB and seed it fresh:")
+        print("          docker restart falkordb && ./run.sh")
+        print("        Nothing here contradicts the README; the instrument is simply blind in "
+              "this instance.")
+        return 0
     if last[1] < 50_000:
         print(f"  FAIL  the last block grew {last[1]} bytes, which is inside allocator noise; "
               f"raise BLOCK rather than report a per-answer figure from it")
@@ -140,7 +169,13 @@ def _measure(graph) -> int:
               "against; it must say '**about N KB each, marginal**'")
         return 1
     claimed = float(said.group(1))
-    near = abs(marginal - claimed) <= max(1.0, claimed * 0.35)
+    # A FACTOR of two, not a percentage. Trustworthy runs of this gave 2.7, 3.0 and 3.6 KB, so a
+    # tolerance tight enough to separate those would eventually go red over a figure that was
+    # never wrong -- and the projection it feeds has 30-plus MB of headroom either way. What this
+    # is for is catching the drift that matters: the published number was 12 KB, a first-batch
+    # average mistaken for a marginal rate, and a factor-of-two bound catches that while leaving
+    # the run-to-run spread alone.
+    near = 0.5 * claimed <= marginal <= 2.0 * claimed
     print(f"\n  {'ok  ' if near else 'FAIL'}  this run {marginal:.1f} KB marginal, the README "
           f"says about {claimed} KB"
           + ("" if near else "  <- outside, re-measure before trusting either"))

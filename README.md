@@ -1249,10 +1249,16 @@ times. Each fix made the claim narrower and more defensible.
 - **Memory grows with use, and nothing evicts it.** Every answered question becomes an
   `(:Answer)` node, deduplicated by question so repeats only bump a counter.
   [`bench_memory_growth.py`](bench_memory_growth.py) records answers in blocks and watches the
-  database: **about 3.5 KB each, marginal**. Most of that is the 384-dimension embedding, stored
+  database: **about 3 KB each, marginal** — 2.7, 3.0 and 3.6 KB across three runs from a cold database. Most of that is the 384-dimension embedding, stored
   as a native `Vectorf32` at 1,536 bytes. A thousand distinct answered questions costs ~5 MB on
-  top of the 387 MB this image already peaks at; **ten thousand reaches a little over 420 MB against the
-  512 MB serial ceiling.** There is no cap and no eviction, deliberately — a memory that silently
+  top of the **450 MiB serial peak** that [`scripts_verify_deploy.sh`](scripts_verify_deploy.sh)
+  measures and asserts on the real linux/amd64 image; **ten thousand reaches about 484 MiB
+  against the 512 MiB ceiling** — inside it, with roughly 28 MiB of room. That floor was stated
+  as 387 MB here and "about 400 MB" in the Space README, two undated constants for a quantity
+  only one script actually measures, and the real figure is the larger one. The per-answer cost
+  is FalkorDB's own `used_memory` while the ceiling is whole-container RSS, so the totals are
+  "about": the projection assumes database growth shows up one-for-one in the container, which is
+  roughly true because the database is in it. There is no cap and no eviction, deliberately — a memory that silently
   forgets is a different product — and `./run.sh --forget` clears it in one command. A question
   that is *not* answered costs nothing: only the answering shapes are recorded, so typing nonsense
   at it accumulates nothing.

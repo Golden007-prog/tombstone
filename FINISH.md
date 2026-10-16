@@ -16,6 +16,15 @@ The script creates the Space, swaps in the Space README (Spaces reads config fro
 front-matter, not this repo's) and uploads 93 files / 3.1 MB. First build takes a few minutes;
 after that it boots in seconds.
 
+**This path has already been verified on the committed tree**, so the token is the only thing
+missing. `./scripts_verify_deploy.sh` reproduces the Space locally — same `linux/amd64` platform,
+same non-root UID, no volumes — and on `99df19d` it built, booted, answered, drafted a patch,
+refused the one it cannot justify, served every static route, peaked at **450 MiB in serial use
+against the 512 MiB ceiling**, survived six concurrent `GRAPH.COPY` requests (five answered, one
+degraded honestly, no hard failures), and — with FalkorDB killed inside the container — reported
+down, returned `DEGRADED` for a question it had just answered, and kept serving the page. Re-run
+it yourself if you change anything before deploying; it needs no token.
+
 **Then verify it the way a judge will** — different network, private window, no sign-in:
 
 ```bash

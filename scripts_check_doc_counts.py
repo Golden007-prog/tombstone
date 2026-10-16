@@ -530,6 +530,37 @@ for _doc in _docs:
                             f"the graph has {_substantive}")
         else:
             checked += 1
+# The container's memory floor cannot be derived without Docker and a built image, so the
+# MEASUREMENT stays dated -- but the AGREEMENT between the places that state it is derivable, and
+# that is where it went wrong. One number was stated three ways: 387 MB in the README, "about
+# 400 MB" in the Space README, and 450.1MiB from scripts_verify_deploy.sh, the only thing that
+# measures it. Two of the three were undated constants nobody re-derived.
+_base = re.search(r"^BASELINE_MB = (\d+)", open("bench_memory_growth.py").read(), re.M)
+if not _base:
+    problems.append("bench_memory_growth.py no longer states a BASELINE_MB to check against")
+else:
+    _want = int(_base.group(1))
+    _ceil = re.search(r"^SERIAL_CEILING_MB=(\d+)", open("scripts_verify_deploy.sh").read(), re.M)
+    if _ceil and _want >= int(_ceil.group(1)):
+        problems.append(f"BASELINE_MB is {_want}, at or above the {_ceil.group(1)}MB ceiling the "
+                        f"deploy check asserts, so the projection starts out of room")
+    else:
+        checked += 1
+    for _doc, _pat in (("README.md", r"(\d+) MiB serial peak"),
+                       ("deploy/README-hf-space.md", r"peaks at about (\d+) MiB in serial use")):
+        _t = _flat(open(_doc).read())
+        _found = re.findall(_pat, _t)
+        if not _found:
+            problems.append(f"{_doc}: no longer states the serial peak, so nothing pins it to "
+                            f"bench_memory_growth.py's BASELINE_MB of {_want}")
+        elif any(int(x) != _want for x in _found):
+            problems.append(f"{_doc}: says a {_found[0]} MiB serial peak; "
+                            f"BASELINE_MB is {_want}")
+        else:
+            checked += 1
+    print(f"  the {_want} MiB serial peak is stated the same way in both documents and in the "
+          f"benchmark that projects from it")
+
 _longest = count("MATCH (n:Alternative) WHERE NOT n:NamedOption RETURN max(size(n.title))")
 if _longest > 161:
     problems.append(f"an excluded alternative carries a {_longest}-character label; "
