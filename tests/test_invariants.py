@@ -1541,11 +1541,13 @@ def test_no_answer_claims_a_count_it_then_lists_short_of(agent):
     PATTERN = re.compile(r"(\d+)\s+[a-z]+s(,\s*including)?:\s*([^\n]+)")
 
     problems = []
+    matched = 0
     for tool, args in CASES:
         answer = agent.dispatch(tool, args)
         if answer.shape == "DEGRADED":
             continue
         for m in PATTERN.finditer(render(answer)):
+            matched += 1
             claimed, hedged = int(m.group(1)), bool(m.group(2))
             listed = len([x for x in m.group(3).split(",") if x.strip()])
             if listed < claimed and not hedged:
@@ -1555,6 +1557,14 @@ def test_no_answer_claims_a_count_it_then_lists_short_of(agent):
                     f"{tool}: hedges with 'including' but lists all {listed} of {claimed} — "
                     f"the hedge is noise and trains a reader to distrust it elsewhere")
     assert not problems, "\n  ".join([""] + problems)
+
+    # A floor, because without one this test passes when the pattern stops matching anything --
+    # verified by changing one colon to a dash in the renderer, which silenced it completely.
+    # It is the test guarding the headline beat's "6 decisions" line, so a punctuation change
+    # quietly retiring it is the worst available outcome.
+    assert matched >= 8, (
+        f"the count-then-list pattern matched only {matched} lines across {len(CASES)} tools; "
+        f"the renderers were rephrased past this check and it is no longer testing anything")
 
 
 def test_the_video_is_fingerprinted_against_everything_the_images_are():
