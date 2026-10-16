@@ -284,6 +284,7 @@ environment:
 Also note `appendonly` is **off** by default and `save` only fires after 60s + 10,000 changes, so
 without AOF a redeploy between snapshots loses writes. After the fix the volume holds both
 `dump.rdb` and `appendonlydir/`, and a written node reads back verbatim after recreate.
+
 **This is the single most likely reason a competitor's live demo will be empty when a judge clicks it.**
 
 ## algo.betweenness and algo.HarmonicCentrality are APPROXIMATE

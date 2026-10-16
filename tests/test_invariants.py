@@ -1704,3 +1704,41 @@ def test_the_benchmark_table_and_the_prose_under_it_agree():
         assert (m.group(1), m.group(2)) == table_range, (
             f"docs/EXPLAIN-IT.md says PageRank {m.group(1)}-{m.group(2)}x; the README's table "
             f"says {table_range[0]}-{table_range[1]}x")
+
+
+def test_a_bold_line_on_its_own_is_not_glued_to_the_paragraph_above():
+    """A fully-bold line is a heading in intent, and needs a blank line to be one in render.
+
+    Two of these existed. In the README, the third of "three claims I stress-tested" was glued to
+    the second, so the section rendered as two claims with a bold run-on in the middle of one. In
+    docs/GROUND-TRUTH.md it was the most emphatic sentence in its section, trailing off the end of
+    a paragraph about AOF persistence.
+
+    Markdown does not complain about either. They read correctly as source and wrong as output,
+    which is why they survived every check and a lot of re-reading.
+    """
+    import pathlib
+    import re
+    import subprocess
+
+    docs = [d for d in subprocess.run(["git", "ls-files", "*.md"], capture_output=True,
+                                      text=True).stdout.split() if pathlib.Path(d).exists()]
+    assert docs, "no tracked markdown found"
+
+    glued = []
+    for doc in docs:
+        lines = pathlib.Path(doc).read_text().split("\n")
+        in_code = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith("```"):
+                in_code = not in_code
+                continue
+            if in_code or i == 0:
+                continue
+            # Entirely bold, nothing else on the line: a heading in everything but syntax.
+            if re.fullmatch(r"\*\*[^*].*[^*]\*\*", line.strip()) and lines[i - 1].strip():
+                glued.append(f"{doc}:{i + 1}  {line.strip()[:66]}")
+
+    assert not glued, (
+        "a fully-bold line follows prose with no blank line, so it renders inside that paragraph "
+        "instead of standing alone:\n  " + "\n  ".join(glued))
