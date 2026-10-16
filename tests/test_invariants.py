@@ -1433,3 +1433,61 @@ def test_no_drawn_edge_invents_a_relationship(agent):
         assert f"`{label}`" in table, (
             f"{label!r} is drawn and declared a summary here, but the README's table of what each "
             f"drawn label traverses does not mention it")
+
+
+def test_every_node_kind_the_picture_draws_has_a_legend_entry():
+    """A mark on the canvas that the legend does not explain is a mark nobody can read.
+
+    This already shipped once: the struck square for an area with nobody left was the only thing
+    on the picture with no legend entry, on the beat that matters most, and the CSS still carries
+    the note about it. It was fixed by hand, which fixes that instance and not the next one.
+
+    Parsed with ast rather than a regex. add() is called with a dict of extras in some places and
+    through area_of() in others, and a regex over "the last string in the call" picked up `title`
+    and a fragment of a comma-separated line -- confident noise that looked like node kinds.
+    """
+    import ast
+    import re
+
+    # node kind emitted by the server -> the swatch class the legend uses for it.
+    LEGEND_CLASS = {
+        "person_gone": "gone",
+        "person_live": "live",
+        "area": "area",
+        "area_stranded": "stranded",
+        "decision": "dec",
+        "rejected": "rej",
+    }
+
+    tree = ast.parse(open("src/tombstone/server.py").read())
+    kinds = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "add" and len(node.args) >= 3:
+            arg = node.args[2]
+            if isinstance(arg, ast.Constant):
+                kinds.add(arg.value)
+            elif isinstance(arg, ast.IfExp):           # "area_stranded" if is_strand else "area"
+                for branch in (arg.body, arg.orelse):
+                    if isinstance(branch, ast.Constant):
+                        kinds.add(branch.value)
+            else:
+                raise AssertionError(
+                    f"add() is called with a computed node kind at line {node.lineno}; this test "
+                    f"can no longer enumerate what the picture draws, so it would pass by missing "
+                    f"it")
+    assert kinds, "found no add() calls -- has the drawing moved out of server.py?"
+
+    html = open("web/index.html").read()
+    swatches = set(re.findall(r'<i class="sw ([a-z_]+)"></i>', html))
+
+    for kind in sorted(kinds):
+        assert kind in LEGEND_CLASS, (
+            f"the picture can draw a {kind!r} node, which is not mapped to a legend swatch here")
+        assert LEGEND_CLASS[kind] in swatches, (
+            f"{kind!r} is drawn but the legend has no .sw.{LEGEND_CLASS[kind]} entry, so a viewer "
+            f"sees a mark with nothing explaining it")
+
+    # The other direction: a legend entry for something that can no longer appear is a promise the
+    # picture does not keep, and it costs a reader attention on the one beat that matters.
+    orphans = sorted(swatches - {LEGEND_CLASS[k] for k in kinds})
+    assert not orphans, f"the legend explains {orphans}, which the picture can no longer draw"
