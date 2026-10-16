@@ -530,6 +530,32 @@ for _doc in _docs:
                             f"the graph has {_substantive}")
         else:
             checked += 1
+# This repository withdraws claims rather than deleting them, which is the right habit and has
+# one failure mode: the document ends up BOTH withdrawing a claim and still asserting it
+# somewhere else. That happened -- SUBMISSION.md quoted "it is now the one thing the rest of the
+# field has and this does not" as withdrawn, while a passage twelve lines later stated it
+# straight, because the claim had been written twice and only one copy was edited.
+#
+# So: find what each document quotes as withdrawn, and require that text to appear exactly once,
+# inside the withdrawal. Keyed on the withdrawal phrasing rather than on any particular claim, so
+# it keeps working for the next one.
+# The signal phrase and the quote are not adjacent: the sentence reads `It said a live demo
+# "is now the one thing..."`. The first version of this required \s+ between them, found nothing,
+# and reported success while checking zero claims -- a vacuous guard, caught by reintroducing the
+# contradiction it was written for and watching it pass.
+_WITHDRAWN = re.compile(r"(?:it said|used to say|used to read|old passage said)\b"
+                        r"[^\"\u201c]{0,48}[\"\u201c]([^\"\u201d]{25,180})[\"\u201d]", re.I)
+for _doc in _docs:
+    _raw = _flat(open(_doc).read())
+    for _quote in {m.group(1).strip() for m in _WITHDRAWN.finditer(_raw)}:
+        _n = _raw.count(_quote)
+        if _n > 1:
+            problems.append(f"{_doc}: withdraws \u201c{_quote[:52]}\u2026\u201d but the same "
+                            f"claim appears {_n} times, so the page still asserts what it "
+                            f"retracts")
+        else:
+            checked += 1
+
 # The container's memory floor cannot be derived without Docker and a built image, so the
 # MEASUREMENT stays dated -- but the AGREEMENT between the places that state it is derivable, and
 # that is where it went wrong. One number was stated three ways: 387 MB in the README, "about

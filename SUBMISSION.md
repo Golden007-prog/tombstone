@@ -132,9 +132,10 @@ into a minority rather than up to par with everyone. The reason to do it is that
 links, not that the field is ahead.
 
 Two things follow that are worth acting on. **Multi-track entry is normal here**, so entering one
-track is a choice and should be a reasoned one. And the live demo is the clearest gap in this
-submission, not a nice-to-have — it is now the one thing the rest of the field has and this does
-not. Note what the deployment does *not* settle: orion's demo company is explicitly synthetic,
+track is a choice and should be a reasoned one. And the live demo is still the clearest gap in
+this submission — not because the field is ahead, which the census above shows it is not, but
+because a judge with 85 entries to get through clicks links, and six of the twenty largest give
+them one. Note what a deployment does *not* settle: orion's demo company is explicitly synthetic,
 dealership-brain's is a fictional dealership. Being deployed and being checkable are different
 claims, and this entry has the second without the first.*
 
