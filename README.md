@@ -546,8 +546,17 @@ absence                       3       3      0     inbound edges to a node that 
 currency                      2       2      0     age + citations + authority, joined
 counterfactual                2       2      0     the graph re-evaluated after a deletion
                                               
-                             20      19      4
+                             25      24      9
 ```
+
+**I wrote these questions and the checks that score them**, on a corpus I chose, which is the
+standard weakness of any self-made eval and worth saying before anyone else does. Two things
+limit the damage. The control category exists to let the baseline win, and it does — nine-all
+over ten questions, 40% of the set. And the *documents* are not mine: the prose is Kubernetes',
+written by thousands of people who had never heard of this project, so the gap being measured is
+not one I authored on both sides. A competing entry on synthetic data says this plainly about its
+own numbers — that unparaphrased generated text "flatters the pattern extractor and lexical
+baselines alike" — and that is the half of the problem real documents remove.
 
 **The graph loses one, and that is the point.** It loses the title lookup — "find the KEP about
 coscheduling" — and on the control category as a whole the text index *ties it, 9 to 9*. Where a

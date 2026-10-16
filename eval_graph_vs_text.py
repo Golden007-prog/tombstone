@@ -372,6 +372,17 @@ def main() -> int:
             drift.append(f"README's {cat!r} row says {m.groups()}; "
                          f"this run measured ({len(rows)}, {g_c}, {t_c})")
 
+    # The totals line under that table, which this check did not read until it was found wrong by
+    # eye: the category rows all said 25/24/9 while the row beneath them still said 20/19/4 from
+    # before the eval grew. The comment above has claimed since it was written that hand-written
+    # totals are how this goes stale, and the totals were the one line it was not looking at.
+    _tot = _re.search(rf"^\s+{n}\s+(\d+)\s+(\d+)\s*$", readme, _re.M)
+    if not _tot:
+        drift.append(f"README's eval table has no totals row reading {n} questions")
+    elif (int(_tot.group(1)), int(_tot.group(2))) != (gw, tw):
+        drift.append(f"README's totals row says {_tot.groups()} for {n} questions; "
+                     f"this run measured ({gw}, {tw})")
+
     if drift:
         print()
         for d in drift:
