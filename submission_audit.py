@@ -165,9 +165,41 @@ def main() -> int:
                    else f"{k} uncommitted changes")(len(dirty.splitlines()))
                   if dirty else "clean"))
 
-    width = max(len(r[0]) for r in rows + extra) + 2
+    # Rules beyond 10. The rules page lists the AI-assistant disclosure as a submission
+    # requirement in its own right (Rule 11), and Rule 5 requires naming every track entered.
+    # Neither was checked here, in the tool whose entire question is "is this submittable".
+    # They go in their own section rather than among Rule 10's six, because adding a seventh
+    # row there would make this tool report a requirement the organisers did not write.
+    sub = open("SUBMISSION.md").read() if os.path.exists("SUBMISSION.md") else ""
+    # Both must have it as a HEADING. The first version accepted any mention, and SUBMISSION.md
+    # contains the sentence "See the AI assistance disclosure section of the README" -- so
+    # deleting the heading entirely still passed. A check satisfied by a cross-reference to the
+    # thing it is checking for is not checking anything.
+    disclosed = (re.search(r"^## AI assistance disclosure", readme, re.M) is not None
+                 and re.search(r"^## AI assistance disclosure", sub, re.M) is not None)
+    other = [("AI coding assistance disclosed (Rule 11)", OK if disclosed else NO,
+              "a dedicated section in both the README and the submission copy" if disclosed
+              else "MISSING from the README or SUBMISSION.md")]
+    # Only the Track FIELD, not the whole file. Reading the whole file picked up "Track 02" from
+    # the reasoning below it -- the passage that says in its own words that it is "for your
+    # decision, not for the form" -- and reported this as a two-track entry.
+    field = ""
+    if "\n## Track\n" in sub:
+        after = sub.split("\n## Track\n", 1)[1]
+        field = re.split(r"\n---|\n## ", after, 1)[0]
+    stated = sorted(set(re.findall(r"Track 0?(\d)", field)))
+    other.append(("Every track entered is named (Rule 5)", OK if stated else NO,
+                  f"the Track field names Track {', '.join(stated)}, and nothing else in it"
+                  if stated else "the Track field names no track"))
+
+    width = max(len(r[0]) for r in rows + extra + other) + 2
     print("Rule 10 — every submission must include:\n")
     for name, status, detail in rows:
+        mark = {OK: "x", HM: "~", NO: " "}[status]
+        print(f"  [{mark}] {name:<{width}}{status}")
+        print(f"      {detail}")
+    print("\nRequired by other rules:\n")
+    for name, status, detail in other:
         mark = {OK: "x", HM: "~", NO: " "}[status]
         print(f"  [{mark}] {name:<{width}}{status}")
         print(f"      {detail}")
@@ -177,7 +209,7 @@ def main() -> int:
         print(f"  [{mark}] {name:<{width}}{status}")
         print(f"      {detail}")
 
-    outstanding = [n for n, s, _ in rows if s != OK]
+    outstanding = [n for n, s, _ in rows + other if s != OK]
     print()
     if outstanding:
         print(f"{len(outstanding)} of 6 required items NOT satisfied:")
