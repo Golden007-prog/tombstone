@@ -379,6 +379,13 @@ class Agent:
                     return Answer("UNKNOWN_ENTITY", "what_if_they_go",
                                   note="No handles supplied. Pass handles=[...].")
                 r = self.counterfactual.if_cohort_stops_approving(handles)
+                # An unresolvable handle is not a degradation, it is an unknown entity, and the
+                # distinction is the whole contract: DEGRADED says "I tried and something broke",
+                # UNKNOWN_ENTITY says "I did not traverse at all". This tool used to say neither
+                # -- it simulated a cohort of strangers, deleted nothing, and reported no impact.
+                if r.get("unknown"):
+                    return Answer("UNKNOWN_ENTITY", "what_if_they_go",
+                                  note=r.get("reason", "unknown handles"))
                 if not r.get("ok"):
                     return Answer("DEGRADED", "what_if_they_go", note=r.get("reason", "failed"))
                 return Answer("ANSWERED_WITH_PATH", "what_if_they_go",
@@ -500,6 +507,19 @@ class Agent:
                     inherits = self._inherited_by(path)
                     note += (f" Applying it would leave `{path}` with no approvers of its own, so "
                              f"approval would fall back to {inherits}.")
+                # `act.retire` has always dropped the handle from `reviewers` as well as
+                # `approvers`, and the note never said so. That is a bigger change than this
+                # finding justifies: the finding is that they are recorded emeritus elsewhere and
+                # still an ACTIVE APPROVER here, and someone can stop approving an area while
+                # still reviewing it. The diff alone does not show it either -- moving the handle
+                # under a new `emeritus_approvers:` key reuses the `  - handle` line that was the
+                # reviewer entry, so a removal reads as a relocation. x13n's committed patch is
+                # exactly that case. The note is what the human reviewing this reads, so it says.
+                if person in (declared.get("reviewers") or []):
+                    note += (f" It also removes `{person}` from `reviewers` here, which this "
+                             f"finding does not by itself justify -- stepping back from approving "
+                             f"an area is not the same as giving up reviewing it. Drop that part "
+                             f"if they are still reviewing.")
                 rows.append([person, path, stepped_back_in, "patch", note, diff, proposed])
                 if write_to:
                     os.makedirs(write_to, exist_ok=True)

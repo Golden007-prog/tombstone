@@ -77,11 +77,14 @@ The guard is still right, for the duller reason: `tools.py` decides the answer *
 is on screen in every beat. Change what a tool returns and the video shows an answer the product
 no longer gives — which is what the drafting screenshot had already done once, with a plural the
 code had stopped producing. So the fingerprint covers `src/tombstone/tools.py` as well as the
-three web files — and, since that paragraph was written, five more, for **nine** in total:
+three web files — and, since that paragraph was written, six more, for **ten** in total:
 `agent.py` writes the prose, `server.py` decides what the drawn paths contain, `act.py` builds the
-patch diffs, and the corpus with `build.py` decides the names and counts on screen. Each of those
-was added after a change to it left this video stale with every check green.
-`scripts_check_shots_fresh.py` fails if any of the nine moves.
+patch diffs, the corpus with `build.py` decides the names and counts on screen, and the generator
+itself, `scripts_build_walkthrough.py`, decides which beats are captured at all. Each of the first
+five was added after a change to it left this video stale with every check green; the generator was
+added last and is why this paragraph said nine until the artefacts were next rebuilt — every
+committed fingerprint predated its own self-inclusion.
+`scripts_check_shots_fresh.py` fails if any of the ten moves.
 
 Two things worth keeping from that: ask what a generated artefact actually shows on screen rather
 than what it is about — and when the reason you reach for is the more dramatic one, check it

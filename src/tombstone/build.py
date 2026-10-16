@@ -353,7 +353,9 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
     # algorithm run over it is partitioning a matrix the database never computed -- which is
     # decoration. Here the projection is a 2-hop co-occurrence over shared decisions aggregated
     # with count(DISTINCT), expressed in Cypher, and betweenness then runs over the result.
-    # Measured: 5,894 edges in 52ms, identical to the Python version it replaced.
+    # Measured: 5,879 edges in 52ms, identical to the Python version it replaced. (The docs said
+    # 5,894 for a while: a figure from an earlier corpus load that verify_claims.py, which asks
+    # the live graph on every push, has always had at 5,879.)
     #
     # Centrality over the raw bipartite Person-[:AUTHORED]->Kep graph is degenerate -- every
     # score 1.0, every community size 1 -- which is why the projection exists at all.

@@ -1265,6 +1265,37 @@ def test_a_near_tie_is_the_one_case_that_offers(agent):
 COHORT = ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"]
 
 
+# The cohort tool was the one tool that did not resolve its arguments. Every other entity-taking
+# tool checks the graph first and answers UNKNOWN_ENTITY when the name is not there; this one
+# normalised the handles, copied the graph, deleted zero APPROVES edges because nothing matched,
+# observed that the stranded set had not changed, and reported "nothing would be stranded". A
+# confident, sub-second answer about people who do not exist, in the tool whose whole purpose is
+# to say who is load-bearing. These two assert the contract README states universally.
+
+def test_a_cohort_of_strangers_is_refused_rather_than_simulated(agent):
+    answer = agent.dispatch("what_if_they_go",
+                            {"handles": ["not-a-real-person", "also-fictional-xyz"]})
+    assert answer.shape == "UNKNOWN_ENTITY", (
+        f"a cohort of handles that are not in the graph came back as {answer.shape}; deleting "
+        f"nothing and finding no impact is not an answer about those people")
+    assert "not-a-real-person" in (answer.note or ""), (
+        "the refusal must name which handles it could not resolve, or the reader cannot tell a "
+        "typo from a real finding")
+
+
+def test_one_bad_handle_does_not_pass_as_a_cohort_result(agent):
+    # Mixed is the dangerous case: five real people and one typo would otherwise simulate five,
+    # and the reader would read the result as being about all six.
+    answer = agent.dispatch("what_if_they_go", {"handles": COHORT[:2] + ["typoed-handle"]})
+    assert answer.shape == "UNKNOWN_ENTITY", (
+        f"a cohort with one unresolvable handle came back as {answer.shape}; the result would "
+        f"have been read as covering all three")
+    assert "typoed-handle" in (answer.note or "")
+    assert COHORT[0] not in (answer.note or ""), (
+        "only the unresolved handles should be named; listing the valid ones reads as if they "
+        "were the problem")
+
+
 def test_the_drawn_cascade_matches_the_counterfactual_it_illustrates(agent):
     from tombstone.server import subgraph
 
@@ -1593,8 +1624,24 @@ def test_the_video_is_fingerprinted_against_everything_the_images_are():
         assert os.path.exists(path), f"{path} is missing -- regenerate the {name}"
         recorded[name] = set(json.load(open(path)))
 
-    stills = recorded["shots"] | recorded["gif"]
-    missing = sorted(stills - recorded["walkthrough"])
+    # Each fingerprint now records its OWN generator among its sources, which is correct -- editing
+    # a generator can change what it draws -- but it means the raw sets cannot nest: the stills
+    # list scripts_gen_*.py and the video lists scripts_build_walkthrough.py. The invariant is
+    # about the shared INPUTS the frames are made of, so each list is compared without its own
+    # generator. Taken from the checker's own ARTEFACTS table rather than matched by filename, so
+    # renaming a generator cannot silently widen the exclusion.
+    #
+    # This surfaced the day the artefacts were first regenerated after self-inclusion was added to
+    # the generators: every committed fingerprint predated it, so the sets happened to nest and
+    # this test passed for the wrong reason.
+    import scripts_check_shots_fresh as fresh
+    generators = {fp: gen for fp, gen, _ in fresh.ARTEFACTS}
+
+    def inputs(name):
+        return recorded[name] - {generators[paths[name]]}
+
+    stills = inputs("shots") | inputs("gif")
+    missing = sorted(stills - inputs("walkthrough"))
     assert not missing, (
         f"the walkthrough video renders the same answers as the stills but is not fingerprinted "
         f"against {missing}; a change there would stale the video with every check green")
@@ -1973,3 +2020,29 @@ def test_the_honest_negative_does_not_overstate_what_was_searched(agent, g):
                            {"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS",
                             "depth": 1})
     assert total in {v for v in (other.coverage or {}).values() if isinstance(v, int)}
+
+
+# `retire` moves a handle out of BOTH approvers and reviewers. That is a defensible reading of
+# going emeritus in an area, but it is a wider change than the finding that produced it, and for
+# a long time nothing said it out loud: x13n's committed patch silently drops them as a reviewer,
+# and the note above the diff explained only the approver change. These pin the behaviour so the
+# wider edit cannot happen by accident, and so the disclosure cannot be dropped without a failure.
+
+def test_retire_removes_the_handle_from_reviewers_too_and_that_is_deliberate():
+    from tombstone import act
+    before = {"approvers": ["someone-else", "x"], "reviewers": ["someone-else", "x"],
+              "options": {"no_parent_owners": True}}
+    after = act.retire(before, "x")
+    assert after["approvers"] == ["someone-else"]
+    assert after["reviewers"] == ["someone-else"], (
+        "retire() is documented as moving the handle out of approvers AND reviewers; if that "
+        "changes, the patch note that discloses it has to change with it")
+    assert after["emeritus_approvers"] == ["x"]
+    assert after["options"] == {"no_parent_owners": True}, "unrelated keys must survive"
+
+
+def test_retire_leaves_reviewers_alone_when_the_handle_is_not_one():
+    from tombstone import act
+    after = act.retire({"approvers": ["a", "x"], "reviewers": ["a"]}, "x")
+    assert after["reviewers"] == ["a"]
+    assert "x" not in after["approvers"]

@@ -118,6 +118,24 @@ class Counterfactual:
         if not handles:
             return {"ok": False, "reason": "No handles supplied."}
         src = self.db.select_graph(self.source)
+
+        # Resolve BEFORE copying the graph. The single-person path above has always done this;
+        # this one did not, and the failure was silent in the worst way: a cohort of handles that
+        # are not in the graph deletes no APPROVES edges, so the stranded set is unchanged and the
+        # answer comes back "nothing would be stranded" -- confident, fast, and about nobody.
+        # tools.py's contract says every entity argument is resolved against the graph before any
+        # traversal runs, and this was the one tool that quietly did not honour it.
+        known = set(src.ro_query(
+            "MATCH (p:Person) WHERE p.key IN $h RETURN collect(p.key)", params={"h": handles}
+        ).result_set[0][0] or [])
+        missing = [h for h in handles if h not in known]
+        if missing:
+            shown = ", ".join(f"'{h}'" for h in missing[:5])
+            more = f" (and {len(missing) - 5} more)" if len(missing) > 5 else ""
+            return {"ok": False, "unknown": missing, "reason": (
+                f"{shown}{more} {'is' if len(missing) == 1 else 'are'} not "
+                f"{'a person' if len(missing) == 1 else 'people'} in this graph, so the "
+                f"simulation would delete nothing and report no impact. Nothing was simulated.")}
         scope = self._scalar(src, SCOPE)
         before = set(self._scalar(src, STRANDED, {"scope": scope}))
 
