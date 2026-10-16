@@ -40,6 +40,12 @@ class Answer:
     cypher: str = ""
     params: dict = field(default_factory=dict)
     ms: float = 0.0
+    # Whole-graph counts for a tool whose `rows` are a top-N page. The UI headline used to be
+    # computed by summing `rows`, which silently reported the page as the population: the
+    # sole-approver chip said "31 areas held alone by 12 people" when the graph has 45 across 23,
+    # and this file's own docstring said 45 two hundred lines away. A LIMIT is a display decision
+    # and must not become a claim, so the number in the headline comes from here, not from rows.
+    totals: dict = field(default_factory=dict)
 
 
 class Tools:
@@ -302,7 +308,11 @@ LIMIT $limit
         rows, ms = self._run("broken_lineage", self.BROKEN_LINEAGE,
                              {"minCites": min_cites, "limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
+        tot = self.g.ro_query(
+            "MATCH (:Kep)-[r:CITES_MISSING]->(m:MissingRecord) "
+            "RETURN count(DISTINCT m), count(r)").result_set[0]
         return Answer(shape, "broken_lineage", rows=rows, ms=ms, cypher=self.BROKEN_LINEAGE,
+                      totals={"records": tot[0], "citations": tot[1]},
                       params={"min_cites": min_cites, "limit": limit})
 
     # ---------- TOOL 6: which GROUP is hollowing out ----------
@@ -416,8 +426,13 @@ LIMIT $limit
         """
         rows, ms = self._run("sole_approver_risk", self.SOLE_APPROVER, {"limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
+        tot = self.g.ro_query(
+            "MATCH (o:OwnersFile)<-[:APPROVES]-(p:Person) "
+            "WITH o, collect(DISTINCT p) AS ps WHERE size(ps) = 1 "
+            "RETURN count(DISTINCT o), count(DISTINCT ps[0])").result_set[0]
         return Answer(shape, "sole_approver_risk", rows=rows, ms=ms,
                       params={"limit": limit},
+                      totals={"areas": tot[0], "people": tot[1]},
                       cypher=self.SOLE_APPROVER, coverage=self._coverage())
 
     # ---------- TOOL 7: keeping knowledge current ----------
@@ -473,13 +488,23 @@ LIMIT $limit
         params = {"now": self.now_ms, "ageMs": max(0, min_years) * MS_PER_YEAR,
                   "msYear": MS_PER_YEAR, "limit": limit}
         rows, ms = self._run("stale_knowledge", self.STALE_KNOWLEDGE, params)
+        # The population, not the page. Caught by the invariant added for the sole-approver and
+        # broken-lineage chips rather than reported: this one also returned a full page of 10 and
+        # put that 10 in the headline as though it were the count of stale decisions.
+        _tot = self.g.ro_query(
+            "MATCH (other:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep) "
+            "WHERE k.status IN ['provisional', 'implementable'] AND k.created_ms > 0 "
+            "  AND ($now - k.created_ms) > $ageMs "
+            "RETURN count(DISTINCT k)",
+            params={"now": params["now"], "ageMs": params["ageMs"]}).result_set[0][0]
         if not rows:
             return Answer("NOT_IN_GRAPH", "stale_knowledge", ms=ms,
                           cypher=self.STALE_KNOWLEDGE, coverage=self._coverage(),
                           note=f"No decision older than {min_years} years is still being cited "
                                f"while formally undecided.")
         return Answer("ANSWERED_WITH_PATH", "stale_knowledge", rows=rows, ms=ms,
-                      cypher=self.STALE_KNOWLEDGE, params={"min_years": min_years, "limit": limit})
+                      cypher=self.STALE_KNOWLEDGE, totals={"decisions": _tot},
+                      params={"min_years": min_years, "limit": limit})
 
     # ---------- TOOL 8: the depth contrast the rubric asks for ----------
     WHO_OWNS_DEPTH1 = """

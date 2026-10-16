@@ -616,18 +616,65 @@ def test_titled_alternatives_really_are_regex_derived(g):
     assert flagged == titled
 
 
-def test_headline_is_derived_from_rows_not_written(agent):
-    """The big number on screen must come from the data, or it will eventually contradict it."""
+def test_headline_comes_from_the_graph_not_from_the_page(agent, g):
+    """The big number on screen must come from the data, or it will eventually contradict it.
+
+    This test used to assert the opposite, and passed: it required the stat to equal
+    `sum(int(r[1]) for r in a.rows)`, which is the LIMIT-ed page, so it pinned the defect in
+    place. The chip read "31 areas held alone by 12 people" while the graph holds 45 across 23 --
+    and README's own table two screens up says 45. A judge who read the table and clicked the
+    chip the table names saw the product contradict itself, which is the one thing this project
+    claims cannot happen.
+    """
     from tombstone.agent import headline
 
     a = agent.dispatch("sole_approver_risk", {})
     h = headline(a)
-    assert h and h["stat"] == str(sum(int(r[1]) for r in a.rows))
+    live = g.ro_query("MATCH (o:OwnersFile)<-[:APPROVES]-(p:Person) "
+                      "WITH o, collect(DISTINCT p) AS ps WHERE size(ps) = 1 "
+                      "RETURN count(DISTINCT o), count(DISTINCT ps[0])").result_set[0]
+    assert h and h["stat"] == str(live[0]), f"headline says {h['stat']}, the graph says {live[0]}"
+    assert str(live[1]) in h["label"]
+    # Anti-vacuity: if the page happens to equal the population, this test cannot tell the two
+    # apart and proves nothing. It is only meaningful while the limit bites.
+    page = sum(int(r[1]) for r in a.rows)
+    assert page != live[0], ("the page sum equals the true total on this corpus, so this test can "
+                            "no longer distinguish them -- lower sole_approver_risk's limit")
 
-    b = agent.dispatch("ownership_dilution", {})
+    b = agent.dispatch("broken_lineage", {})
     hb = headline(b)
-    assert hb and hb["stat"] == str(len(b.rows))
-    assert str(min(int(r[5]) for r in b.rows)) in hb["label"]
+    lb = g.ro_query("MATCH (:Kep)-[r:CITES_MISSING]->(m:MissingRecord) "
+                    "RETURN count(DISTINCT m), count(r)").result_set[0]
+    assert hb["stat"] == str(lb[0]) and str(lb[1]) in hb["label"]
+    assert len(b.rows) != lb[0], "same anti-vacuity point for broken_lineage"
+
+    c = agent.dispatch("ownership_dilution", {})
+    hc = headline(c)
+    assert hc and str(min(int(r[5]) for r in c.rows)) in hc["label"]
+
+
+def test_no_headline_reports_a_limited_page_as_a_population(agent):
+    """The general form of the bug above: a LIMIT is a display decision, never a claim.
+
+    ownership_dilution is correct today only because its population (7) is under its limit (20).
+    That is luck, not design, so this asserts the rule for every paged tool rather than for the
+    two that were caught: if a tool came back with a full page, its headline has to be built from
+    `totals`, which are whole-graph counts, and not from the rows.
+    """
+    paged = ("sole_approver_risk", "broken_lineage", "ownership_dilution",
+             "stepped_back_but_still_listed", "stale_knowledge", "hollowing_communities")
+    checked = 0
+    for tool in paged:
+        a = agent.dispatch(tool, {})
+        lim = a.params.get("limit")
+        if not lim or not a.rows:
+            continue
+        checked += 1
+        if len(a.rows) >= lim:
+            assert a.totals, (
+                f"{tool} returned a full page of {lim} rows and carries no totals, so any count "
+                f"in its headline describes the page rather than the graph")
+    assert checked >= 3, f"only {checked} paged tools were exercised; this check has gone stale"
 
 
 def test_headline_never_contradicts_an_empty_answer(agent):
