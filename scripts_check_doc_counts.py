@@ -289,13 +289,34 @@ for _rel, _q in _EDGES.items():
     else:
         checked += 1
 
-_m = re.search(r"other (\d+) have titles that are", _brief)
 _gap = count("MATCH (n:Alternative) WHERE NOT n:NamedOption RETURN count(n)")
+_m = re.search(r"the\s+other (\d+) are", _brief) or re.search(r"other (\d+) have titles", _brief)
 if not _m or int(_m.group(1)) != _gap:
     problems.append(f"docs/EXPLAIN-IT.md: the un-named alternatives figure should be {_gap}")
 else:
     checked += 1
-print(f"  the explain-it brief's model table matches the graph ({_gap} un-named alternatives)")
+
+# How many of those are real text rather than artefacts. The page used to call all 206 artefacts,
+# which was comfortable and wrong, so the number that corrects it is itself derived.
+_substantive = count("MATCH (n:Alternative) WHERE NOT n:NamedOption AND size(trim(n.title)) >= 60 "
+                     "RETURN count(n)")
+_markers = count("MATCH (n:Alternative) WHERE NOT n:NamedOption "
+                 "AND size(trim(n.title)) <= 6 RETURN count(n)")
+for _doc in ("README.md", "docs/EXPLAIN-IT.md"):
+    _t = open(_doc).read()
+    for _said in re.findall(r"\*\*(\d+) are 60", _t) + re.findall(r"\*\*(\d+) are 60\+", _t):
+        if int(_said) != _substantive:
+            problems.append(f"{_doc}: says {_said} substantive excluded alternatives, "
+                            f"the graph has {_substantive}")
+        else:
+            checked += 1
+    for _said in re.findall(r"\*\*(\d+) are list\s+markers\*\*", _t):
+        if int(_said) != _markers:
+            problems.append(f"{_doc}: says {_said} list markers, the graph has {_markers}")
+        else:
+            checked += 1
+print(f"  {_gap} alternatives are outside the haystack; {_substantive} of them are real text "
+      f"and {_markers} are list markers, and the docs say so")
 
 # "N of M nouns" -- the SUBSET rule skips a number preceded by "of", which is right for the N and
 # exactly wrong for the M. In "206 of 959 alternatives", 959 is a TOTAL and it was wrong by one;

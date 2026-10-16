@@ -54,10 +54,14 @@ that was given up, `INHERITS_FROM` (584) is the ownership chain the depth-4 trav
 collaboration graph the whole-graph algorithms run over.
 
 **The decision to be ready to defend:** why 752 `NamedOption` out of 958 `Alternative`. Only 752 of
-the extracted options are genuinely a *nameable* alternative. The other 206 have titles that are
-artefacts of pulling structure out of prose — one is literally `"1."`, another is a mid-sentence
-fragment. Only the 752 are embedded and reachable by vector search, because embedding a fragment
-would pollute every similarity query with noise. The 206 are kept as nodes, just not as haystack.
+the extracted options are genuinely a *nameable* alternative — but be careful how you say what
+the other 206 are, because I got it wrong on the page first. Only about 22 are artefacts: 19 list
+markers, a few fragments. **163 are 60+ characters of real text describing a rejection that
+happened**, whose extracted title came out as a sentence because the KEP wrote it as a paragraph
+rather than a sub-heading. They are nodes in the graph and the lineage queries see them; they are
+not embedded, so `has_this_been_tried` cannot reach them. If asked what this product's biggest
+recall weakness is, that is the honest answer: up to 163 rejections out of 958 are not findable by
+the tool whose whole job is finding them.
 
 ## "What do the thirteen tools do?"
 

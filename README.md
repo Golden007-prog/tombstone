@@ -1206,8 +1206,20 @@ times. Each fix made the claim narrower and more defensible.
   source URL from the raw corpus and noticing that one number had two.
 - **Betweenness is sampled**, not exact (`samplingSize` 32). The seed is pinned so the number is
   reproducible, but it is an approximation and the UI says so.
-- **206 of 958 alternatives are untitled prose**, not named options. They're in the graph but
-  excluded from `:NamedOption`, so they never seed a "has this been tried?" answer.
+- **206 of 958 alternatives are outside the search, and most of them are real.** This line used
+  to say they were "untitled prose", which was comfortable and wrong. Of the 206: **19 are list
+  markers** (one is literally `1.`), 24 are short fragments — and **163 are 60 characters or
+  more of substantive text describing a rejection that genuinely happened**. One reads *"We
+  considered extending `kube-state-metrics` to represent all of the data necessary…"*. That is not
+  an artefact; it is a real rejected alternative whose extracted title came out as a sentence
+  because the KEP described it in a paragraph instead of a sub-heading.
+  They are in the graph, so `ownership_dilution` and the lineage queries see them. They are **not
+  embedded**, so `has_this_been_tried` cannot find them — ask about `kube-state-metrics` and that
+  rejection does not come back. That is a recall gap of up to 163 rejections out of 958, and
+  calling it an artefact count hid it. Embedding sentence-length titles would also degrade every
+  similarity query, so the real fix is a better extractor, not a wider index — and that is a
+  re-ingest, which is not a thing to start two days from a deadline. Measured, not estimated, and
+  pinned by `eval_gold.py`.
 - **7 of 681 decisions have no usable date** — 3 omit the field entirely, 2 still carry the
   template's literal `'yyyy-mm-dd'`, and 2 give a month above twelve (`2023-14-05`,
   `2025-30-01`), presumably a day-month transposition. "Presumably" is not a date, so they stay

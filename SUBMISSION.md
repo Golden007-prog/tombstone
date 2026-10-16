@@ -154,7 +154,7 @@ See the AI assistance disclosure section of the README.
 `docs/EXPLAIN-IT.md` — read this before any judging call. It is the questions most likely to be
 asked, with the answer short enough to hold in your head: why a graph at all, the data model and
 the one decision inside it worth defending (752 embedded options out of 958 extracted, and why the
-other 206 are deliberately not in the haystack), what each of the thirteen tools asks, which
+other 206 are not, and why only about 22 of those are actually artefacts), what each of the thirteen tools asks, which
 FalkorDB feature earns its place in which tool, what the model is allowed to do, and the five
 weakest things — stated first, because every one of them is already written down in the repository.
 
