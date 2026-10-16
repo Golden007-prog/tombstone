@@ -69,6 +69,14 @@ alternatives — one of them titled "Doing nothing is a viable alternative."*
 
 *The path behind an answer, generated from the live API by `scripts_gen_readme_figure.py`.*
 
+> **On a phone, open this image rather than squinting at it.** Measured, not guessed: the figure's
+> `viewBox` is 860 units wide, a 375px screen gives it 343px after gutters, and at that 0.399 scale
+> its `font-size="11"` labels land at **4.4 real pixels** — against a legibility floor around nine.
+> The *running app* does not have this problem: `renderPath` multiplies every font size by the same
+> width factor, and `scripts_check_ui.py` fails the build if any font size bypasses that helper,
+> precisely because a raw one breaks only on small screens where nobody looks again. This committed
+> snapshot is a desktop-width capture of that drawing and carries no such compensation.
+
 It runs on **Kubernetes' own governance record** — a real organisation of thousands of people that
 publishes its decision history, its ownership map, and, unusually, its own attrition. Apache-2.0,
 fully public. Every number below is checkable with one `git clone`.
