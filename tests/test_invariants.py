@@ -2186,3 +2186,23 @@ def test_the_catalogue_never_advertises_an_argument_dispatch_refuses():
             assert arg not in str(spec), (
                 f"the catalogue entry for {name} names '{arg}', which dispatch() strips -- so it "
                 f"advertises a parameter to the routing model and to /api/tools that cannot work")
+
+
+def test_the_public_subgraph_endpoint_cannot_be_crashed_by_its_limit():
+    """/api/subgraph is a GET and /api/docs hands a stranger the form for it.
+
+    `?path=x&limit=-5` returned HTTP 500: the negative LIMIT reached Cypher, which rejects it, and
+    the traceback came back as a crash on the one endpoint a judge can hit by accident while
+    reading the API docs. `limit=-1` on its own did NOT crash, because with no path that query
+    never runs -- the kind of near-miss that makes a real crash look absent.
+    """
+    from fastapi.testclient import TestClient
+    from tombstone.server import app
+    with TestClient(app) as client:
+        for params in ({"path": "x", "limit": -5}, {"limit": -1}, {"limit": 0},
+                       {"limit": 10 ** 9}, {"path": "pkg/scheduler/OWNERS", "limit": -5},
+                       {"handle": "lavalamp", "limit": -3}):
+            r = client.get("/api/subgraph", params=params)
+            assert r.status_code == 200, f"{params} returned HTTP {r.status_code}"
+            body = r.json()
+            assert "nodes" in body and "edges" in body, f"{params} returned {str(body)[:120]}"

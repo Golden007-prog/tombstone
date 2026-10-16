@@ -153,6 +153,13 @@ def ask(q: Ask):
 def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str = "",
              limit: int = 40):
     """Only the reasoning path for one answer. Never the whole graph."""
+    # Clamped, because this is a public GET and the Swagger UI at /api/docs hands a stranger the
+    # form. `?path=x&limit=-5` returned HTTP 500: a negative LIMIT reaches Cypher, which rejects
+    # it, and the traceback surfaced as a crash on the one endpoint a judge can hit by accident
+    # while reading the API docs. `limit=-1` alone happened not to crash, because without a path
+    # that query is never run -- which is exactly the kind of near-miss that makes a crash look
+    # like it is not there.
+    limit = max(1, min(int(limit), 400))
     a = agent()
     if a.g is None:
         return {"nodes": [], "edges": [], "error": "FalkorDB unreachable"}
