@@ -18,10 +18,12 @@ while driving the UI is the single biggest cause of ten retakes at midnight.
 It held 767 spoken words in 180 seconds — 4.3 words per second, which is not a narration, it is a
 countdown. Read aloud it ran about 4:35, so the 3:00 cap would have been discovered at midnight
 during take nine. Comfortable narration is **2.8 words per second**, and visuals need room to
-breathe, so the budget for 3:00 is **about 500 spoken words.** This script now holds **464**, at
-2.6 w/s, with no beat above 2.9. Each heading carries its own budget, and
+breathe, so the budget for 3:00 is **about 500 spoken words.** This script now holds **489**, at
+2.7 w/s, with no beat above 2.9. Each heading carries its own budget, and
 `python scripts_check_demo_timing.py` fails if the beats stop being contiguous, stop summing to
-180 seconds, drift above 3.0 w/s, or stop matching the word counts in their headings.
+180 seconds, drift above 3.0 w/s, stop matching the word counts in their headings, or stop
+matching the three figures in this very paragraph — which had already drifted to 464 words at
+2.6 w/s, because a sentence stating a total is exactly as perishable as a number in a README.
 
 ---
 
@@ -147,6 +149,18 @@ drafts are committed under `docs/patches/`, so a judge can read them without run
 - Browser at 1280×800, **dark mode**, zoom 110% so text is legible after compression.
 - Hide bookmarks bar, close other tabs, clear notifications.
 - Pre-click every chip once before recording so nothing is cold — including "Draft the fix", which loads the committed snapshot on first call.
+- **Then `./run.sh --forget`, and only then hit record.** Pre-clicking warms the caches, but
+  answering also *records* the answer, so without this every chip on camera comes back
+  `ANSWERED_FROM_MEMORY`, noted "Asked before (1x, last …)" with a timestamp from before the take.
+  The 2:17 beat is the one that breaks worst: its line is that everything you asked got written
+  back into this graph, and a warm memory makes it cite answers the viewer never saw you ask. A
+  judge opening the Space gets a cold graph, so the video has to show one. Measured: cold gives
+  `ANSWERED_WITH_PATH`, a second ask gives `ANSWERED_FROM_MEMORY`, and `--forget` puts it back.
+- **Do not clear memory again mid-take.** The 2:17 beat has nothing to recall unless the 0:32 beat
+  ran earlier in the *same* recording — the chip asks a deliberate rewording of it, so the memory
+  it finds must be one the viewer watched you create. Replayed cold in beat order, 0:16 gives
+  `NOT_IN_GRAPH`, 0:32 and 1:25 give `ANSWERED_WITH_PATH`, and 2:17 returns the 0:32 question under
+  its other wording. Record the beats in the order they are written.
 - The `docker stop` beat needs a second terminal already open and positioned.
 - Export at 1080p. **Do not** ship a watermarked export — finish in iMovie (free, preinstalled) if
   the editor would stamp it.

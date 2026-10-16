@@ -49,14 +49,6 @@ def _write_fingerprint() -> None:
 
 
 def _clear_memory() -> None:
-    import json as _json
-    import urllib.request as _u
-    try:
-        _u.urlopen(_u.Request(f"{APP}/api/tool", method="POST",
-                              data=_json.dumps({"tool": "forget_everything", "args": {}}).encode(),
-                              headers={"content-type": "application/json"}), timeout=30)
-    except Exception:
-        pass
     try:
         sys.path.insert(0, "src")
         from graphkit.ingest import connect as _connect

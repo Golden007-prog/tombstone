@@ -79,13 +79,6 @@ def main() -> int:
     # A judge on a freshly deployed Space has an empty memory and sees ANSWERED_WITH_PATH. These
     # frames must show that, not the ANSWERED_FROM_MEMORY an afternoon of testing produces.
     try:
-        urllib.request.urlopen(urllib.request.Request(
-            f"{APP}/api/tool", method="POST",
-            data=json.dumps({"tool": "forget_everything", "args": {}}).encode(),
-            headers={"content-type": "application/json"}), timeout=30)
-    except Exception:
-        pass
-    try:
         sys.path.insert(0, "src")
         from graphkit.ingest import connect
         connect().select_graph(os.environ.get("GRAPH", "tomb:k8s")).query(

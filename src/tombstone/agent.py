@@ -180,9 +180,12 @@ class Agent:
             import datetime as _dt
             when = _dt.datetime.fromtimestamp((remembered[3] or 0) / 1000).strftime("%d %b %H:%M")
             ans.shape = "ANSWERED_FROM_MEMORY"
-            ans.note = (f"Asked before ({int(remembered[2] or 1)}x, last {when}). All "
-                        f"{remembered[5]} nodes that answer cited are still in the graph, and "
-                        f"re-running it just now returned the same {len(ans.rows)} rows.")
+            cited_n = int(remembered[5] or 0)
+            held = (f"The {_n(cited_n, 'node')} that answer cited is" if cited_n == 1
+                    else f"All {_n(cited_n, 'node')} that answer cited are")
+            ans.note = (f"Asked before ({int(remembered[2] or 1)}x, last {when}). {held} still "
+                        f"in the graph, and re-running it just now returned the same "
+                        f"{_n(len(ans.rows), 'row')}.")
 
         # Additive and best-effort: a memory write must never break the answer that was asked for.
         #
@@ -724,7 +727,8 @@ def render(a: Answer) -> str:
             when = _dt.datetime.fromtimestamp((ts or 0) / 1000).strftime("%d %b %H:%M")
             refs = ", ".join(str(c.get("key")) for c in (cited or []) if c.get("key"))[:120]
             lines.append(
-                f"• “{asked}” — asked {times}x, last {when}, answered with {tool_used} ({shape}, {rows} rows)"
+                f"• “{asked}” — asked {times}x, last {when}, answered with {tool_used} "
+                f"({shape}, {_n(rows, 'row')})"
                 + (f"\n    cited: {refs}" if refs else "")
             )
         return ("This graph has been asked something like that before:\n\n" + "\n".join(lines)

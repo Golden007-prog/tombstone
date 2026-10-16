@@ -144,20 +144,14 @@ except Exception as e:
 # first cut of this video shipped a beat about ROUTING whose badge said the answer came from
 # memory, because the question had been asked twenty times that afternoon while testing.
 try:
-    import urllib.request as _u
-    _req = _u.Request(f"{APP}/api/tool", method="POST",
-                      data=json.dumps({"tool": "forget_everything", "args": {}}).encode(),
-                      headers={"content-type": "application/json"})
-    _u.urlopen(_req, timeout=30)
-except Exception:
-    pass  # falls through to the direct clear below
-
-try:
     sys.path.insert(0, "src")
     from graphkit.ingest import connect as _connect
     _g = _connect().select_graph(os.environ.get("GRAPH", "tomb:k8s"))
-    _n = _g.query("MATCH (a:Answer) DETACH DELETE a").relationships_deleted
-    print(f"  cleared remembered answers, so the frames show a first visit")
+    # nodes_deleted, not relationships_deleted: the count being reported is answers forgotten.
+    # It arrives as a float, so an int() keeps "3" from printing as "3.0".
+    _n = int(_g.query("MATCH (a:Answer) DETACH DELETE a").nodes_deleted or 0)
+    print(f"  forgot {_n} remembered answer{'' if _n == 1 else 's'}, "
+          f"so the frames show a first visit")
 except Exception as exc:
     print(f"  WARNING: could not clear memory ({exc}); frames may show ANSWERED_FROM_MEMORY")
 

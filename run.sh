@@ -83,6 +83,32 @@ if ! "$PY" -c "import falkordb, fastembed, fastapi" 2>/dev/null; then
   exit 1
 fi
 
+# --forget: drop the agent's remembered answers and exit, starting nothing.
+#
+# This exists for recording the demo. The checklist says to pre-click every chip so nothing is
+# cold, and that is right -- but answering also RECORDS the answer, so on camera every pre-clicked
+# chip comes back ANSWERED_FROM_MEMORY, noted "Asked before (1x, last ...)" with a timestamp from
+# before you hit record. The memory beat is worse: its line is that everything asked got written
+# back into this graph, and a warm memory makes it cite answers the viewer never saw asked. A judge
+# opening the deployed Space gets a cold graph, so the video has to show one too.
+if [ "${1:-}" = "--forget" ]; then
+  PYTHONPATH=src "$PY" - <<'PYFORGET'
+import os
+import sys
+
+try:
+    from graphkit.ingest import connect
+    graph = connect().select_graph(os.environ.get("GRAPH", "tomb:k8s"))
+    # nodes_deleted comes back as a float, so 3 would print as "3.0".
+    n = int(graph.query("MATCH (a:Answer) DETACH DELETE a").nodes_deleted or 0)
+except Exception as exc:
+    sys.exit(f"could not reach FalkorDB ({exc}).\n  Start it first:  ./run.sh")
+print(f"forgot {n} remembered {'answer' if n == 1 else 'answers'}; "
+      f"the next question is a first visit")
+PYFORGET
+  exit 0
+fi
+
 if ! command -v docker >/dev/null; then
   echo "Docker is required to run FalkorDB. Install Docker Desktop and re-run." >&2
   exit 1
