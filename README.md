@@ -1327,8 +1327,12 @@ times. Each fix made the claim narrower and more defensible.
 Built with AI coding assistance, as the rules permit and require disclosing.
 
 The graph model, the tool boundaries, every Cypher query, the benchmark methodology and the
-engineering decisions are mine. Every performance number here comes from a benchmark in `spikes/`
-that I ran and can re-run. Where a research agent's figure disagreed with my own parse, **my parse
+engineering decisions are mine. Every performance number here comes from a committed script I ran
+and can re-run: [`bench_vs_networkx.py`](bench_vs_networkx.py) for the comparison table above and
+[`bench_copy.py`](bench_copy.py) for the `GRAPH.COPY` timing, both at the repository root, and the
+longer-running ones — the thousand-graph tenancy measurement and the edge-scale probe — under
+[`spikes/`](spikes). This sentence used to send you to `spikes/` for all of them, which is where
+the two that matter most are not. Where a research agent's figure disagreed with my own parse, **my parse
 is used and the discrepancy is recorded** — the `OWNERS_ALIASES` correction in
 `docs/K8S-CORPUS-VERIFIED.md` is one example, where an unexpanded group alias had turned 71 of 866
 "people" into committees and understated ownership by 1,595 edges.

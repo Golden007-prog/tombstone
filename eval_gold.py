@@ -102,6 +102,31 @@ def main() -> int:
     for k, v in g.items():
         print(f"  {k:<48}{v}")
 
+    # The README's AI-disclosure paragraph says the unexpanded OWNERS_ALIASES bug "understated
+    # ownership by 1,595 edges". Nothing re-derived it, and checking it by hand took a minute:
+    # 293 approver references name an alias rather than a person, those expand to 1,888 real
+    # edges, and the net gain is 1,888 - 293. Both the raw figure and the subtraction are checked
+    # here rather than left as the one number in that section nobody can reproduce.
+    _aliases, _owners = d["aliases"], d["owners"]
+    _refs = sum(1 for _rec in _owners.values()
+                for _who in (_rec.get("approvers") or []) if _who.lower() in _aliases)
+    _expanded = sum(len(_aliases[_who.lower()]) for _rec in _owners.values()
+                    for _who in (_rec.get("approvers") or []) if _who.lower() in _aliases)
+    _net = _expanded - _refs
+    _readme = open("README.md").read()
+    _said = re.search(r"understated ownership by ([\d,]+) edges", _readme)
+    if not _said:
+        print("  FAIL  the README no longer states what the alias bug understated ownership by")
+        _alias_bad = 1
+    elif int(_said.group(1).replace(",", "")) != _net:
+        print(f"  FAIL  README says the alias bug understated ownership by {_said.group(1)} "
+              f"edges; the corpus gives {_expanded} expanded minus {_refs} alias refs = {_net}")
+        _alias_bad = 1
+    else:
+        print(f"  PASS  alias expansion: {_refs} refs -> {_expanded} edges, net {_net}, "
+              f"and the README says so")
+        _alias_bad = 0
+
     agent = Agent(graph_name="tomb:k8s")
     q = agent.tools.g.ro_query
 
@@ -343,6 +368,9 @@ def main() -> int:
         fails.append(f"NOTICE says bot accounts are filtered; found {_bots[:5]}")
 
     print()
+    if _alias_bad:
+        fails.append("the README's alias-expansion edge count does not match the corpus")
+
     if fails:
         print("The graph and the corpus disagree. One of them is wrong:")
         for f in fails:
