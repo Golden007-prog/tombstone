@@ -216,6 +216,48 @@ def main() -> int:
             fails.append(f"the inheritance walk for {probe} gives {sorted(want)}, "
                          f"which the answer does not name: {said[:90]}")
 
+    # "Tracing decisions back to their source" is one of the track's five bullets and the README
+    # says 681 of 681 decision records carry a source URL. That number is NOT a fact about the
+    # corpus: the raw records have no url field at all, so it is a property of ingest, which makes
+    # "they are all non-empty" a weaker claim than it sounds. What IS checkable without the
+    # database is whether each URL points where the corpus key says it should.
+    # One query, not 681. And the number is quoted: k.num is stored as a STRING, so an integer
+    # literal matches nothing and reports every decision as missing -- which is what the first
+    # version of this check said, loudly and wrongly, about a graph that was fine.
+    # Keyed by URL, not by number. KEP numbers are NOT unique in this corpus: 681 records carry
+    # 680 distinct numbers, because 2133 exists under both sig-cloud-provider and sig-node --
+    # Kubernetes reused it when one proposal superseded the other. Keying this check by number
+    # collapsed the pair and reported the graph as wrong about a record it holds correctly.
+    graph_urls = {u for (u,) in q("MATCH (k:Kep) RETURN k.url").result_set}
+    bad_url = []
+    for key, rec in d["keps"].items():
+        if rec.get("kep-number") is None:
+            continue
+        want = f"https://github.com/kubernetes/enhancements/tree/master/keps/{key}"
+        if want not in graph_urls:
+            bad_url.append(f"no decision in the graph points at {key}")
+    ok_url = not bad_url
+    print(f"  {'PASS' if ok_url else 'FAIL'}  all {len(graph_urls)} source URLs point where the "
+          f"corpus key says, reconstructed without the database")
+
+    # And the duplicate itself is pinned. If ingest ever starts keying on the number, the pair
+    # collapses to one node and this is the only thing that would notice.
+    import collections
+    dup = [n for n, c in collections.Counter(
+        str(v.get("kep-number")) for v in d["keps"].values()
+        if v.get("kep-number") is not None).items() if c > 1]
+    g_total = q("MATCH (k:Kep) RETURN count(k)").result_set[0][0]
+    g_distinct = q("MATCH (k:Kep) RETURN count(DISTINCT k.num)").result_set[0][0]
+    ok_dup = (g_total - g_distinct) == len(dup)
+    print(f"  {'PASS' if ok_dup else 'FAIL'}  the graph keeps both records that share KEP-"
+          f"{dup[0] if dup else '?'}, rather than collapsing them "
+          f"({g_total} nodes, {g_distinct} distinct numbers)")
+    if not ok_dup:
+        fails.append(f"the corpus has {len(dup)} duplicated KEP number(s); the graph shows "
+                     f"{g_total - g_distinct}")
+    if bad_url:
+        fails.extend(bad_url[:3])
+
     # The README states this result by name, so it is read back out of the page rather than
     # trusted. A number nobody derives goes stale within a day; a NAME in a claim about a real
     # person is worse, because it reads as authoritative and nothing about it looks approximate.

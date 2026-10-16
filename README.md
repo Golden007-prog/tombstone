@@ -1175,6 +1175,15 @@ times. Each fix made the claim narrower and more defensible.
 
 ## Honest limits
 
+- **KEP numbers are not unique, and one pair proves it.** 681 decision records carry 680 distinct
+  numbers: **2133 exists under both `sig-cloud-provider` and `sig-node`**, because Kubernetes
+  reused it when *Kubelet Credential Providers* superseded *Out-of-Tree Credential Providers*. The
+  graph keeps both records, which is right. But tools that resolve a citation by number — and this
+  product's lineage queries do — would match both. Nothing in the corpus currently cites 2133, no
+  alternatives hang off either record, and no answer references it, so no answer today is affected.
+  It is a sharp edge rather than a bug, and `eval_gold.py` pins the count so a future ingest that
+  collapses the pair fails instead of quietly losing a decision. Found by reconstructing every
+  source URL from the raw corpus and noticing that one number had two.
 - **Betweenness is sampled**, not exact (`samplingSize` 32). The seed is pinned so the number is
   reproducible, but it is an approximation and the UI says so.
 - **206 of 958 alternatives are untitled prose**, not named options. They're in the graph but
