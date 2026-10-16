@@ -13,7 +13,7 @@ export HF_TOKEN=hf_xxxxxxxxxxxx      # huggingface.co/settings/tokens -> New tok
 ```
 
 The script creates the Space, swaps in the Space README (Spaces reads config from its own
-front-matter, not this repo's) and uploads 90 files / 3.0 MB. First build takes a few minutes;
+front-matter, not this repo's) and uploads 91 files / 3.1 MB. First build takes a few minutes;
 after that it boots in seconds.
 
 **Then verify it the way a judge will** — different network, private window, no sign-in:
