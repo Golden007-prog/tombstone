@@ -69,7 +69,18 @@ PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
 tests to 134.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
-this is the only entry using real data. It is not.
+this is the only entry using real data. It is not — and there is now a number for that rather
+than a caution: **5 of the 20 largest Track 3 entries name a specific real public corpus** in
+their README (`cairn`, `lineage`, this one, `decision-brain`, `Onix`), and two of those five are
+also on Kubernetes. Real data is the rarer choice, which is worth saying plainly, but it is not
+this entry's private territory, and claiming otherwise to a judge who has read `cairn` would be
+the expensive kind of wrong.
+
+That figure is what a README *claims*, not what its code does, and the first instrument that
+produced it was wrong in both directions: it matched `apache`, which is the licence on half the
+field, and `acme`, which usually appears inside a sentence *refusing* to invent an Acme Corp —
+including this repository's own README, which the first run therefore filed as synthetic. A
+pattern keyed on a word instead of a meaning, for the third time in two days.
 
 What is actually distinctive is narrower and survives the comparison. Kubernetes publishes
 `emeritus_approvers`: an explicit, maintained record of who stepped back, which is what every

@@ -45,6 +45,16 @@ HOST = re.compile(
     r"https?://[^\s)\]\"'>*]*?(?:vercel\.app|hf\.space|huggingface\.co/spaces|onrender\.com"
     r"|railway\.app|fly\.dev|streamlit\.app|netlify\.app|sslip\.io)[^\s)\]\"'>*]*", re.I)
 
+# Named public corpora only, and the exclusions matter more than the inclusions. The first
+# version of this also matched "apache" and "acme", which made it useless in both directions:
+# "apache" is the LICENCE on half of these repositories, and "acme" appears most often inside a
+# sentence refusing to invent an Acme Corp -- including in this repository's own README, which
+# the first run therefore classified as synthetic. A pattern keyed on a word rather than a
+# meaning, for the third time in two days.
+CORPUS = re.compile(r"\b(kubernetes|k8s|cpython|PEP-?\d|discuss\.python\.org|linux\s+kernel|"
+                    r"chromium|rust-lang|tensorflow|kafka|airflow|openstack|wikipedia|"
+                    r"stack\s*overflow|arxiv)\b", re.I)
+
 
 def gh(path: str, jq: str) -> str:
     return subprocess.run(["gh", "api", path, "--jq", jq],
@@ -80,7 +90,7 @@ def main() -> int:
     print(f"  {len(field)} of them are Track 3 / company-brain entries.\n")
 
     mine = next((i for i, r in enumerate(field) if r["full_name"] == MINE), None)
-    live, checked = [], []
+    live, checked, real = [], [], []
     print(f"  {'repo':<44}{'MB':>6}  demo")
     for r in field[:top_n]:
         name = r["full_name"]
@@ -89,9 +99,11 @@ def main() -> int:
         if home.startswith("http") and "wemakedevs" not in home:
             cands.append(home)
         body = gh(f"repos/{name}/readme", ".content")
+        decoded = ""
         if body:
             try:
-                cands += HOST.findall(base64.b64decode(body).decode("utf-8", "replace"))
+                decoded = base64.b64decode(body).decode("utf-8", "replace")
+                cands += HOST.findall(decoded)
             except Exception:
                 pass
         status, url = "-", ""
@@ -104,6 +116,9 @@ def main() -> int:
         checked.append(name)
         if status == "200":
             live.append((name, url))
+        corpora = sorted({m.group(0).lower() for m in CORPUS.finditer(decoded)})
+        if corpora:
+            real.append((name, corpora))
         mark = " <- this one" if name == MINE else ""
         print(f"  {name[:43]:<44}{(r.get('size') or 0) / 1024:>6.0f}  "
               f"{status}{'  ' + url[:44] if url else ''}{mark}")
@@ -111,6 +126,11 @@ def main() -> int:
     print(f"\n  {len(live)} of the {len(checked)} largest serve a reachable demo:")
     for name, url in live:
         print(f"     {name:<42} {url}")
+    print(f"\n  {len(real)} of the {len(checked)} largest name a specific real public corpus "
+          f"in the README:")
+    for name, corpora in real:
+        print(f"     {name:<42} {', '.join(corpora)}")
+    print("     (What a README claims, not what its code does. Read as a claim.)")
     if mine is not None:
         print(f"\n  This repository is {mine + 1} of {len(field)} by size.")
     deployed_here = any(n == MINE for n, _ in live)
