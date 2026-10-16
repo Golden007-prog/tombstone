@@ -157,7 +157,8 @@ for name in sorted(re.findall(r'^\s{4}"(\w+)":', tools_src, re.M)):
           cyp.split("\n")[0][:50])
 check("most tools actually produced a query to check", answered >= 9, f"{answered} returned cypher")
 if skipped:
-    print(f"  note  {len(skipped)} tool(s) reported no query here: {', '.join(skipped)}")
+    _tl = "tool" if len(skipped) == 1 else "tools"
+    print(f"  note  {len(skipped)} {_tl} reported no query here: {', '.join(skipped)}")
 
 # ---------------------------------------------------------------- row: the four answer shapes
 for shape in ("ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY", "NOT_IN_GRAPH", "UNKNOWN_ENTITY"):
@@ -276,7 +277,8 @@ for pattern, query, label in (
 
 print()
 if fails:
-    print(f"{len(fails)} row(s) in the principles table do not describe this build:")
+    _rw = "row" if len(fails) == 1 else "rows"
+    print(f"{len(fails)} {_rw} in the principles table do not describe this build:")
     for f in fails:
         print(f"  - {f}")
     sys.exit(1)

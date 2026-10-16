@@ -190,7 +190,8 @@ def main() -> int:
         row = agent.dispatch("who_owns", {"path": probe, "depth": 4}).rows
         got = set(row[0][1] or []) if row else set()
         ok = own == got
-        print(f"  {'PASS' if ok else 'FAIL'}  who_owns names {len(got)} approver(s) on {short}, "
+        _ap = "approver" if len(got) == 1 else "approvers"
+        print(f"  {'PASS' if ok else 'FAIL'}  who_owns names {len(got)} {_ap} on {short}, "
               f"and the file declares the same")
         if not ok:
             fails.append(f"who_owns({probe}) named {sorted(got)}; the file declares {sorted(own)}")
@@ -253,7 +254,8 @@ def main() -> int:
           f"{dup[0] if dup else '?'}, rather than collapsing them "
           f"({g_total} nodes, {g_distinct} distinct numbers)")
     if not ok_dup:
-        fails.append(f"the corpus has {len(dup)} duplicated KEP number(s); the graph shows "
+        _nm = "number" if len(dup) == 1 else "numbers"
+        fails.append(f"the corpus has {len(dup)} duplicated KEP {_nm}; the graph shows "
                      f"{g_total - g_distinct}")
     if bad_url:
         fails.extend(bad_url[:3])

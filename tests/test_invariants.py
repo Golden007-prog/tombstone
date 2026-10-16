@@ -1608,3 +1608,59 @@ def test_the_video_is_fingerprinted_against_everything_the_images_are():
     assert said.group(1) == _SPELL.get(want), (
         f"docs/video/README.md says the guard covers {said.group(1)!r} files; the walkthrough "
         f"fingerprint records {want} ({_SPELL.get(want)})")
+
+
+def test_no_shipped_string_fakes_a_plural_with_parens():
+    """"1 area(s)" is the shape this product keeps having to remove.
+
+    It has been removed three times: fifteen occurrences in the answer renderers, then
+    "1 uncommitted change(s)" in the submission audit, then five more in the eval and checker
+    output -- including "who_owns names 8 approver(s)", printed by a script the README tells a
+    judge to run. Every number in this repository is checked; how the word beside it is spelled
+    never was, which is why this particular defect keeps coming back rather than being fixed.
+
+    Parsed with ast so only real string literals are examined. A comment documenting the old
+    mistake is not the mistake, and the earlier sweeps found those by grep and had to read past
+    them each time.
+    """
+    import ast
+    import pathlib
+    import re
+    import subprocess
+
+    files = [f for f in subprocess.run(["git", "ls-files", "*.py"], capture_output=True,
+                                       text=True).stdout.split() if pathlib.Path(f).exists()]
+    assert files, "no tracked Python files found"
+
+    # "(s)" straight after a word character is a faked plural. A regex literal is not: those are
+    # recognisable by carrying backslash escapes, and "(s)" there is a capture group.
+    FAKE = re.compile(r"[A-Za-z](\(s\))")
+    offenders = []
+    for path in files:
+        if path.startswith("tests/"):
+            continue                       # this file quotes the bad form to describe it
+        tree = ast.parse(pathlib.Path(path).read_text())
+        # Docstrings are excluded: three of them explain why this form is wrong, including the
+        # one on the `_n` helper written to replace it. Flagging the explanation of a mistake is
+        # the same error the verification-claims checker had to learn not to make.
+        docstrings = set()
+        for holder in ast.walk(tree):
+            if isinstance(holder, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                body = getattr(holder, "body", None) or []
+                if (body and isinstance(body[0], ast.Expr)
+                        and isinstance(body[0].value, ast.Constant)
+                        and isinstance(body[0].value.value, str)):
+                    docstrings.add(id(body[0].value))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
+                continue
+            if id(node) in docstrings:
+                continue
+            text = node.value
+            if "\\s" in text or "\\d" in text or "\\b" in text:
+                continue                   # a regex, where (s) is a group
+            if FAKE.search(text):
+                offenders.append(f"{path}:{node.lineno}  {text.strip()[:70]}")
+
+    assert not offenders, (
+        "a string fakes a plural with (s); write both words out:\n  " + "\n  ".join(offenders))

@@ -92,7 +92,8 @@ for tool, args, question in (
 recalled = agent.dispatch("recall", {"question": "who actually owns the apiserver metrics endpoint"})
 check("beat 7: recall finds the earlier question after the demo's own beats",
       recalled.shape == "ANSWERED_WITH_PATH" and bool(recalled.rows),
-      f"{recalled.shape}, {len(recalled.rows)} row(s)")
+      f"{recalled.shape}, {len(recalled.rows)} "
+      f"{'row' if len(recalled.rows) == 1 else 'rows'}")
 
 print(f"\n{'FAILED' if fails else 'OK'}: the demo script "
       f"{'does not match' if fails else 'matches'} what the app returns")
