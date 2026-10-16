@@ -18,7 +18,7 @@ read under deadline. In short, so you can choose in thirty seconds:
 
 | path | config | state |
 |---|---|---|
-| **Hugging Face Spaces** | `deploy/README-hf-space.md` | Front-matter valid against HF's field reference, now gated in the push gate. HF's docs say a Docker Space "requires a paid plan to create"; **measured on 16 Oct, three free accounts had created one within the hour** — see below. Proceed, and the script fails fast if your case differs. |
+| **Hugging Face Spaces** | `deploy/README-hf-space.md` | Front-matter valid against HF's field reference and gated in the push gate — but **refused on a free account: HTTP 402, tested 17 Oct.** Docker Spaces need PRO ($9/month), which buys the 16 GB CPU Basic box this image was sized for. See below for the prediction I got wrong. |
 | **Render (free)** | `deploy/render.yaml` | Valid against the current blueprint spec, using `runtime:` rather than the deprecated `env:`. Fits in the free 512 MB serially; concurrency will not. Spins down after 15 min. |
 | **Fly.io** | `deploy/fly.toml` | Valid, current `[[vm]]` syntax, `min_machines_running = 1` so it never cold-starts. No free allowance — a few dollars a month. |
 
@@ -40,14 +40,23 @@ would be dead or empty. Carrying the data in the image avoids the whole class of
 > and require a paid plan to create: PRO for personal accounts."* This Space is `sdk: docker`,
 > and that sentence would block it.
 >
-> So I asked the API instead. Of the sixty most recently created Spaces on 16 Oct, three were
-> `sdk: docker`, the newest about an hour old — and all three owners return `isPro: false` from
-> HF's own public user endpoint. Free accounts were creating Docker Spaces that morning. The
-> [Docker Spaces page](https://huggingface.co/docs/hub/spaces-sdks-docker) also says nothing
-> about plans either way.
+> **It does block it. Tested on 17 Oct: HTTP 402 Payment Required** from
+> `POST /api/repos/create`, with the body *"Static Spaces are free for everyone, but hosting
+> Gradio and Docker Spaces on free cpu-basic requires a PRO subscription."* The sentence in the
+> docs is enforced.
 >
-> So: probably fine, not certainly. The docs may describe a policy being rolled out, or one that
-> applies to accounts newer than those three. `./deploy_hf.sh` fails fast and loudly, so the cost
+> I had argued the other way here, and the reasoning is worth keeping because the failure in it
+> is instructive. I asked the API: of the sixty most recently created Spaces on 16 Oct, three
+> were `sdk: docker`, the newest about an hour old, and all three owners returned `isPro: false`
+> from HF's public user endpoint — so I concluded free accounts were creating Docker Spaces and
+> this would probably work. The observation was accurate; the inference was not. `isPro` on a
+> public profile is not the entitlement checked at repository creation, those Spaces may have
+> been created under arrangements the endpoint does not expose, and in any case reading a listing
+> is not attempting the operation. I reported a measurement as though it settled a question it
+> could not settle, which is the same error this project keeps catching in its own prose.
+>
+> `./deploy_hf.sh` failed fast and loudly at the right step, before staging or uploading, so the
+> cost
 > of finding out is a minute.
 >
 > **If it is refused:** `## Render (free)` and `## Fly.io` below are both configured and

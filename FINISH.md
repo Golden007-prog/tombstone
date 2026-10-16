@@ -12,18 +12,29 @@ deploy. Both are needed for step 4.
 
 ## 1. Deploy (~20 min, mostly waiting on the build)
 
-> **Do this first, and watch the first minute of output.** Hugging Face's Spaces overview says
-> Docker Spaces "require a paid plan to create: PRO for personal accounts", and this Space is
-> `sdk: docker` — so I went and checked whether that is enforced. Of the sixty most recently
-> created Spaces on 16 Oct, three were Docker, the newest about an hour old, and **all three
-> owners show `isPro: false`**. Free accounts were creating Docker Spaces that morning, so this
-> will most likely just work. Not certainly: the script fails fast and loudly, which is why it
-> goes first.
+> **Hugging Face refused this, and the refusal is measured rather than predicted.** Run on
+> 17 Oct, `./deploy_hf.sh` reached `POST /api/repos/create` and got **HTTP 402 Payment
+> Required**: *"Static Spaces are free for everyone, but hosting Gradio and Docker Spaces on
+> free cpu-basic requires a PRO subscription."* The script failed fast and loudly at exactly the
+> step it was written to fail at, before staging or uploading anything.
 >
-> **If it is refused:** `DEPLOY.md` has Render and Fly.io configured, and Rule 10 is already
-> satisfied with no deployment at all — complete local setup plus the committed walkthrough.
-> You lose a bonus the FAQ calls "preferred", not the submission. Do not spend the last hours
-> fighting it; spend them on the video.
+> **I had predicted the opposite, and was wrong.** This block used to say free accounts were
+> creating Docker Spaces that morning, because of the sixty most recently created Spaces on
+> 16 Oct, three were `sdk: docker` and all three owners returned `isPro: false` from HF's public
+> user endpoint. That evidence was real and the inference from it was not: `isPro` on a profile
+> is not the same as the entitlement checked at repository creation, and reading a listing is not
+> the same as attempting the thing. The only test that settled it was running it.
+>
+> **So pick one of these — all three are already configured and documented in `DEPLOY.md`:**
+> - **Render free** (`deploy/render.yaml`): costs nothing, and the honest caveats are measured —
+>   512 MB fits serial use at ~450 MiB, six concurrent counterfactuals (~900 MB) will be killed,
+>   and it spins down after 15 minutes so a judge's first click waits ~1 minute.
+> - **HF PRO**, $9/month, which is the only way to get the 16 GB CPU Basic box this image was
+>   sized for. Your call and your money; I am not making that decision for you.
+> - **No deployment.** Rule 10 is satisfied without one — complete local setup plus the committed
+>   walkthrough — so this costs the bonus the FAQ calls "preferred", not the submission.
+>
+> Do not spend the last hours fighting it; spend them on the video.
 
 ```bash
 export HF_TOKEN=hf_xxxxxxxxxxxx      # huggingface.co/settings/tokens -> New token -> WRITE
