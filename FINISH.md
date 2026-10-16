@@ -1,7 +1,12 @@
 # Finishing this — four steps, about two hours
 
 Everything buildable is done and verified. What remains needs your accounts and your voice.
-Order matters: the deploy unblocks the video, and the video unblocks the submission.
+
+**Steps 1 and 2 do not block each other — start the deploy, then record while it builds.** This
+file used to say the deploy unblocked the video, which was simply wrong: every beat in
+`docs/DEMO-SCRIPT.md` is recorded against your local `./run.sh`, and the 2:31 beat *stops the
+FalkorDB container*, which is not a thing you can do to a Space. The video needs nothing from the
+deploy. Both are needed for step 4.
 
 ---
 
