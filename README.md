@@ -19,7 +19,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **19/20 vs 4/20**.
 > - **The graph loses one of those twenty on purpose,** and ties the baseline on the
 >   control category. See why below.
-> - **Nothing here is asserted.** 120 tests, 31 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 121 tests, 31 graph claims, 18 rendered UI states, and **two of
 >   the five benchmarks** re-run by **31 CI steps on each push** — the other three build a thousand
 >   graphs or millions of edges, so they are dated measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
@@ -721,7 +721,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 120 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 121 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 31 graph claims
 ```
 
@@ -828,6 +828,22 @@ MERGE (a)-[e:CO_AUTHORED]->(b) SET e.w = shared
 | ownership files | 585 |
 | `APPROVES` / `EMERITUS_OF` | 2,584 / 298 |
 | `CO_AUTHORED` | 5,879 |
+
+**What the drawn picture labels its edges, and what each one really traverses.** Six of the eight
+labels on the reasoning path are *summaries*, not relationship types, and it is worth saying so
+plainly because a judge who looks for them in `CALL db.relationshipTypes()` will not find them.
+One of them used to lie about this: the counterfactual drew `INHERITS_FROM` between two files with
+no such edge between them, because the walk behind it is `*1..8` and the file in the middle has no
+approvers at all. A test now refuses any drawn label that is neither a real type nor listed here.
+
+| drawn on the picture | what it actually traverses |
+|---|---|
+| `APPROVES`, `EMERITUS_OF` | themselves — real edges, drawn as they are |
+| `SHAPED` | `AUTHORED` or `APPROVED`, collapsed into one line |
+| `REJECTED` | `CONSIDERED` — every one in this corpus comes from an Alternatives section |
+| `INHERITS COVERAGE` | `INHERITS_FROM*1..8`, stopping at the first ancestor that still has an approver |
+| `STILL APPROVES` | `APPROVES`, minus the cohort being removed |
+| `LEFT BEHIND` / `ALREADY APPROVES` | `EMERITUS_OF` / `APPROVES`, from the two sides of a handover |
 
 Findings that fall straight out of it, each checkable:
 
