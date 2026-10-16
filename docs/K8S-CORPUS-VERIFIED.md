@@ -1,4 +1,23 @@
 # Kubernetes governance corpus — numbers I verified MYSELF (2026-10-15)
+
+> **Read this as a working record, not as current figures.** It is what the raw corpus looked like
+> while I was still working out what it was, and several numbers in it were later found wrong and
+> corrected. The corrections are in [the table near the bottom](#corrected-figures), which says
+> plainly that it supersedes what is above it — but the README now links here, so the warning
+> belongs at the top rather than two hundred lines down.
+>
+> The two that matter most, because they appear in the prose below as if settled:
+>
+> - **"88 of 111 departed owners"** — it is **83 of 111**. The first pass had not expanded
+>   `OWNERS_ALIASES`, so some people counted as having no current role did hold one through a group.
+> - **"74 of 370 internal pointers (20.0%) do not resolve"** — it is **55 of 358 (15.4%)**. Some
+>   targets had moved rather than vanished, and the resolver was treating a move as a break.
+>
+> Both corrected figures are the ones the README quotes, and both are re-derived from the live
+> graph on every push. The numbers here that are *about the raw files* — 684 `kep.yaml` parsed,
+> 688 READMEs, 586 against 585 OWNERS — are not stale versions of the graph's counts; they are
+> different quantities, measured before templates were excluded.
+
 Clones: `kubernetes/enhancements` --depth 1 (93MB, Apache-2.0) and `kubernetes/kubernetes` --depth 1 (396MB).
 All figures below are from my own YAML parse, not from docs or a subagent. A research agent reported
 different (inflated) figures; where we differ, THESE are authoritative because I parsed YAML and
@@ -155,7 +174,9 @@ OWNERS files reference **group aliases** (`sig-api-machinery-approvers`), expand
 Consequence of missing it: **71 of 866 `Person` nodes (8.2%) were groups masquerading as humans**, and
 **293 approver references** were never expanded to real people, understating ownership.
 
-Corrected figures (alias-expanded; these supersede the ones above):
+## Corrected figures
+
+(alias-expanded; these supersede the ones above)
 
 | metric | first pass (wrong) | corrected |
 |---|---|---|

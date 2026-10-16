@@ -284,6 +284,24 @@ def main() -> int:
     if _leaked:
         fails.append(f"has_this_been_tried surfaced {_leaked} — the exclusion has stopped working")
 
+    # docs/K8S-CORPUS-VERIFIED.md is a working record the README now links to, and it carries
+    # first-pass figures that were later corrected. Its warning names the two that matter, so
+    # those get pinned here: if the graph ever disagrees with the warning, the warning is wrong.
+    corpus_doc = open("docs/K8S-CORPUS-VERIFIED.md").read()
+    for pattern, live, label in (
+            (r"it is \*\*(\d+) of 111\*\*", g["people emeritus somewhere and approving nowhere"],
+             "departed owners with no current role"),
+            (r"it is \*\*(\d+) of 358", q("MATCH ()-[r:CITES_MISSING]->() RETURN count(r)")
+             .result_set[0][0], "internal pointers that do not resolve")):
+        m3 = re.search(pattern, corpus_doc)
+        if not m3:
+            fails.append(f"the corpus record's warning no longer states {label}")
+        elif int(m3.group(1)) != live:
+            fails.append(f"the corpus record's warning says {m3.group(1)} {label}; "
+                         f"the graph has {live}")
+        else:
+            print(f"  PASS  the corpus record's correction for {label} matches the graph ({live})")
+
     # The README states this result by name, so it is read back out of the page rather than
     # trusted. A number nobody derives goes stale within a day; a NAME in a claim about a real
     # person is worse, because it reads as authoritative and nothing about it looks approximate.
