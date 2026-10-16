@@ -360,7 +360,7 @@ rather than improvised.*
 | | |
 |---|---|
 | Repository | https://github.com/aviralgarg05/tombstone |
-| Live demo | *(fill in after `./deploy_hf.sh`)* |
+| Live demo | <https://tombstone-vvn9.onrender.com> — Render free: sleeps after 15 min idle, first click ~1 min. Hugging Face refused a Docker Space on a free account (HTTP 402; they require PRO). |
 | Demo video | *(fill in — narrated cut per `docs/DEMO-SCRIPT.md`)* |
 | Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 706 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
 | Blog post | *(fill in if published — side prize is for the best post)* |
@@ -463,7 +463,7 @@ argued: six simultaneous `GRAPH.COPY` requests give five answered and one degrad
       URL into this file, and arms the keep-awake workflow by itself
 - [ ] Open the Space **in a private window** and click chip 1, to confirm it works for someone who
       is not signed in to Hugging Face. That is every judge.
-- [ ] Paste the Space URL into the README's Rule 10 table (deployment row)
+- [x] Paste the live URL into the README's Rule 10 table (deployment row)
 - [ ] Record the video — `docs/DEMO-SCRIPT.md`, **keyless**, 3:00. The script is checked in CI
       against the live app, so what it says is what the screen shows.
 - [ ] Upload unlisted, then **open the link in a private window** to confirm it plays without a
