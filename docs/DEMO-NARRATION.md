@@ -110,7 +110,7 @@ Under twenty milliseconds, inside the request.
 
 ---
 
-### 1:43 → 2:17 · It drafts the fix, and refuses two of them
+### 1:43 → 2:17 · It drafts two fixes, and refuses the third
 
 *100 words, 34 seconds.*
 
@@ -118,23 +118,21 @@ It answered.
 
 Now it acts - and then stops.
 
-Kubernetes writes down when someone steps back: emeritus approvers.
+Kubernetes records when someone steps back: emeritus approvers.
 
-Three are recorded that way, while another file still calls them an active approver.
+Three are recorded that way, while another file still calls them active.
 
-So it drafts the patch.
+So it drafts two patches.
 
-A real diff.
+Real diffs - it does not apply them.
 
-It does not apply it.
+The third it refuses, and that is the point: the handle isn't in the file.
 
-But the refusals are the point.
+An alias expands to them, so no edit here removes it.
 
-The strongest signal here — emeritus in twenty files, approver in one — it won't touch: that file is vendored from another repo.
+The strongest signal never reaches this screen: emeritus in twenty files, approver in one - that file is vendored, dropped in the Cypher.
 
-This one it can't patch at all - their handle isn't in the file; an alias expands to them.
-
-Patching all three would be wrong twice.
+Patching all of it would be wrong three ways.
 
 ---
 

@@ -100,23 +100,24 @@ ownership files.*
 >
 > A whole-graph property. Under twenty milliseconds, inside the request."
 
-### 1:43–2:17 — It drafts the fix, and refuses two of them · 100 words
+### 1:43–2:17 — It drafts two fixes, and refuses the third · 100 words
 
 > *[Click chip **3**, "Draft the fix — don't just report it".]*
 >
 > "It answered. Now it acts - and then stops.
 >
-> Kubernetes writes down when someone steps back: emeritus approvers. Three are recorded that
-> way, while another file still calls them an active approver.
+> Kubernetes records when someone steps back: emeritus approvers. Three are recorded that way,
+> while another file still calls them active.
 >
-> So it drafts the patch. A real diff. It does not apply it.
+> So it drafts two patches. Real diffs - it does not apply them.
 >
-> But the refusals are the point. The strongest signal here — emeritus in twenty files, approver
-> in one — it won't touch: that file is vendored from another repo.
+> The third it refuses, and that is the point: the handle isn't in the file. An alias expands to
+> them, so no edit here removes it.
 >
-> This one it can't patch at all - their handle isn't in the file; an alias expands to them.
+> The strongest signal never reaches this screen: emeritus in twenty files, approver in one -
+> that file is vendored, dropped in the Cypher.
 >
-> Patching all three would be wrong twice."
+> Patching all of it would be wrong three ways."
 
 *On screen: `2 OWNERS patches drafted from the graph, 1 candidate refused with a reason`. Both
 drafts are committed under `docs/patches/`, so a judge can read them without running anything.*

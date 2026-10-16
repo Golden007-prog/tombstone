@@ -11,8 +11,10 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > **If you have 60 seconds**
 > - **One finding:** one person is the entire review capacity for the Kubernetes apiserver's
 >   metrics endpoints. Nobody wrote that down — it is only true as a consequence of the structure.
-> - **It acts, not just answers:** it drafts a real OWNERS patch for the inconsistency it
->   finds — and refuses to patch the strongest-looking case, because that file is vendored.
+> - **It acts, not just answers:** it drafts two real OWNERS patches for the inconsistencies it
+>   finds — and refuses the third candidate, because that approval arrives through an alias and no
+>   edit to that file would remove it. The strongest-looking signal in the corpus never reaches the
+>   drafting layer at all: that file is `vendor/`, excluded by one line in the Cypher.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
 >   free-text questions work anyway, routed locally.
 > - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-queries all 36 graph claims against
@@ -159,18 +161,21 @@ anywhere** — there is an AST-walking test asserting the drafting path imports 
 
 ### The interesting part is what it refuses to do
 
-A tool that emitted a patch for every candidate would be wrong three times over, and each refusal
-is a thing the graph knows and a text search does not:
+A tool that emitted a patch for every plausible-looking case would be wrong three times over, and
+each of these is a thing the graph knows and a text search does not:
 
 | candidate | what a naive tool would do | what it actually does |
 |---|---|---|
-| `stewart-yu` — emeritus in **20** files, active approver in exactly **1** | patch it; it is by far the strongest signal in the corpus | **refuse.** That one file is `vendor/k8s.io/utils/ptr/OWNERS`. `vendor/` is synced from another repository, so the edit would be reverted by the next sync. The exclusion is in the Cypher, not bolted on after. |
+| `stewart-yu` — emeritus in **20** files, active approver in exactly **1** | patch it; it is by far the strongest signal in the corpus | **never becomes a candidate.** That one file is `vendor/k8s.io/utils/ptr/OWNERS`. `vendor/` is synced from another repository, so the edit would be reverted by the next sync. The exclusion is in the Cypher, not bolted on after — which is why this row is the one case the tool does *not* return a refusal for. |
 | `fabriziopandini` — emeritus in 3, active approver in `cluster-bootstrap` | remove their handle from that file | **refuse.** That handle *is not in that file.* Approval arrives by expanding the alias `sig-cluster-lifecycle-leads`. No edit to the file removes it; the only real fix is to `OWNERS_ALIASES`, which this tool will not draft unasked. |
 | a file where the straggler is the **only** approver — *no live case in this corpus hits this; both real drafts leave other approvers behind, so this guard is covered by a synthetic test rather than by data* | remove them, leaving `approvers:` empty | **patch, and say the consequence.** An empty `approvers` list does not make a file unowned — it makes it silently *inherit*. The draft names the ancestor that would take over and how many approvers it has. That consequence lives in the OWNERS tree, so only a traversal can state it. |
 
 Each refusal is returned, not dropped: a tool that quietly skipped what it could not handle would
 look more capable and be less useful. There is a test asserting the candidate count coming out
-equals the candidate count going in.
+equals the candidate count going in. The vendored tree is the one deliberate exception, and it is
+excluded in the query rather than refused in the drafting layer — an edit there would be reverted
+by the next sync, which is a fact about the repository and not a judgement about the person. So
+the live run reports **two drafts and one refusal**, not three refusals.
 
 And it never claims the straggler is a mistake. Stepping back from nine areas and deliberately
 keeping a tenth is normal and correct, so every draft carries both readings and is addressed to a

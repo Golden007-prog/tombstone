@@ -158,9 +158,10 @@ incomplete, which is the same shape as the competitor count that was off by an o
 magnitude. Both are declined, and here is each on its own evidence.
 
 **Track 01 (Agents That Act) is the closer fit of the two, and still declined.** The action here
-is real and committed: a finding becomes a reviewable OWNERS patch, two candidates are refused
-with their reasons (one file is vendored from another repo, one person's handle is not in the file
-at all and only reaches it through an alias), and both drafts sit in `docs/patches/` so a judge
+is real and committed: a finding becomes two reviewable OWNERS patches, one candidate is refused
+with its reason (that person's handle is not in the file at all and only reaches it through an
+alias), the strongest-looking case never becomes a candidate because it is vendored and excluded
+in the Cypher, and both drafts sit in `docs/patches/` so a judge
 can read them without running anything. The README leads on it. But the entries leading that
 track *execute*: `Faultline` merged a real pull request on its own demo-infra repository after a
 two-step approval and verified it APPLIED; `keystone` opened a real issue on a sandbox repo. This

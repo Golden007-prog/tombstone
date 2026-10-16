@@ -44,6 +44,12 @@ run "the demo script is speakable"  python3 scripts_check_demo_timing.py
 run "the narration cut matches the script" python3 scripts_build_narration.py --check
 run "SUBMISSION.md's stated lengths" python3 scripts_check_submission_lengths.py
 run "committed artefacts match the code" python3 scripts_check_shots_fresh.py --hashes-only
+# The prose counts, pinned to the dict the live run is verified against. This belongs in the
+# push gate rather than in CI because the worst copy of this claim lives in the GitHub repo
+# description -- the first text a judge reads, and the one string no file-reading check can
+# see. `gh` is authenticated here and may not be in CI, so here is where it can actually look.
+run "drafted/refused counts match the verified run" python3 scripts_check_action_counts.py
+run "that count checker can still fail"             python3 scripts_check_action_counts.py --self-test
 
 # This one is here rather than only in preflight because of WHEN it can be right. It
 # computes the upload from `git archive HEAD`, so before a commit HEAD lacks the file you
