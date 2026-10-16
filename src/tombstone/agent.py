@@ -772,8 +772,12 @@ def render(a: Answer) -> str:
                  for r in a.rows]
         return "\n".join(lines)
     if t == "who_owns(depth=1)":
-        lines = [f"• {r[0]} approves {r[1]}" for r in a.rows]
-        return f"Current approvers ({n}):\n" + "\n".join(lines)
+        # r[1] is the path the question named, bound as a query parameter, so it is the same on
+        # every row -- printing it after each handle repeated the subject of the sentence ten
+        # times and pushed the handles, which are the answer, into the middle of each line.
+        area = a.rows[0][1] if a.rows else "this file"
+        return (f"Current approvers of {area} ({n}):\n"
+                + "\n".join(f"• {r[0]}" for r in a.rows))
     if t == "who_owns(depth=4)":
         area = a.rows[0][0] if a.rows else "?"
         live = a.rows[0][1] if a.rows else []
