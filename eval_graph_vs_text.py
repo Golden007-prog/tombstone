@@ -67,6 +67,69 @@ class TfIdf:
         return scored[:k]
 
 
+class Dense:
+    """The same documents, retrieved by embedding similarity instead of keyword overlap.
+
+    This exists because TF-IDF alone leaves the obvious objection open. "Keyword search loses"
+    invites "so use embeddings", and the strongest entries in this field score a dense retriever
+    explicitly. The unanswered question was the hole in this measurement, not in the result.
+
+    Same model the product routes with, same documents the TF-IDF index gets, same k, same grader.
+
+    OPT-IN, for a reason worth recording. I first timed `docs[:300]`, got 80 documents a second
+    and wrote "about 28 seconds" for all 2,224 -- but those first 300 are KEP title lines
+    averaging 127 characters while the corpus averages 434, so the sample was 3.4x cheaper per
+    document than the thing it stood for. The real run passed five minutes on a loaded machine.
+    Timing an unrepresentative prefix and multiplying is the same error as sampling three tools
+    and calling the catalogue checked.
+
+    So ./preflight.sh keeps the cheap comparison and this runs on request (`--dense`, or
+    `EVAL_DENSE=1`), which is how CI runs it -- on a GitHub runner rather than on anyone's laptop.
+    Embeddings cache under the gitignored `data/raw/`, keyed by the documents themselves so a
+    corpus change invalidates them rather than silently scoring last week's text.
+    """
+
+    CACHE = "data/raw/eval-dense-vectors.npz"
+
+    def __init__(self, docs: list[tuple[str, str]]):
+        import hashlib
+        import os
+
+        import numpy as np
+        from fastembed import TextEmbedding
+
+        self.ids = [d[0] for d in docs]
+        self.raw = [d[1] for d in docs]
+        self._model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+        self._np = np
+
+        key = hashlib.sha256("\x00".join(self.raw).encode()).hexdigest()[:16]
+        mat = None
+        if os.path.exists(self.CACHE):
+            try:
+                z = np.load(self.CACHE)
+                if str(z["key"]) == key:
+                    mat = z["mat"]
+            except Exception:
+                mat = None
+        if mat is None:
+            print(f"    embedding {len(self.raw)} documents — minutes, not seconds; cached after "
+                  f"this…", flush=True)
+            mat = np.asarray(list(self._model.embed(self.raw)), dtype="float32")
+            os.makedirs(os.path.dirname(self.CACHE), exist_ok=True)
+            np.savez_compressed(self.CACHE, mat=mat, key=np.array(key))
+        else:
+            print(f"    reusing cached embeddings for {len(self.raw)} documents", flush=True)
+        self._mat = mat / (np.linalg.norm(mat, axis=1, keepdims=True) + 1e-9)
+
+    def search(self, q: str, k: int = 10) -> list[tuple[str, str, float]]:
+        np = self._np
+        qv = np.asarray(list(self._model.embed([q]))[0], dtype="float32")
+        qv = qv / (np.linalg.norm(qv) + 1e-9)
+        sims = self._mat @ qv
+        return [(self.ids[i], self.raw[i], float(sims[i])) for i in np.argsort(-sims)[:k]]
+
+
 def load_documents(g) -> list[tuple[str, str]]:
     """Every document the graph was built from, flattened. The baseline sees all of it."""
     docs: list[tuple[str, str]] = []
@@ -252,15 +315,22 @@ def main() -> int:
     g = connect().select_graph("tomb:k8s")
     agent = Agent(graph_name="tomb:k8s")
 
+    import os as _os0
+    want_dense = "--dense" in sys.argv or _os0.environ.get("EVAL_DENSE") == "1"
+
     print("building the text baseline over the same documents…")
     docs = load_documents(g)
     tfidf = TfIdf(docs)
-    print(f"  {len(docs)} documents indexed (KEPs, alternatives, OWNERS files)\n")
+    dense = Dense(docs) if want_dense else None
+    print(f"  {len(docs)} documents indexed (KEPs, alternatives, OWNERS files)"
+          + ("; and again by embedding\n" if dense else
+             ". Dense retrieval off; add --dense to score it too.\n"))
 
-    print(f"{'question':<52}{'graph':>8}{'text':>8}   what it needs")
+    _dh = f"{'dense':>8}" if dense else ""
+    print(f"{'question':<52}{'graph':>8}{'text':>8}{_dh}   what it needs")
     print("-" * 118)
-    gw = tw = 0
-    by_cat: dict[int, tuple[int, int]] = {}
+    gw = tw = dw = 0
+    by_cat: dict[int, tuple[int, int, int]] = {}
     for item in QUESTIONS:
         a = agent.dispatch(item["tool"], item["args"])
         g_text = render(a)
@@ -270,25 +340,35 @@ def main() -> int:
         t_text = "\n".join(f"{i} {b}" for i, b, _ in hits)
         t_ok = bool(hits) and item["check"](t_text)
 
+        d_ok = False
+        if dense is not None:
+            dhits = dense.search(item["q"], k=10)
+            d_ok = bool(dhits) and item["check"]("\n".join(f"{i} {b}" for i, b, _ in dhits))
+
         gw += g_ok
         tw += t_ok
-        by_cat[id(item)] = (int(g_ok), int(t_ok))
+        dw += d_ok
+        by_cat[id(item)] = (int(g_ok), int(t_ok), int(d_ok))
+        _dc = (f"{'PASS' if d_ok else ' -- ':>8}") if dense is not None else ""
         print(f"  {item['q'][:50]:<50}{'PASS' if g_ok else ' -- ':>8}"
-              f"{'PASS' if t_ok else ' -- ':>8}   {item['why']}")
+              f"{'PASS' if t_ok else ' -- ':>8}{_dc}   {item['why']}")
 
     n = len(QUESTIONS)
     print("-" * 118)
-    print(f"  {'':<50}{gw}/{n:<7}{tw}/{n}")
+    print(f"  {'':<50}{gw}/{n:<7}{tw}/{n}"
+          + (f"{'':<3}{dw}/{n}" if dense is not None else ""))
 
     # Per category, because one average hides the only thing this eval is for. The control row
     # existing -- and the baseline scoring on it -- is what makes the other rows mean anything.
     print()
-    print(f"  {'category':<28}{'n':>3}{'graph':>8}{'text':>7}")
+    print(f"  {'category':<28}{'n':>3}{'graph':>8}{'text':>7}"
+          + (f"{'dense':>7}" if dense is not None else ""))
     for cat in dict.fromkeys(i.get("cat", "uncategorised") for i in QUESTIONS):
         rows = [i for i in QUESTIONS if i.get("cat", "uncategorised") == cat]
         g_c = sum(by_cat[id(i)][0] for i in rows)
         t_c = sum(by_cat[id(i)][1] for i in rows)
-        print(f"  {cat:<28}{len(rows):>3}{g_c:>8}{t_c:>7}")
+        print(f"  {cat:<28}{len(rows):>3}{g_c:>8}{t_c:>7}"
+              + (f"{sum(by_cat[id(i)][2] for i in rows):>7}" if dense is not None else ""))
     print()
     print(f"Graph answers {gw}/{n}. A TF-IDF index over the same documents answers {tw}/{n}.")
     print("The text baseline sees every word the graph does. Where a question is a lookup it")
@@ -327,7 +407,7 @@ def main() -> int:
                 if b != n:
                     drift.append(f"{doc} scores this benchmark out of {b}; it has {n} questions "
                                  f"(says {a}/{b}, so it predates the eval growing)")
-                elif a not in (gw, tw):
+                elif a not in ((gw, tw, dw) if dense is not None else (gw, tw)):
                     drift.append(f"{doc} says {a}/{b}; this run measured {gw}/{n} for the graph "
                                  f"and {tw}/{n} for the text baseline")
     if not _stated:

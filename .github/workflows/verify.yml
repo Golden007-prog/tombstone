@@ -139,6 +139,13 @@ jobs:
       - name: The keyless router, on language it was not tuned against
         run: python eval_router.py
 
+      # Scored on a runner rather than on a laptop, deliberately. Embedding the 2,224 baseline
+      # documents is minutes of CPU, which is too much to put in ./preflight.sh and too much to
+      # ask of the machine someone is also trying to work on. CI already has FalkorDB and a
+      # seeded graph, so the honest place for an expensive measurement is here.
+      - name: Graph against a DENSE retrieval baseline, not only TF-IDF
+        run: python eval_graph_vs_text.py --dense
+
       - name: The principles table describes this build, not a build like it
         run: python scripts_check_principles.py
 

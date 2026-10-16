@@ -23,7 +23,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **See it work without running anything:** **[▶ 86-second walkthrough](docs/video/walkthrough-silent.mp4)**
 >   — plays in GitHub's own viewer, captioned, every frame a real screenshot of the running app.
 > - **Nothing here is asserted.** 134 tests, 36 graph claims, 18 rendered UI states, and **two of
->   the seven benchmarks** re-run by **31 CI steps on each push** — the other five build a thousand
+>   the seven benchmarks** re-run by **32 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
