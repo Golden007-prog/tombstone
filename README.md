@@ -212,20 +212,27 @@ which is the closest thing that exists to a specification. I found it late, in t
 after building this. The overlap is not a coincidence so much as evidence that the same problems
 force the same answers.
 
+Four rows of this table used to put quotation marks around my own paraphrase of what the article
+says — *"Use built-in algorithms"*, *"Return the date with each remembered finding"*, *"Isolate
+tenants by using separate graphs, not filters"* and a line about comparing depths. The substance
+was right and the words were mine, which is not what quotation marks mean, and it is a careless
+thing to do to the organisers' prose in a document the organisers read. Every quoted string below
+is now checked character-for-character against the article text.
+
 | what the article asks for | where it is here |
 |---|---|
 | *"The agent never writes a query."* A fixed tool catalogue, arguments validated | 13 tools, every query a hand-written constant in [`tools.py`](src/tombstone/tools.py). The model picks a **tool name**; no model output is concatenated into Cypher. On the hosted demo there is no model at all — [routing is local](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it). |
 | *"Resolve names against the database"* before reasoning | A query does run first, and it is the resolution query — `MATCH (p:Person {key: $h})` for a handle, `MATCH (o:OwnersFile)` for a path. If it comes back empty the answer is `UNKNOWN_ENTITY` and **the traversal never runs**; the `cypher` field on that answer is empty, which is how the test checks it. The name is checked against the graph before anything reasons about it, which is the order the article asks for. |
 | *"Every answer returns one of four shapes"*: answered with a path, answered from memory, not in the graph, unknown | The same four, named the same way, plus `DEGRADED` and `UNSURE_WHICH_TOOL`. [The table is here](#the-agent). |
-| *"'Not in the graph' is deliberately not the same thing as 'nothing breaks'"* | A real area with an empty traversal gives `NOT_IN_GRAPH` **with a coverage statement**; a name the graph does not know gives `UNKNOWN_ENTITY`. Different shapes, on purpose. |
+| *"“Not in the graph” is deliberately not the same thing as “nothing breaks”."* | A real area with an empty traversal gives `NOT_IN_GRAPH` **with a coverage statement**; a name the graph does not know gives `UNKNOWN_ENTITY`. Different shapes, on purpose. |
 | *"Return the path with the answer"*, not an explanation written afterwards | **In substance, yes; as a drawn path, partly.** Every answer carries the rows, the exact Cypher, its hash and a coverage statement, and the prose is formatted from those rows — no model writes it, which is the thing the article is actually guarding against. The *drawn* path appears on 4 of 14 questions: both depths of `who_owns`, `successor_for`, and `what_if_they_go` — the ones whose answer genuinely is a route between named things. The counterfactual's picture is drawn from the verdict in the answer beside it rather than recomputed, and it shows the area that loses its last approver next to two areas the same cohort empties that survive anyway, each with the ancestor it inherits coverage from and the people still approving there (up to two of them, and up to two such areas, so the picture stays readable). That contrast *is* the cascade `GRAPH.COPY` exists to compute. For "which areas have one approver" there is no path to draw, only a list, and inventing a picture for it would be decoration. |
 | *"a plausible service name is worse than no answer"* | The README has said *"a plausible wrong name here would be worse than no answer"* since before I read theirs. |
 | *"Write it as a node, connect it to what it is about, and read it before you reason"* | `(:Answer)` nodes that `CITED` the records they came from — [and memory only answers while those citations resolve](#it-remembers-what-it-learns). |
-| *"Return the date with each remembered finding"* | Recall prints *"asked 1x, last 15 Oct 23:32"* beside every hit. |
-| *"Isolate tenants by using separate graphs, not filters"* | **Partly.** The app is single-tenant — it selects one graph at startup and never switches, so there is nothing here to isolate. What I can show is that the mechanism works: [measured to 1000 graphs](#why-falkordb-measured-honestly--including-where-it-loses), isolation is physical, a second tenant running the identical Cypher gets `[]`, and `db.labels()` does not list the label. That is a property of FalkorDB I verified, not a feature this product uses. |
-| *"Use built-in algorithms"* rather than reimplementing | `algo.betweenness` (seeded), `algo.labelPropagation`, `GRAPH.COPY`, a vector index — all called, none reimplemented. |
+| it is *"worth returning the date alongside the text rather than folding it into prose"* | Recall prints *"asked 1x, last 15 Oct 23:32"* beside every hit. |
+| *"a tenant is a graph rather than a filter you have to remember to apply"* | **Partly.** The app is single-tenant — it selects one graph at startup and never switches, so there is nothing here to isolate. What I can show is that the mechanism works: [measured to 1000 graphs](#why-falkordb-measured-honestly--including-where-it-loses), isolation is physical, a second tenant running the identical Cypher gets `[]`, and `db.labels()` does not list the label. That is a property of FalkorDB I verified, not a feature this product uses. |
+| *"FalkorDB ships these as procedures you call with `CALL algo.<name>()`, which means your agent gets them as tools"* — rather than reimplementing | `algo.betweenness` (seeded), `algo.labelPropagation`, `GRAPH.COPY`, a vector index — all called, none reimplemented. |
 | *"Whether the graph is doing work the agent could not do without it"* | [Turn FalkorDB off](#turn-falkordb-off-and-here-is-exactly-what-stops-working) — and the one place I overclaimed that, I withdrew. |
-| *"Demos that compare the same question at different depths"* | Chips **1** and **2**, and beats 1 and 2 of the video: the same question, shallow then four hops. |
+| the depth parameter *"is a parameter rather than a literal so the tool can cap it"*, and the article's worked query varies it | Chips **1** and **2**, and beats 1 and 2 of the video: the same question, shallow then four hops. |
 
 The failure modes it says to avoid — guessing names, writing its own queries, summarising reports
 it was not given, producing *"a confident sentence nobody can check"* — are the four this product
@@ -790,10 +797,17 @@ docker build -t tombstone .
 docker run -p 8099:8099 tombstone
 ```
 
-That is the same image `./scripts_verify_deploy.sh` builds and boots, so it is the best-tested
-way in; it just takes a few minutes to build rather than seconds to start. Verified on macOS and,
-by CI on every push, on Ubuntu — not on Windows, which is why this says use WSL rather than
-claiming it works there.
+That is the same image `./scripts_verify_deploy.sh` builds and boots; it takes a few minutes to
+build rather than seconds to start. **Who has actually verified which path, because this sentence
+used to blur them:** `./run.sh` is verified by CI on every push on Ubuntu — the `quickstart` job
+clones fresh, installs, runs it with a container called `falkordb` already in the way as a
+judge's machine would have, pastes the README's own check-me commands, and asserts the app serves
+and answers. The **container** path is verified by me on macOS with
+`./scripts_verify_deploy.sh`, and **no CI job builds the image** — `docker build` appears in no
+workflow, so a Dockerfile regression would reach you before it reached a green tick. Neither path
+is verified on Windows, which is why this says use WSL rather than claiming it works there.
+An audit asked which of those two the words "best-tested" and "by CI on every push" were
+attached to, and the answer was: the wrong one.
 
 Then open <http://localhost:8099>. **No API key needed, and the ask box still works** — see
 [routing without a key](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it).
