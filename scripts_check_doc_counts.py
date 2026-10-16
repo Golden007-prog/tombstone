@@ -262,6 +262,23 @@ else:
     checked += 1
     print(f"  {len(_in_ci)} of {len(_benches)} benchmarks run in CI, and the box says so")
 
+# The tool count, spelled in words wherever the prose names it. The README said the model picks
+# "which of eleven tools" while the catalogue has thirteen and the principles table two hundred
+# lines above said thirteen. Found by sweeping sentences that assert something absolute, not by
+# any check -- the number-scanner looks for digits and this one was a word.
+_tools = len(re.findall(r'^\s{4}"(\w+)":', open("src/tombstone/tools.py").read(), re.M))
+_WORDS_T = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen"}
+for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md"):
+    _txt = open(_doc).read()
+    for _w in re.findall(r"\b(eleven|twelve|thirteen|fourteen|fifteen)\s+(?:tools|queries|chips)\b",
+                         _txt):
+        if _w != _WORDS_T.get(_tools):
+            problems.append(f"{_doc}: says '{_w} tools', the catalogue has {_tools} "
+                            f"({_WORDS_T.get(_tools)})")
+        else:
+            checked += 1
+print(f"  the catalogue has {_tools} tools and every document that spells it agrees")
+
 print(f"  the walkthrough builds to {_dur}s across {len(_beats)} beats and both docs agree")
 
 print(f"  the UI check drives {_states} rendered states and every document agrees")

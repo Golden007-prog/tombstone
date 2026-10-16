@@ -582,7 +582,7 @@ be strictly worse — it would cost money, vary between runs, and hallucinate re
 YAML states exactly. **752 of the 958 rejected alternatives are extracted by a regex over
 sub-headings, not a model.**
 
-So the LLM in this project does exactly one job: picking which of eleven tools to call. It never
+So the LLM in this project does exactly one job: picking which of thirteen tools to call. It never
 writes Cypher, never extracts an entity, and never phrases a finding. Swap it out and the graph is
 unchanged.
 
