@@ -6,6 +6,18 @@ const $ = (id) => document.getElementById(id);
 
 // Each chip is a real tool call. The first two are the same question at two depths, which is the
 // contrast the brief asks for: shallow finds silence, deep finds the reason for the silence.
+//
+// KEEP LABELS SHORT, and here is the actual budget rather than a feeling about it. `.chip` is
+// `white-space:nowrap; flex-shrink:0`, so a label can neither wrap nor compress: a long one
+// overflows its container instead. Measured in a browser at 375x812 against this exact CSS, the
+// longest label here -- "Whose stepping back cost the most connective authority?", 55 characters
+// -- renders 356px wide, against a 343px content box inside `.wrap`'s 16px gutters. It overflows
+// INTO the gutter and the page still does not scroll sideways, because 356 < 375. So there are
+// roughly three characters of headroom before a phone gets horizontal scroll.
+//
+// Three characters, not a rule: this is a proportional font, so "WWW" costs far more than "iii"
+// and a character limit would be a bad proxy. If you add a longer label, open the page at 375px
+// and look, the way this number was obtained.
 const CHIPS = [
   { label: "Who owns the apiserver metrics endpoint? (shallow)", step: 1,
     question: "who owns the apiserver metrics endpoint",
