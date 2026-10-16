@@ -24,7 +24,7 @@ cannot quietly fall behind an edit made here.
 It held 767 spoken words in 180 seconds — 4.3 words per second, which is not a narration, it is a
 countdown. Read aloud it ran about 4:35, so the 3:00 cap would have been discovered at midnight
 during take nine. Comfortable narration is **2.8 words per second**, and visuals need room to
-breathe, so the budget for 3:00 is **about 500 spoken words.** This script now holds **490**, at
+breathe, so the budget for 3:00 is **about 500 spoken words.** This script now holds **488**, at
 2.7 w/s, with no beat above 2.9. Each heading carries its own budget, and
 `python scripts_check_demo_timing.py` fails if the beats stop being contiguous, stop summing to
 180 seconds, drift above 3.0 w/s, stop matching the word counts in their headings, or stop
@@ -95,10 +95,10 @@ ownership files.*
 > "This one no amount of search can produce.
 >
 > Not who owned the most files — betweenness centrality. Who bridged groups that otherwise didn't
-> talk. Look: the person who left the most areas behind, thirty-one, is only third. Top of the
-> list left five.
+> talk. The person who left thirty-one areas behind is not at the top — and whoever is, left far
+> fewer.
 >
-> A whole-graph property. Under twenty milliseconds, inside the request."
+> A whole-graph property, computed inside the request."
 
 ### 1:43–2:17 — It drafts two fixes, and refuses the third · 100 words
 

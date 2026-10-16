@@ -4,7 +4,7 @@ Generated from [`DEMO-SCRIPT.md`](DEMO-SCRIPT.md) by `scripts_build_narration.py
 
 Every stage direction, screen note and word budget lives in the script. What is left here is what you say.
 
-**490 words across 180 seconds.** Record the voiceover separately from the screen capture — the checklist in the script explains why, and it is the single biggest cause of a bad night.
+**488 words across 180 seconds.** Record the voiceover separately from the screen capture — the checklist in the script explains why, and it is the single biggest cause of a bad night.
 
 ---
 
@@ -90,7 +90,7 @@ The others inherit coverage upward.
 
 ### 1:25 → 1:43 · The answer no search engine can give
 
-*52 words, 18 seconds.*
+*50 words, 18 seconds.*
 
 This one no amount of search can produce.
 
@@ -98,13 +98,9 @@ Not who owned the most files — betweenness centrality.
 
 Who bridged groups that otherwise didn't talk.
 
-Look: the person who left the most areas behind, thirty-one, is only third.
+The person who left thirty-one areas behind is not at the top — and whoever is, left far fewer.
 
-Top of the list left five.
-
-A whole-graph property.
-
-Under twenty milliseconds, inside the request.
+A whole-graph property, computed inside the request.
 
 ---
 
