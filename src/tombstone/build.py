@@ -15,12 +15,68 @@ Design notes that matter:
 from __future__ import annotations
 
 import datetime as _dt
+import re
 import sys
 
 from graphkit.ingest import Ingestor, chunked, connect
 from tombstone.corpus import Corpus, expand, is_bot, normalise_status, rejected_alternatives
 
 EPOCH = _dt.date(1970, 1, 1)
+
+
+# A leading list marker or bold run makes the first ". " land two characters in, so the naive
+# first-sentence cut produced titles like "1." for nineteen real rejections -- each with 192 to
+# 1,799 characters of argument underneath it. Abbreviations do the same thing more quietly:
+# "Setting up a VPN (e.g. IPSec)" cut at "(e.g." and shipped that as the option's name.
+#
+# Retitling is free here, and that is not an accident worth glossing: the committed embeddings are
+# over the BODY alone -- re-embedding a body reproduces its stored vector at cosine 1.0000 -- so
+# the label is display text only. Nothing about retrieval moves when it changes.
+_MARKER = re.compile(r"^(?:[-*+]\s+|\d+[.)]\s+|#{1,6}\s+)+")
+# Compared as whole TOKENS, never with endswith. The first version of this tuple was tested with
+# str.endswith and "al." is in it for "et al.", so it matched "proposal.", "optional.",
+# "additional.", "functional." -- and a corpus of design documents says "proposal." constantly.
+# One such sentence ran to 181 characters before the next boundary it would accept. That is the
+# same defect as an exclusion keyed on a word instead of a meaning: it silently swallows the
+# honest sentences that happen to end in those three letters.
+_ABBREV = frozenset(
+    ("e.g.", "i.e.", "etc.", "vs.", "cf.", "resp.", "approx.", "al.", "Fig.", "No.")
+)
+
+
+_LIMIT = 160
+
+
+def _clip(text: str) -> str:
+    """Cut to _LIMIT on a word boundary. A label ends on a full stop or an ellipsis, never
+    mid-word: slicing the first sentence at a fixed width did that to eighteen of these, which
+    measured worse than the "1." it was introduced to fix."""
+    if len(text) <= _LIMIT:
+        return text
+    cut = text.rfind(" ", 0, _LIMIT)
+    return text[: cut if cut > 0 else _LIMIT].rstrip(" ,;:-") + "\u2026"
+
+
+def derive_label(body: str) -> str:
+    """A display label for an Alternatives section that had no sub-heading.
+
+    The first real sentence, clipped to 160 characters. "Real" means it does not end on a known
+    abbreviation and leaves at least 24 characters, which is enough to keep "Add a config to
+    Kubelet." whole while refusing "1." and "(e.g.".
+    """
+    first = " ".join(body.split())
+    first = _MARKER.sub("", first).lstrip("*_`# ").strip()
+    at = 0
+    while True:
+        cut = first.find(". ", at)
+        if cut < 0:
+            break
+        head = first[: cut + 1]
+        tail = head.rsplit(" ", 1)[-1].lstrip("([{\"'")
+        if cut >= 24 and tail not in _ABBREV:
+            return _clip(head)
+        at = cut + 1
+    return _clip(first)
 
 
 def to_ms(datestr) -> int:
@@ -110,11 +166,7 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
             aid = f"{rel}#alt#{i}"
             # An untitled Alternatives section is prose, not a named option. Derive a label from
             # its first sentence so the UI never shows "(untitled alternative)" to a judge.
-            label = title
-            if not label:
-                first = " ".join(body.split())
-                cut = first.find(". ")
-                label = (first[: cut + 1] if 0 < cut < 160 else first[:140].rstrip() + "…")
+            label = title or derive_label(body)
             alt_rows.append(
                 dict(
                     key=aid,

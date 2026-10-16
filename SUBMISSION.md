@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 128 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 131 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -66,7 +66,7 @@ means part of any graph-versus-text gap is a gap you authored.
 `Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
 PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
-tests to 128.** It is bigger and better-tested, it is honest about its own limits, and it is not
+tests to 131.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not.
 
@@ -155,9 +155,9 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Nothing here is asserted. **31 CI steps on every push** re-check it: 128 tests, 36 graph claims
+Nothing here is asserted. **31 CI steps on every push** re-check it: 131 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
-the drafting action's own output, the memory claims, two of the six benchmarks re-run — the
+the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other four build a thousand graphs, millions of edges or a memory curve, so they are dated measurements with
 committed scripts rather than gates, and the README says which is which — and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
@@ -226,10 +226,12 @@ rather than improvised.*
 
 ## What I would do next
 
-> Three things, in the order they would matter. **Reach the 163 rejections the search cannot
-> see** — they are in the graph and the lineage queries find them, but their extracted titles came
-> out as sentences so they were never embedded, which makes them invisible to the one tool whose
-> job is finding rejections. **Earn the tenancy claim**: the mechanism is measured to 1,000 graphs
+> Three things, in the order they would matter. **Reach the 206 rejections the search cannot
+> see** — they are in the graph, the lineage queries find them, and they are all embedded; what
+> they are not is *indexed*, because the vector index is minted on the 752 named options, so an
+> unindexed node cannot be returned for any query. Widening the index is the obvious move and
+> `bench_index_scope.py` measures why it is not free: it costs about three points of named-option
+> retrieval at every k to buy that reachability. The fix worth doing is a better extractor. **Earn the tenancy claim**: the mechanism is measured to 1,000 graphs
 > but this app is single-tenant and never switches graphs, so what is demonstrated is that it
 > works, not that this uses it. **Ingest something that is not a document** — the rules rightly
 > forbid private tickets and chats, and a fabricated company proves nothing, so this is docs only
@@ -325,7 +327,7 @@ weakest things — stated first, because every one of them is already written do
 - [x] `git config core.hooksPath scripts` — done; `submission_audit.py` confirms it. The push
       gate now also refuses any commit carrying a credential-shaped string, which matters on the
       next line of this list.
-- [ ] `./preflight.sh` — one command, twenty-two checks: the graph counts against the live graph,
+- [ ] `./preflight.sh` — one command, twenty-three checks: the graph counts against the live graph,
       every rendered answer state, the README's printed output, the demo script's facts and
       timing, both benchmarks, and whether the page still renders on GitHub
 - [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a

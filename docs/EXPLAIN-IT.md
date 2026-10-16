@@ -53,15 +53,28 @@ that was given up, `INHERITS_FROM` (584) is the ownership chain the depth-4 trav
 `CONSIDERED` (958) joins a decision to what it rejected, and `CO_AUTHORED` (5,879) is the
 collaboration graph the whole-graph algorithms run over.
 
-**The decision to be ready to defend:** why 752 `NamedOption` out of 958 `Alternative`. Only 752 of
-the extracted options are genuinely a *nameable* alternative — but be careful how you say what
-the other 206 are, because I got it wrong on the page first. Only about 22 are artefacts: 19 list
-markers, a few fragments. **163 are 60+ characters of real text describing a rejection that
-happened**, whose extracted title came out as a sentence because the KEP wrote it as a paragraph
-rather than a sub-heading. They are nodes in the graph and the lineage queries see them; they are
-not embedded, so `has_this_been_tried` cannot reach them. If asked what this product's biggest
-recall weakness is, that is the honest answer: up to 163 rejections out of 958 are not findable by
-the tool whose whole job is finding them.
+**The decision to be ready to defend:** why the vector index holds 752 `NamedOption` and not all
+958 `Alternative`. Say it in this order, because the page got it wrong twice before this.
+
+The other 206 are **all real rejections**. Every one carries at least 100 characters of argument,
+which is the floor the build applies before it makes a node, and every one carries a 384-dimension
+vector. They are **embedded and deliberately unindexed** — not, as this page used to say, "not
+embedded". Re-embedding the body reproduces the stored vector at cosine 1.0000, which is also how
+we know the embedding is over the body and the title is display text only.
+
+So the gap is structural: the index is minted on `:NamedOption`, and an unindexed node has
+probability zero of being returned for any query. If asked what this product's biggest recall
+weakness is, that is the honest answer: **up to 206 rejections out of 958 cannot be reached by the
+tool whose whole job is finding them.** Ask about `kube-state-metrics` and the rejection naming it
+does not come back.
+
+**And be ready for the obvious follow-up — why not just widen the index?** Because it was measured
+rather than assumed. `bench_index_scope.py` pools all 958 into one index and scores both: named
+options asked for by their own sub-heading drop from 48.2 / 64.8 / 72.8% to 45.8 / 61.8 / 69.8% at
+k=1/3/8, while the excluded set goes from 0/25 to 19/25 reachable. Three points of precision
+against structural reachability is a genuine trade; the shipped build keeps the pre-filter, and
+the script that would have overturned that decision is committed next to the one that justifies
+it. The real fix is a better extractor, which is a re-ingest.
 
 ## "What do the thirteen tools do?"
 
@@ -128,9 +141,9 @@ outright. Volunteer both before anyone finds them.
 
 ## "How do you know any of this is true?"
 
-One command: `./preflight.sh` — twenty-two checks. The graph counts are re-derived against the
+One command: `./preflight.sh` — twenty-three checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-31 CI steps on every push, 33 runs because two repeat across Python 3.11 and 3.14. 128 tests. Each answer in the UI carries its Cypher, that query's hash,
+31 CI steps on every push, 33 runs because two repeat across Python 3.11 and 3.14. 131 tests. Each answer in the UI carries its Cypher, that query's hash,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

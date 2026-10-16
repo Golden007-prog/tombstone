@@ -20,9 +20,10 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
-> - **Nothing here is asserted.** 128 tests, 36 graph claims, 18 rendered UI states, and **two of
->   the six benchmarks** re-run by **31 CI steps on each push** — the other four build a thousand
->   graphs, millions of edges or a memory curve, so they are dated measurements with committed scripts rather than
+> - **Nothing here is asserted.** 131 tests, 36 graph claims, 18 rendered UI states, and **two of
+>   the seven benchmarks** re-run by **31 CI steps on each push** — the other five build a thousand
+>   graphs, millions of edges, a memory curve or a second vector index, so they are dated
+>   measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
 >   withdraw, which are
 >   [marked, not deleted](#three-more-claims-i-stress-tested-and-one-that-was-simply-false).
@@ -735,7 +736,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 128 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 131 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1247,18 +1248,24 @@ times. Each fix made the claim narrower and more defensible.
 
 - **Memory grows with use, and nothing evicts it.** Every answered question becomes an
   `(:Answer)` node, deduplicated by question so repeats only bump a counter.
-  [`bench_memory_growth.py`](bench_memory_growth.py) records 200 of them and watches the
-  database: **about 12 KB each**, reproducing at 11.9, 11.6 and 12.2 KB across three runs from a
-  cleared start. Most of that is the 384-dimension embedding, stored as a native `Vectorf32`.
-  A thousand distinct answered questions costs ~12 MB on top of the 387 MB this image already
-  peaks at; **ten thousand reaches about 506 MB against the 512 MB serial ceiling** — at the
-  edge, not inside it. Months of a busy Space, not a hackathon. There is no cap and no eviction,
-  deliberately — a memory that silently forgets is a different product — and `./run.sh --forget`
-  clears it in one command. A question that is *not* answered costs nothing: only the answering
-  shapes are recorded, so typing nonsense at it accumulates nothing.
-  *(The first version of this entry said 7.4 KB, measured over forty answers against a database
-  that still held an earlier experiment. Too few samples, dirty baseline, and the figure was off
-  by a third in the direction that made the limit look safer.)*
+  [`bench_memory_growth.py`](bench_memory_growth.py) records answers in blocks and watches the
+  database: **about 3.5 KB each, marginal**. Most of that is the 384-dimension embedding, stored
+  as a native `Vectorf32` at 1,536 bytes. A thousand distinct answered questions costs ~5 MB on
+  top of the 387 MB this image already peaks at; **ten thousand reaches a little over 420 MB against the
+  512 MB serial ceiling.** There is no cap and no eviction, deliberately — a memory that silently
+  forgets is a different product — and `./run.sh --forget` clears it in one command. A question
+  that is *not* answered costs nothing: only the answering shapes are recorded, so typing nonsense
+  at it accumulates nothing.
+  *(This figure has now been wrong twice, both times because of how it was sampled. It first said
+  7.4 KB from forty answers against a dirty baseline. It then said 12 KB, reproducing at 11.9,
+  11.6 and 12.2 across three runs — and those runs were real, but all three started from an
+  **empty** memory, where the first two hundred answers also pay about 1.4 MB of one-time
+  structure for the vector index. Averaged over that block it looks like 10.7 KB an answer;
+  measured block by block the next three give 3.5, 3.5 and 3.0. A first-batch average multiplied
+  by ten thousand is not a projection, and the old one overstated the ceiling by about 3x —
+  "at the edge, not inside it" was the wrong conclusion, drawn confidently from a reproducible
+  number. The benchmark now prints every block, so the amortisation is visible rather than
+  averaged away, and it reconciles against the marginal figure above.)*
 
 - **A few embedded options are section headings, and the query now excludes them.** Lifting named
   options out of prose is a regex over sub-headings and it is not perfect: of the 752 titles that
@@ -1283,20 +1290,28 @@ times. Each fix made the claim narrower and more defensible.
   source URL from the raw corpus and noticing that one number had two.
 - **Betweenness is sampled**, not exact (`samplingSize` 32). The seed is pinned so the number is
   reproducible, but it is an approximation and the UI says so.
-- **206 of 958 alternatives are outside the search, and most of them are real.** This line used
-  to say they were "untitled prose", which was comfortable and wrong. Of the 206: **19 are list
-  markers** (one is literally `1.`), 24 are short fragments — and **163 are 60 characters or
-  more of substantive text describing a rejection that genuinely happened**. One reads *"We
-  considered extending `kube-state-metrics` to represent all of the data necessary…"*. That is not
-  an artefact; it is a real rejected alternative whose extracted title came out as a sentence
-  because the KEP described it in a paragraph instead of a sub-heading.
-  They are in the graph, so `ownership_dilution` and the lineage queries see them. They are **not
-  embedded**, so `has_this_been_tried` cannot find them — ask about `kube-state-metrics` and that
-  rejection does not come back. That is a recall gap of up to 163 rejections out of 958, and
-  calling it an artefact count hid it. Embedding sentence-length titles would also degrade every
-  similarity query, so the real fix is a better extractor, not a wider index — and that is a
-  re-ingest, which is not a thing to start two days from a deadline. Measured, not estimated, and
-  pinned by `eval_gold.py`.
+- **206 of 958 alternatives are outside the search index, and every one of them is real.** This
+  line has been wrong twice. It first called them "untitled prose", which was comfortable; then it
+  said they were **not embedded**, which was simply false. All 206 carry a 384-dimension vector,
+  and re-embedding the body reproduces the stored one at **cosine 1.0000** — which also settles
+  what the embedding is over: the body, not the title. All 206 carry at least 100 characters of
+  argument, because that is the floor the build applies before it makes a node at all. One reads
+  *"We considered extending `kube-state-metrics` to represent all of the data necessary…"*.
+  What excludes them is the **index**, which is minted on `:NamedOption` (752 documents), and an
+  unindexed node has probability zero of being returned for any query — so this is a structural
+  gap, not a scoring miss. Ask about `kube-state-metrics` and the rejection that names it does not
+  come back; it returns five unrelated options instead. Verified, not assumed.
+  The old line went on to predict that a wider index "would degrade every similarity query".
+  `bench_index_scope.py` now measures that instead of asserting it, and the prediction holds in
+  direction: pooling all 958 into one index moves named-option retrieval from **48.2 / 64.8 /
+  72.8%** to **45.8 / 61.8 / 69.8%** at k=1/3/8, while taking the excluded set from **0/25 to
+  19/25** reachable. Three points of precision against structural reachability is a real trade and
+  not an obvious one; the pre-filter stays, now for a measured reason rather than an assumed one.
+  The labels were wrong too: nineteen read as `1.` because a leading list marker put the first
+  sentence boundary two characters in, and one ran to 181 characters because the abbreviation
+  guard was tested with `endswith`, so `"al."` matched `"proposal."`. Fixed — **0 list markers
+  now, and 179 of the 206 carry a 60-plus character label.** The real fix for the gap itself is
+  still a better extractor, which is a re-ingest. Pinned by `eval_gold.py`.
 - **7 of 681 decisions have no usable date** — 3 omit the field entirely, 2 still carry the
   template's literal `'yyyy-mm-dd'`, and 2 give a month above twelve (`2023-14-05`,
   `2025-30-01`), presumably a day-month transposition. "Presumably" is not a date, so they stay

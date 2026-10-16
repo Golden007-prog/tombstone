@@ -2,7 +2,7 @@
   "data/corpus.json.gz": "acf66973b25948e1",
   "src/tombstone/act.py": "6939acbb9fe2bbba",
   "src/tombstone/agent.py": "9e232e3e6bb8e3bc",
-  "src/tombstone/build.py": "e868b7df44d8c543",
+  "src/tombstone/build.py": "0482b46534c82d20",
   "src/tombstone/tools.py": "fa9b246d3f1e6604",
   "web/app.js": "6f1a4ef170142283",
   "web/index.html": "54c88d072295970e",

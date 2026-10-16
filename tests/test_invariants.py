@@ -1809,3 +1809,76 @@ def test_every_repo_path_the_docs_name_actually_exists():
 
     assert not missing, (
         "a document names a path that is not in the repository:\n  " + "\n  ".join(missing))
+
+
+def test_derive_label_refuses_list_markers_and_abbreviations():
+    """A label is a readable sentence, or it is worse than no label.
+
+    Three defects, each of which shipped at some point and each pinned here:
+      - a leading "1." or "* " put the first sentence boundary two characters in, so nineteen
+        real rejections were labelled `1.`;
+      - the abbreviation guard was compared with endswith, and "al." is in it for "et al.", so
+        every sentence ending in "proposal." was swallowed and ran on to the next boundary;
+      - the accepted sentence was then sliced at a fixed width, which cut eighteen labels
+        mid-word with no ellipsis.
+    """
+    from tombstone.build import derive_label
+
+    assert derive_label("1. Increasing the default timeout for exec probes is one option. More.") \
+        .startswith("Increasing")
+    assert derive_label("* Setting up a VPN (e.g. IPSec, Wireguard). It is more complicated.") \
+        == "Setting up a VPN (e.g. IPSec, Wireguard)."
+    # the endswith regression: "proposal." is a sentence end, "et al." is not
+    assert derive_label("There are a few alternatives to this proposal. First, an API.") \
+        == "There are a few alternatives to this proposal."
+    assert derive_label("See Smith et al. 2019 for the background here. It was rejected.") \
+        == "See Smith et al. 2019 for the background here."
+    # a sentence with no boundary at all is clipped on a word, with an ellipsis
+    long = "word " * 80
+    out = derive_label(long)
+    assert len(out) <= 161 and out.endswith("…") and not out.endswith("wor…")
+
+
+def test_every_excluded_alternative_is_embedded_and_substantive(g):
+    """The docs call these the product's biggest recall weakness. The claim they make is that
+    the exclusion is the INDEX, not the data -- so the data has to hold up."""
+    gap, vectored, thin, longest = g.ro_query(
+        "MATCH (a:Alternative) WHERE NOT a:NamedOption "
+        "RETURN count(a), sum(CASE WHEN a.emb IS NOT NULL THEN 1 ELSE 0 END), "
+        "       sum(CASE WHEN size(a.body) < 100 THEN 1 ELSE 0 END), max(size(a.title))"
+    ).result_set[0]
+    assert gap > 0, "no excluded alternatives at all — this test would pass vacuously"
+    assert vectored == gap, f"{gap - vectored} of {gap} excluded alternatives carry no vector"
+    assert thin == 0, f"{thin} excluded alternatives hold under 100 characters of argument"
+    assert longest <= 161, f"an excluded alternative carries a {longest}-character label"
+    markers = g.ro_query(
+        "MATCH (a:Alternative) WHERE NOT a:NamedOption AND size(trim(a.title)) <= 6 "
+        "RETURN count(a)").result_set[0][0]
+    assert markers == 0, f"{markers} excluded alternatives are labelled with a list marker"
+
+
+def test_drawn_path_can_cite_what_the_prose_cites(g):
+    """The picture and the sentence must walk the same label.
+
+    They did not: the prose walks :Alternative and the drawn path walked :NamedOption, so on the
+    demo's own file the answer named two rejections -- one of them 'Doing nothing is a viable
+    alternative.' -- that the diagram drew zero of. The beat's claim is that the picture IS the
+    path the answer came from, which that made false.
+    """
+    import pathlib
+    import re
+
+    server = pathlib.Path("src/tombstone/server.py").read_text()
+    drawn = re.search(r"CONSIDERED\]->\(alt:(\w+)\)", server)
+    assert drawn, "the subgraph query no longer walks CONSIDERED"
+    assert drawn.group(1) == "Alternative", (
+        f"the drawn path filters rejections to :{drawn.group(1)}; the prose walks :Alternative, "
+        f"so the diagram can omit a node the answer names")
+
+    path = "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS"
+    cited = {r[0] for r in g.ro_query(
+        "MATCH (o:OwnersFile {path:$p})<-[:EMERITUS_OF]-(d:Person) "
+        "MATCH (d)-[:AUTHORED|APPROVED]->(:Kep)-[:CONSIDERED]->(a:Alternative) "
+        "RETURN DISTINCT a.title", params={"p": path}).result_set}
+    assert cited, "the demo's own file cites no rejections — this test would pass vacuously"
+    assert "Doing nothing is a viable alternative." in cited

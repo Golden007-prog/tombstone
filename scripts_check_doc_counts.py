@@ -452,7 +452,10 @@ for _rel, _q in _EDGES.items():
         checked += 1
 
 _gap = count("MATCH (n:Alternative) WHERE NOT n:NamedOption RETURN count(n)")
-_m = re.search(r"the\s+other (\d+) are", _brief) or re.search(r"other (\d+) have titles", _brief)
+# Case-insensitive: the sentence was reworded to START with "The other 206 are", and a
+# case-sensitive pattern then reported the figure as missing from a page that states it.
+_m = (re.search(r"the\s+other (\d+) are", _brief, re.I)
+      or re.search(r"other (\d+) have titles", _brief, re.I))
 if not _m or int(_m.group(1)) != _gap:
     problems.append(f"docs/EXPLAIN-IT.md: the un-named alternatives figure should be {_gap}")
 else:
@@ -460,10 +463,30 @@ else:
 
 # How many of those are real text rather than artefacts. The page used to call all 206 artefacts,
 # which was comfortable and wrong, so the number that corrects it is itself derived.
+#
+# Both of these count TITLE length, which measures the extractor and not the corpus -- and the
+# extractor has since been fixed, so the honest substance floor is the third query: the build
+# refuses to make a node under 100 characters of body, and the embedding is over the body alone.
 _substantive = count("MATCH (n:Alternative) WHERE NOT n:NamedOption AND size(trim(n.title)) >= 60 "
                      "RETURN count(n)")
 _markers = count("MATCH (n:Alternative) WHERE NOT n:NamedOption "
                  "AND size(trim(n.title)) <= 6 RETURN count(n)")
+_thin = count("MATCH (n:Alternative) WHERE NOT n:NamedOption AND size(n.body) < 100 "
+              "RETURN count(n)")
+_vectored = count("MATCH (n:Alternative) WHERE NOT n:NamedOption AND n.emb IS NOT NULL "
+                  "RETURN count(n)")
+if _thin:
+    problems.append(f"{_thin} excluded alternatives hold under 100 characters of body, which the "
+                    f"build is supposed to refuse")
+else:
+    checked += 1
+# The docs now say every one of them is embedded. If that stops being true the pages become
+# wrong in the direction that flatters the product, which is the direction worth gating.
+if _vectored != _gap:
+    problems.append(f"the docs say all {_gap} excluded alternatives carry a vector; "
+                    f"{_vectored} do")
+else:
+    checked += 1
 # Every tracked document, not the two that happened to state it when this was written. A
 # "what I would do next" answer in SUBMISSION.md now calls these "the 163 rejections the search
 # cannot see", which is the same figure in a form neither pattern below would have matched --
@@ -475,19 +498,47 @@ for _doc in _docs:
                   # \s and an optional ">" because the sentence wraps inside a blockquote,
                   # so the phrase is split by "\n> " in the file and a literal-space pattern
                   # matched nothing -- the same wrapped-prose miss as the demo-timing check.
-                  + re.findall(r"(\d+) rejections the search cannot see", _t)):
+                  ):
         if int(_said) != _substantive:
             problems.append(f"{_doc}: says {_said} substantive excluded alternatives, "
                             f"the graph has {_substantive}")
         else:
             checked += 1
-    for _said in re.findall(r"\*\*(\d+) are list\s+markers\*\*", _t):
+    # "0 list markers now" and the older "**19 are list markers**" are the same claim in two
+    # shapes, and the fix that made it zero is what moved it. Both forms are recognised so the
+    # figure cannot drift back in either phrasing.
+    for _said in (re.findall(r"\*\*(\d+) are list\s+markers\*\*", _t)
+                  + re.findall(r"\*\*(\d+) list\s+markers\s+now", _t)):
         if int(_said) != _markers:
             problems.append(f"{_doc}: says {_said} list markers, the graph has {_markers}")
         else:
             checked += 1
-print(f"  {_gap} alternatives are outside the haystack; {_substantive} of them are real text "
-      f"and {_markers} are list markers, and the docs say so")
+    # The label fix is only real if the labels are still readable: a cap on length, and nothing
+    # cut mid-word. Stated in the README as a pair, so both are derived here.
+    # "the N rejections the search cannot see" names the whole excluded set, not the subset with
+    # a usable label. It was checked against the substantive count, which was the same number
+    # when both were written and is not any more -- so the phrase moved to the figure it means.
+    for _said in re.findall(r"(\d+) rejections the search cannot see", _t):
+        if int(_said) != _gap:
+            problems.append(f"{_doc}: says {_said} rejections the search cannot see, "
+                            f"the graph excludes {_gap}")
+        else:
+            checked += 1
+    for _said in re.findall(r"(\d+) of the 206 carry a 60-plus character label", _t):
+        if int(_said) != _substantive:
+            problems.append(f"{_doc}: says {_said} carry a 60-plus character label, "
+                            f"the graph has {_substantive}")
+        else:
+            checked += 1
+_longest = count("MATCH (n:Alternative) WHERE NOT n:NamedOption RETURN max(size(n.title))")
+if _longest > 161:
+    problems.append(f"an excluded alternative carries a {_longest}-character label; "
+                    f"derive_label caps them at 160 plus an ellipsis")
+else:
+    checked += 1
+print(f"  {_gap} alternatives are outside the haystack; all of them embedded, "
+      f"{_substantive} with a 60-plus character label and {_markers} list markers, "
+      f"longest {_longest} characters, and the docs say so")
 
 # The "hardest problem" answer in SUBMISSION.md restates the alias correction -- "88 of 111
 # departed owners" and "made it 83". The subset rule above deliberately skips 111, because

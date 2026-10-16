@@ -179,7 +179,14 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
             MATCH (o:OwnersFile {path: $p})
             OPTIONAL MATCH (live:Person)-[:APPROVES]->(o)
             OPTIONAL MATCH (dep:Person)-[:EMERITUS_OF]->(o)
-            OPTIONAL MATCH (dep)-[:AUTHORED|APPROVED]->(k:Kep)-[:CONSIDERED]->(alt:NamedOption)
+            // :Alternative, not :NamedOption, and the difference was a lie on camera. The prose
+            // for this same question walks :Alternative (tools.py), so on the demo's own file it
+            // cited two rejections -- one of them 'Doing nothing is a viable alternative.' -- that
+            // this query then drew zero of. The beat's whole claim is that the picture IS the path
+            // the answer came from, so a node the sentence names and the diagram omits makes that
+            // sentence false. :NamedOption earns its keep as a pre-filtered ANN index; it was
+            // never meant to decide what a path is allowed to show.
+            OPTIONAL MATCH (dep)-[:AUTHORED|APPROVED]->(k:Kep)-[:CONSIDERED]->(alt:Alternative)
             RETURN o.path, live.key, dep.key, k.num, k.title, alt.title LIMIT $l
             """,
             params={"p": path, "l": limit},

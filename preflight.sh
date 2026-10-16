@@ -99,6 +99,7 @@ run "GRAPH.COPY carries the whole graph"   "$PY" bench_copy.py
 # at all, so its reconciliation against the page only happened when someone remembered.
 # It cleans up the rows it writes, which is what makes it safe to run here.
 run "what the agent's memory costs to keep" "$PY" bench_memory_growth.py
+run "why the search index excludes 206 nodes" "$PY" bench_index_scope.py
 run "the blog post's claims"               "$PY" verify_blog.py
 run "corpus counts across every doc"       "$PY" scripts_check_doc_counts.py
 run "the README renders on GitHub"         "$PY" scripts_check_markdown_renders.py
