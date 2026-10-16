@@ -25,7 +25,12 @@ APP = os.environ.get("APP", "http://localhost:8099")
 # captured ANSWERED_FROM_MEMORY instead -- true, and not the first thing a reader should meet.
 # The walkthrough builder has cleared memory before capture for exactly this reason; the shots
 # did not, which is how the two drifted apart.
-SHOT_SOURCES = ("web/app.js", "web/style.css", "web/index.html")
+# agent.py writes the PROSE in every one of these frames, and it was not here. A rendering
+# change -- "6 decisions" to "6 decisions, including" -- left all three artefacts stale
+# while every freshness check reported them current. tools.py was listed because frames
+# render query hashes; the sentence above the hash is at least as load-bearing.
+SHOT_SOURCES = ("web/app.js", "web/style.css", "web/index.html",
+                "src/tombstone/agent.py")
 FINGERPRINT = "docs/img/.shots-fingerprint.json"
 
 

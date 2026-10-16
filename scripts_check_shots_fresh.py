@@ -20,7 +20,7 @@ import json
 import os
 import sys
 
-SOURCES = ("web/app.js", "web/style.css", "web/index.html")
+SOURCES = ("web/app.js", "web/style.css", "web/index.html", "src/tombstone/agent.py")
 # Two generators, two fingerprints, because running one must not mark the other's output fresh.
 # depth-contrast.gif is the README's FIRST image and carries the product's central argument, and
 # until today it was hand-made with no pipeline at all -- the same flaw the walkthrough video had.

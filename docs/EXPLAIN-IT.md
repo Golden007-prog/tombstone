@@ -130,7 +130,7 @@ outright. Volunteer both before anyone finds them.
 
 One command: `./preflight.sh` — twenty-one checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-31 CI steps on every push. 122 tests. Each answer in the UI carries its Cypher, that query's hash,
+31 CI steps on every push. 123 tests. Each answer in the UI carries its Cypher, that query's hash,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

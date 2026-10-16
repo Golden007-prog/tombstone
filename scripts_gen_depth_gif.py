@@ -126,7 +126,10 @@ def main() -> int:
     import hashlib
     with open("docs/img/.depthgif-fingerprint.json", "w") as fh:
         json.dump({f: hashlib.sha256(open(f, "rb").read()).hexdigest()[:16]
-                   for f in ("web/app.js", "web/style.css", "web/index.html")},
+                   # agent.py renders the prose these frames are mostly made of, and
+                   # server.py decides what the drawn path contains.
+                   for f in ("web/app.js", "web/style.css", "web/index.html",
+                             "src/tombstone/agent.py", "src/tombstone/server.py")},
                   fh, indent=2, sort_keys=True)
         fh.write("\n")
     print(f"  {OUT}  {W}x{H}  {os.path.getsize(OUT) // 1024}KB, fingerprinted")

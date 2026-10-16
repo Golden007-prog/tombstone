@@ -229,7 +229,7 @@ import json as _json
 # endpoint decides what is in them. A server-side change to the drawing could have left
 # this video showing an edge name the product no longer uses, with every check green.
 _SOURCES = ("web/app.js", "web/style.css", "web/index.html",
-            "src/tombstone/tools.py", "src/tombstone/server.py")
+            "src/tombstone/tools.py", "src/tombstone/server.py", "src/tombstone/agent.py")
 with open("docs/video/.walkthrough-fingerprint.json", "w") as _fh:
     _json.dump({f: _hashlib.sha256(open(f, "rb").read()).hexdigest()[:16] for f in _SOURCES},
                _fh, indent=2, sort_keys=True)

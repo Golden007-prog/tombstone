@@ -1507,3 +1507,51 @@ def test_every_node_kind_the_picture_draws_has_a_legend_entry():
         assert not missing, (
             f"{lane_file} has no lane for {missing}, so those nodes land in whichever lane the "
             f"fallback picks rather than the one they belong to")
+
+
+def test_no_answer_claims_a_count_it_then_lists_short_of(agent):
+    """"6 decisions: <five of them>" is a sentence that asks the reader to count and lose.
+
+    Several queries return a SAMPLE -- areas[0..5], decisions_they_shaped[0..5] -- beside a true
+    count, and two renderers printed the count and the sample with a plain colon between them.
+    One was `sole_approver_risk`; the other was the depth-4 `who_owns`, which is the first image
+    in the README and the line the demo narration reads aloud. A judge who counts the KEPs finds
+    five under a sentence that says six.
+
+    The fix is one word, "including", and it is only correct when the list really is short, so
+    this checks both directions rather than just looking for the word.
+    """
+    import re
+    from tombstone.agent import render
+
+    CASES = [
+        ("who_owns", {"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS",
+                      "depth": 4}),
+        ("ownership_dilution", {}),
+        ("sole_approver_risk", {}),
+        ("stepped_back_but_still_listed", {"min_stepped_back": 3}),
+        ("successor_for", {"handle": "lavalamp"}),
+        ("broken_lineage", {"min_cites": 2}),
+        ("stepped_back_bridges", {"min_areas": 3}),
+        ("hollowing_communities", {"min_size": 5}),
+        ("stale_knowledge", {"min_years": 3}),
+    ]
+    # "<n> <plural noun>[, including]: a, b, c" -- the only shape in this product's prose that
+    # states a number and then enumerates it.
+    PATTERN = re.compile(r"(\d+)\s+[a-z]+s(,\s*including)?:\s*([^\n]+)")
+
+    problems = []
+    for tool, args in CASES:
+        answer = agent.dispatch(tool, args)
+        if answer.shape == "DEGRADED":
+            continue
+        for m in PATTERN.finditer(render(answer)):
+            claimed, hedged = int(m.group(1)), bool(m.group(2))
+            listed = len([x for x in m.group(3).split(",") if x.strip()])
+            if listed < claimed and not hedged:
+                problems.append(f"{tool}: says {claimed}, lists {listed} — {m.group(0)[:90]}")
+            if listed >= claimed and hedged:
+                problems.append(
+                    f"{tool}: hedges with 'including' but lists all {listed} of {claimed} — "
+                    f"the hedge is noise and trains a reader to distrust it elsewhere")
+    assert not problems, "\n  ".join([""] + problems)

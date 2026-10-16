@@ -677,10 +677,16 @@ def render(a: Answer) -> str:
             f"active approver in: {', '.join(still)}"
             for person, n, _sample, still in a.rows) + "\n\n" + (a.note or "")
     if t == "sole_approver_risk":
-        lines = [f"• {who} is the only approver of {int(cnt)} "
-                 f"area{'s' if cnt != 1 else ''}: "
-                 f"{', '.join(x.replace('/OWNERS', '') for x in sample)}"
-                 for who, cnt, sample in a.rows]
+        # The query returns areas[0..5] as a SAMPLE while the count is the true total, so anyone
+        # holding more than five areas printed as "6 areas: <five paths>" -- a sentence that
+        # invites the reader to count and find it wrong, on the tool behind the headline finding.
+        # Say "including" exactly when the list is short of the count, and nothing when it is not.
+        lines = []
+        for who, cnt, sample in a.rows:
+            shown = ", ".join(x.replace("/OWNERS", "") for x in sample)
+            lead = f"• {who} is the only approver of {_n(cnt, 'area')}"
+            lines.append(f"{lead}, including: {shown}" if len(sample) < int(cnt)
+                         else f"{lead}: {shown}")
         return "\n".join(lines)
     if t == "what_if_they_go":
         cohort, stranded, before, ms, copy_ms = a.rows[0]
@@ -756,7 +762,13 @@ def render(a: Answer) -> str:
                 continue
             bit = f"• {departed} (no longer approves here) shaped {_n(ndec, 'decision')}"
             if decisions:
-                bit += f": KEP-{', KEP-'.join(str(d) for d in decisions)}"
+                # decisions is decisions_they_shaped[0..5], a SAMPLE, while ndec is the true
+                # count -- so six decisions printed as "shaped 6 decisions: KEP-a, b, c, d, e"
+                # and a reader counting them found five. This is the headline answer, the first
+                # image in the README and the beat the narration reads aloud, so it is the worst
+                # place in the product to invite someone to count and come up short.
+                lead = ", including" if len(decisions) < int(ndec) else ""
+                bit += f"{lead}: KEP-{', KEP-'.join(str(d) for d in decisions)}"
             if ideas:
                 bit += f"\n    and personally rejected: “{ideas[0]}”"
             if sigs:
