@@ -1464,11 +1464,15 @@ times. Each fix made the claim narrower and more defensible.
   *serial* peak stays under 512 MB, so a serial regression still fails there rather than as a
   crash on the demo. It
   retries once, and if it still cannot copy it returns `DEGRADED` saying so — which is not
-  theoretical: **six counterfactuals fired at once answered five and degraded one, with no errors
-  and no hung requests** — in the 2 GB container, which is the size the burst needs and the reason
-  the check gives it 2 GB. An earlier version of this sentence said "into a 512 MB container …
-  and no OOM", which contradicted the measurement three lines above it: 512 MB is the *serial*
-  ceiling asserted after the serial checks, not the size the concurrency burst runs in. Judges share links, so concurrent
+  theoretical. **Six fired at once always come back: every one either answers or degrades
+  honestly, and no run has produced a hard failure, a 500 or a hung request.** The *split* is not
+  stable and should not be quoted as if it were — which fork loses the race varies. Measured
+  5 answered / 1 degraded in the deploy check's 2 GB container, and 4 answered / 2 degraded in
+  1.5s against a local instance on 16 Oct. Two earlier versions of this sentence were wrong in
+  opposite directions: the first said "into a 512 MB container … and no OOM", contradicting the
+  measurement three lines above it — 512 MB is the *serial* ceiling asserted before any
+  concurrency, not the size the burst runs in — and the second quoted the 5/1 split as though one
+  run had settled it. Judges share links, so concurrent
   use of one container is the normal case, and that is the behaviour it was built for. It never reports a number from a copy that did not happen — a counterfactual that
   answered "0 areas would be left unowned" because the diff was empty would be the worst bug
   this product could have, so there is a test that drives that exact path.
