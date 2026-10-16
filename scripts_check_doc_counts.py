@@ -450,6 +450,17 @@ for _path in files:
                             f"{_live:,}\n      {_line.strip()[:100]}")
 
 print(f"  scanned {len(files)} markdown files, checked {checked} count claims")
+
+# An aggregate floor. Every individual figure check here is driven by a regex against prose, and
+# a regex that stops matching reports nothing rather than failing -- so a rewording could retire
+# a dozen of these at once and this script would still print OK. Most of them have no "if not
+# found" guard of their own; the counter is what makes a systemic miss visible, and a counter
+# that is printed and never asserted is decoration.
+_FLOOR = 45
+if checked < _FLOOR:
+    problems.append(f"only {checked} figures matched across {len(files)} documents, below the "
+                    f"floor of {_FLOOR} -- the documents were reworded past these checks rather "
+                    f"than the figures being right")
 for label, (live, _) in COUNTS.items():
     print(f"    {label:<24} {live:,}")
 if problems:

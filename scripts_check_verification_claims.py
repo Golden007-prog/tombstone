@@ -65,10 +65,14 @@ ALLOWED = re.compile(r"used to say|previously|was wrong|overstated|not quite tru
 
 def main() -> int:
     hits = []
+    read = 0
+    missing_docs = []
     for doc in DOCS:
         p = pathlib.Path(doc)
         if not p.exists():
+            missing_docs.append(doc)
             continue
+        read += 1
         for lineno, line in enumerate(p.read_text().split("\n"), 1):
             text = line.strip()
             if len(text) < 20:
@@ -100,7 +104,15 @@ def main() -> int:
         print("them and is wrong about two thirds of them. Name which kind you mean.")
         return 1
 
-    print(f"  no universal claims about verification in {len(DOCS)} shipped documents")
+    # len(DOCS) is the configured list, not what was read. A missing file was skipped silently,
+    # so this line could report coverage of seven documents having opened none of them -- the
+    # same shape as a regex that matches nothing and reports no problems.
+    if missing_docs:
+        _n = len(missing_docs)
+        print(f"  FAIL  configured to scan {len(DOCS)} documents but "
+              f"{_n} {'is' if _n == 1 else 'are'} missing: {', '.join(missing_docs)}")
+        return 1
+    print(f"  no universal claims about verification in {read} shipped documents")
     return 0
 
 
