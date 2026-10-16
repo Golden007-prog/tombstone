@@ -29,6 +29,17 @@ three are serious Track 3 builds:
 | `Vaibhaav-Tiwari/lineage` | truth maintenance: when a decision reverses, the answers and beliefs built on it are struck through and actions blocked. 745 PEPs plus forum threads and commits since 2015 | two |
 | `StarKnightt/threadline` | 3D replay of every traversal, a verifier agent that path-checks each citation, 60-question eval | all three |
 
+**No other entry found is using this corpus.** Three GitHub searches — for `emeritus_approvers`,
+for FalkorDB entries mentioning OWNERS files, and for Kubernetes enhancements plus KEP — return
+only this repository. The others each chose their own: threadline reads the FalkorDB org's GitHub
+history, orion a synthetic company of people, teams, systems and customers, lineage the Python
+PEPs and the forum threads behind them. That matters for one reason worth saying out loud in the
+submission: **Kubernetes is the only one of those where the organisation publishes its own
+attrition.** `emeritus_approvers` is a field a real project maintains about people who stepped
+back, and the whole product is built on reading it. A synthetic company cannot have that, and a
+repository's commit history only implies it. (Searches are evidence of absence only to the extent
+GitHub's index is complete, and entries can be private until submission.)
+
 Read their READMEs rather than run them, so this is what they claim, not what they do. Two things
 follow that are worth acting on. **Multi-track entry is normal here**, so entering one track is a
 choice and should be a reasoned one. And **all three are deployed** — the live demo is the clearest
