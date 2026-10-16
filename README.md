@@ -608,13 +608,20 @@ three runs:
 | **betweenness (k=32, seed=42)** — *used by `stepped_back_bridges`* | 25 ms | 16 ms | FalkorDB 1–2x |
 | PageRank — *benchmarked, used by no tool* | 338–456 ms | 5.7–15.1 ms | FalkorDB **30–145x** |
 
-**The ranges are wider than they were, because I re-ran it and the first set did not hold.** A
-later run on a loaded machine gave PageRank 30x where this table had claimed 54–145x, and WCC 5x
-against a claimed 2–3x. Both are inside the new ranges. The absolute milliseconds are a
-measurement on one machine at one moment and are **not asserted by any check** — a test that goes
-red because CI runs on slower hardware is one people learn to skip. What is asserted is that the
-ratio a fresh run measures falls inside the range printed here; `bench_vs_networkx.py` reads these
-rows back and fails if it does not.
+**The ranges are wider than they were, because re-running kept moving them.** A loaded machine
+gave PageRank 30x where this table had claimed 54–145x, and WCC 5x against a claimed 2–3x.
+
+Then I tried to gate on the ratios — arguing that absolute milliseconds are machine-dependent but
+a ratio would survive a change of machine — **and CI proved that wrong within the hour.** The same
+code gives betweenness 2x on this laptop and **6x on a GitHub runner**, and WCC 5x here against
+1x there. The build went red for a claim that was never false; the hardware had changed.
+
+So neither the milliseconds nor the ratios are asserted. The table is what this project has
+observed across machines, the script prints what the run in front of you measured, and a
+divergence is information. **What is gated is the cross-check**: both engines must agree on the
+answer — the same number of weakly-connected components — before either is timed. A benchmark
+where one engine is quietly solving a different problem is worse than no benchmark, and that is
+the part a machine cannot make wrong.
 
 **This table replaces one that claimed FalkorDB won betweenness by 18x and PageRank by 153x, and
 that networkx won WCC.** None of those survived measurement on the real graph. The old numbers
