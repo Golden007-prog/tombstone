@@ -39,24 +39,6 @@ def connect(host: str | None = None, port: int | None = None) -> FalkorDB:
     )
 
 
-def expand_aliases(names: Iterable[str], alias_table: dict[str, list[str]]) -> list[str]:
-    """Expand group aliases to real handles; pass real handles through unchanged.
-
-    Kubernetes OWNERS files reference group aliases such as `sig-api-machinery-approvers`
-    rather than people, and the expansion table lives in a separate OWNERS_ALIASES file.
-    Skipping this silently turns 8% of a `Person` population into groups and understates
-    ownership by several hundred edges, so it is not optional.
-    """
-    out: list[str] = []
-    for n in names:
-        if not isinstance(n, str):
-            continue
-        h = n.strip().lstrip("@").lower()
-        if not h:
-            continue
-        out.extend(alias_table.get(h, [h]))
-    return out
-
 
 def is_bot(handle: str) -> bool:
     h = handle.lower()
@@ -169,15 +151,7 @@ class Ingestor:
         return len(rows), skipped
 
     # ---- indexes --------------------------------------------------------
-    def vector_index(self, label: str, prop: str, dim: int = 384, metric: str = "cosine") -> None:
-        self.g.query(
-            f"CREATE VECTOR INDEX FOR (n:{label}) ON (n.{prop}) "
-            f"OPTIONS {{dimension: {dim}, similarityFunction: '{metric}'}}"
-        )
 
-    def fulltext_index(self, label: str, *props: str) -> None:
-        args = ", ".join(f"'{p}'" for p in props)
-        self.g.query(f"CALL db.idx.fulltext.createNodeIndex('{label}', {args})")
 
     def stats(self) -> dict:
         labels = [r[0] for r in self.g.ro_query("CALL db.labels()").result_set]
