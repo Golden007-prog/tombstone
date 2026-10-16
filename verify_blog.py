@@ -61,22 +61,57 @@ print(f"\n{len(CLAIMS) - fails}/{len(CLAIMS)} blog claims verified")
 # run -- which is the same way five other numbers in this repo went wrong in two days.
 import re as _re
 
-_WORDS = {8: "Eight", 9: "Nine", 10: "Ten", 11: "Eleven", 12: "Twelve"}
-_n_lessons = len(_re.findall(r"^### \d+\.", blog, _re.M))
-_said = _re.search(r"^## (\w+) things FalkorDB taught me", blog, _re.M)
-_ok = bool(_said) and _said.group(1) == _WORDS.get(_n_lessons)
-print(f"  {'PASS' if _ok else 'FAIL'}  the post says it has {_said.group(1) if _said else '?'} "
-      f"FalkorDB lessons and carries {_n_lessons}")
-fails += not _ok
+# Spelled, not looked up in a table. Both of these were hand-maintained dicts and both ran out:
+# the lessons map stopped at twelve, and the CI map stopped at thirty-two, so adding a
+# thirty-third step produced "the post says Thirty-three CI steps and the workflow has 33" --
+# a FAILURE whose own message shows the two agreeing, because .get(33) returned None. The
+# sibling checker already carries a comment about this exact defect ("five was missing, so the
+# check failed on a pair of numbers that actually agreed") and I reproduced it twice over.
+_ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+         "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+         "eighteen", "nineteen"]
+_TENS = [None, None, "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
 
-_NUMWORDS = {27: "Twenty-seven", 28: "Twenty-eight", 29: "Twenty-nine", 30: "Thirty",
-             31: "Thirty-one", 32: "Thirty-two"}
+
+def _spell(n: int) -> str | None:
+    """English for 0-99, generated. Returns None above that, where this has no business."""
+    if not 0 <= n < 100:
+        return None
+    if n < 20:
+        return _ONES[n]
+    tens, ones = divmod(n, 10)
+    return _TENS[tens] if not ones else f"{_TENS[tens]}-{_ONES[ones]}"
+
+
+def _states(label: str, said, n: int) -> int:
+    """Compare a spelled count in the prose with a derived one, and say which way it went.
+
+    The distinction the old message could not draw: a document disagreeing with reality is one
+    failure, and this checker not knowing how to spell a number is a different one. Reporting the
+    second as the first sends you looking in the document.
+    """
+    want = _spell(n)
+    if said is None:
+        print(f"  FAIL  the post no longer states {label} where this check reads it")
+        return 1
+    if want is None:
+        print(f"  FAIL  {label}: cannot spell {n}, so this check cannot judge "
+              f"{said!r} -- fix the checker, not the post")
+        return 1
+    if said.strip().lower() != want:
+        print(f"  FAIL  the post says {said} {label} and the workflow has {n} ({want})")
+        return 1
+    print(f"  PASS  the post says {said} {label} and that is {n}")
+    return 0
+
+
+_n_lessons = len(_re.findall(r"^### \d+\.", blog, _re.M))
+_said = _re.search(r"^## (\w+(?:-\w+)?) things FalkorDB taught me", blog, _re.M)
+fails += _states("FalkorDB lessons", _said.group(1) if _said else None, _n_lessons)
+
 _steps = sum(1 for _l in open(".github/workflows/verify.yml") if _re.match(r"^\s*- name:", _l))
 _said_ci = _re.search(r"(\w+(?:-\w+)?) CI steps\.", blog)
-_ok_ci = bool(_said_ci) and _said_ci.group(1) == _NUMWORDS.get(_steps)
-print(f"  {'PASS' if _ok_ci else 'FAIL'}  the post says {_said_ci.group(1) if _said_ci else '?'} "
-      f"CI steps and the workflow has {_steps}")
-fails += not _ok_ci
+fails += _states("CI steps", _said_ci.group(1) if _said_ci else None, _steps)
 
 # FINISH.md tells you how long this post is, so you can budget reading it on the last day. It
 # said "~1,750 words" for a post of 4,185 -- off by well over double, in the one file written to
