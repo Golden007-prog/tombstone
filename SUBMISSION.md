@@ -362,6 +362,14 @@ other 206 are not, and why only about 22 of those are actually artefacts), what 
 FalkorDB feature earns its place in which tool, what the model is allowed to do, and the five
 weakest things — stated first, because every one of them is already written down in the repository.
 
+It also answers the three a FalkorDB engineer is likeliest to ask, which were missing until I went
+looking for them specifically: **why the vector index rather than their full-text index** (both
+were spiked; and the caveat that full-text would be the better tool for the 206 the ANN index
+excludes), **why a graph database for 3,087 nodes at all** — where the wrong answer is scale, and
+this page's own withdrawn networkx benchmark is the evidence against it — and **what the write
+path does under concurrency**, which is the one hard edge here and is measured rather than
+argued: six simultaneous `GRAPH.COPY` requests give five answered and one degraded honestly.
+
 ---
 
 ## Pre-submit checklist
