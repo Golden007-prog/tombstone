@@ -18,7 +18,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
 >   free-text questions work anyway, routed locally.
 > - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-queries all 36 graph claims against
->   the live graph. `eval_graph_vs_text.py` scores the graph against two baselines over the same documents: **24/25, against 9/25 for TF-IDF and 10/25 for dense retrieval**.
+>   the live graph. `eval_graph_vs_text.py` scores the graph against two baselines over the same documents: **24/25, against 9/25 for TF-IDF and 10/25 for dense retrieval** — the graph arm is given the tool and its arguments while the baselines get only the question, so that number is answering power with routing factored out, [stated in full below](#does-the-graph-actually-do-work-a-text-search-cannot-measured).
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
@@ -549,7 +549,7 @@ have been five times too alarming, and nothing else in this repository would hav
 ## Does the graph actually do work a text search cannot? Measured.
 
 The hackathon's one published judging lens is whether the graph does work the agent could not do
-without it. Asserting that is cheap, so here it is measured — same corpus, same questions, against
+without it. Asserting that is cheap, so here it is measured — same corpus, same documents, against
 **two** baselines built over **every document the graph was built from** (2,224 of them: KEP
 titles, statuses, the alternatives prose, OWNERS paths and the handles in them) — one TF-IDF, one
 *dense*, retrieving by embedding similarity with the product's own model, same documents, same k,
@@ -567,6 +567,24 @@ counterfactual                2       2      0       0   the graph re-evaluated 
 
                              25      24      9      10
 ```
+
+**What this number is not.** The baselines get the question and nothing else — they have to solve
+retrieval from the words a person typed. The graph arm is handed the *tool and its arguments*
+(`dispatch(item["tool"], item["args"])`), so it never solves routing. So 24/25 is the graph's
+**answering** power with the routing step factored out, and it is not the same task the baselines
+are set. The docstring of this eval used to say "the same questions", which was wrong, and this
+paragraph exists because an audit went looking for the overclaim in the headline number rather
+than in the small print.
+Measured, since the obvious next question is how much the factored-out step costs: putting these
+same 25 questions through the real keyless router reaches the intended tool **10 of 25** times.
+Twelve it declines outright — that is its designed behaviour, it offers candidates rather than
+guessing, and in the UI a person picks in one click — and three it routes elsewhere. These
+questions were written as tool probes, not router probes, and several are terse on purpose ("find
+the KEP about coscheduling"). The routing half is measured on its own against held-out language in
+[`eval_router.py`](eval_router.py) and the retrieval half in
+[`eval_retrieval.py`](eval_retrieval.py), so the end-to-end story is a composition of three
+measurements. Quoting any one of them as the whole would be the thing this page keeps catching
+itself doing.
 
 **The dense baseline exists because "keyword search loses" invites "so use embeddings", and
 leaving that unanswered was a hole in the measurement rather than in the result.** Now there is a

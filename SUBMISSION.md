@@ -23,7 +23,7 @@ The decisions your org already made and forgot. Asked as a graph.
 
 ## If the form caps the description
 
-*Nobody can see the form's fields until you are registered, and the Description below is 3725 characters. These are the same pitch at two shorter lengths so a character limit is a paste, not a rewrite at 11pm.*
+*Nobody can see the form's fields until you are registered, and the Description below is 3872 characters. These are the same pitch at two shorter lengths so a character limit is a paste, not a rewrite at 11pm.*
 
 **~273 characters:**
 
@@ -117,7 +117,8 @@ one morning's reading suggested.**
 
 What this still has that I could not find in theirs: an answer surface where every reply carries
 its Cypher, that query's hash and the arguments it was answered with; a drawn path a judge can
-read without running anything; a graph-versus-text evaluation over the same documents (24/25
+read without running anything; a graph-versus-text evaluation over the same documents, honest
+about handing the graph arm its tool (24/25
 against 9/25 for TF-IDF and 10/25 for dense retrieval); 36 claims re-derived against the live
 database on every push; and the engine-level work in Honest limits, where the directedness of
 `algo.betweenness` is derived from the vendor's own worked example because they do not document
@@ -259,7 +260,9 @@ the drafting action's own output, the memory claims, two of the seven benchmarks
 other five build a thousand graphs, millions of edges, a memory curve or a second vector index, so they are dated measurements with
 committed scripts rather than gates, and the README says which is which — and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
-it. The graph is scored against two baselines over the same documents — **24/25, against 9/25 for
+it. The graph is scored against two baselines over the same documents, with the graph arm given
+the tool and its arguments while the baselines get only the question, so it is answering power
+with routing factored out — **24/25, against 9/25 for
 TF-IDF and 10/25 for dense retrieval with the product's own embedding model** — in
 seven categories — and on the control category, lookups where the answer sits in one document, the
 text index *ties it nine to nine*, across ten of the twenty-five questions. That tie is why the other fifteen mean anything.

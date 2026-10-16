@@ -1,8 +1,23 @@
 """Does the graph actually do work a text search cannot? Measured, not asserted.
 
 The hackathon's one published judging lens is whether the graph is doing work the agent could not
-do without it. Asserting that is cheap. This measures it, on the same corpus, with the same
-questions, against a real text baseline.
+do without it. Asserting that is cheap. This measures it, on the same corpus, against a real text
+baseline.
+
+**The asymmetry, stated because it is the headline number.** The baselines get the question and
+nothing else: they must solve retrieval from the words a person typed. The graph arm is handed the
+TOOL and ITS ARGUMENTS -- `dispatch(item["tool"], item["args"])` below -- so it never solves
+routing. This measures whether the graph can ANSWER these questions, with the routing step
+factored out, and that is not the same task the baselines are given. An earlier version of this
+docstring said "with the same questions", which was wrong.
+
+Measured rather than hand-waved: putting the same 25 questions through the real keyless router
+reaches the intended tool **10 of 25** times. Twelve it declines outright, which is its designed
+behaviour -- it offers candidates instead of guessing, and in the UI a person picks in one click
+-- and three it routes to a different tool. These questions were written as tool probes, not as
+router probes; several are terse by design ("find the KEP about coscheduling"). The routing half
+is measured on its own in `eval_router.py` against held-out language, and the retrieval half in
+`eval_retrieval.py`. So the end-to-end claim is a composition of three measurements, not this one.
 
 **The baseline is honest.** TF-IDF + cosine over the SAME documents the graph was built from
 (KEP titles, statuses, the alternatives prose, OWNERS paths and the handles in them). It is given
