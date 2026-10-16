@@ -6,7 +6,9 @@ LANE = {"person_gone": 0, "person_live": 0, "area": 1, "decision": 2, "rejected"
 LABEL = ["people", "area", "decision", "rejected ideas"]
 COL = {"person_gone": "#e0796c", "person_live": "#6fbd92", "area": "#d4ab5a",
        "decision": "#7fa3d8", "rejected": "#b08cc4"}
-BG, INK, MUTED, EDGE = "#1b1a16", "#f0ece4", "#a39b8c", "#6b6459"
+# These mirror web/style.css's dark palette by hand. Eight of the nine matched; EDGE did
+# not, because --edge moved to #5d574c in the stylesheet and this copy was never updated.
+BG, INK, MUTED, EDGE = "#1b1a16", "#f0ece4", "#a39b8c", "#5d574c"
 
 lanes = [[], [], [], []]
 for n in d["nodes"]:

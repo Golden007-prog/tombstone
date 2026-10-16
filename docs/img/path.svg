@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 316" width="860" height="316" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
 <rect width="860" height="316" rx="8" fill="#1b1a16"/>
-<defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#6b6459"/></marker></defs>
+<defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#5d574c"/></marker></defs>
 <text x="95" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">people</text>
 <text x="310" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">area</text>
 <text x="525" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">decision</text>
 <text x="740" y="16" fill="#f0ece4" font-size="10" text-anchor="middle" opacity="0.5" font-family="ui-monospace,Menlo,monospace">rejected ideas</text>
-<path d="M105 118 C 202 118, 202 173, 298 173" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M105 118 C 202 118, 202 173, 298 173" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
 <text x="202" y="34" fill="#a39b8c" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">EMERITUS_OF</text>
-<path d="M105 118 C 310 118, 310 173, 513 173" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M105 118 C 310 118, 310 173, 513 173" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
 <text x="310" y="34" fill="#a39b8c" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">SHAPED</text>
-<path d="M535 173 C 632 173, 632 80, 728 80" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 80, 728 80" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
 <text x="632" y="34" fill="#a39b8c" font-size="8.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">REJECTED</text>
-<path d="M535 173 C 632 173, 632 118, 728 118" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
-<path d="M535 173 C 632 173, 632 154, 728 154" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
-<path d="M535 173 C 632 173, 632 192, 728 192" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
-<path d="M535 173 C 632 173, 632 228, 728 228" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
-<path d="M535 173 C 632 173, 632 266, 728 266" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
-<path d="M105 228 C 202 228, 202 173, 298 173" fill="none" stroke="#6b6459" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 118, 728 118" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 154, 728 154" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 192, 728 192" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 228, 728 228" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M535 173 C 632 173, 632 266, 728 266" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
+<path d="M105 228 C 202 228, 202 173, 298 173" fill="none" stroke="#5d574c" stroke-width="1.4" marker-end="url(#ar)"/>
 <circle cx="95" cy="118" r="9" fill="#e0796c" stroke="#e0796c" stroke-opacity="0.3" stroke-width="5"/>
 <path d="M91 114 L99 122" stroke="#1b1a16" stroke-width="1.6"/>
 <text x="109" y="121" fill="#f0ece4" font-size="11" text-anchor="start">gmarek</text>

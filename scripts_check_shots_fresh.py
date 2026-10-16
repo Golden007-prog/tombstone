@@ -67,7 +67,71 @@ def main() -> int:
         else:
             print(f"  {', '.join(os.path.basename(i) for i in images)} "
                   f"{'was' if len(images) == 1 else 'were'} taken from this exact interface")
-    return 1 if bad else 0
+    return bad + _figure_matches_its_data()
+
+
+def _figure_matches_its_data() -> int:
+    """docs/img/path.svg is the one README artefact with a generator but no freshness guard.
+
+    A fingerprint is the wrong instrument for it. The other three are pictures of the INTERFACE,
+    so hashing web/* catches drift. This one is drawn from graph DATA -- a subgraph for one path --
+    so the interface could sit still while the figure quietly stops describing the graph. That is
+    the same failure as a stale number in the README, and every number in the README is checked
+    against the live graph, so this should be too.
+
+    The path comes out of the generator rather than being repeated here; a check that keeps its own
+    copy of the thing it is checking drifts from it, which is how the demo script came to state a
+    word count nobody re-derived.
+    """
+    import re
+    import urllib.request
+
+    svg_path, gen = "docs/img/path.svg", "scripts_gen_readme_figure.py"
+    if not os.path.exists(svg_path):
+        print(f"  FAIL  {svg_path} is missing — run {gen}")
+        return 1
+    url = re.search(r'urlopen\("([^"]+)"\)', open(gen).read())
+    if not url:
+        print(f"  FAIL  cannot find the API call in {gen}, so the figure's source is unknown")
+        return 1
+    try:
+        with urllib.request.urlopen(url.group(1), timeout=20) as r:
+            live = json.load(r)
+    except Exception as exc:
+        print(f"  FAIL  {svg_path} could not be checked against {url.group(1)} ({exc})")
+        return 1
+
+    svg = open(svg_path).read()
+    drawn = {re.sub(r"<[^>]+>", "", t).strip()
+             for t in re.findall(r"<text[^>]*>.*?</text>", svg, re.S)}
+    missing = []
+    for node in live["nodes"]:
+        label = node.get("label") or node.get("id") or ""
+        # The renderer truncates long titles with an ellipsis, so a drawn label matches when it is
+        # the live one or a prefix of it.
+        if not any(d == label or (d.endswith("…") and label.startswith(d[:-1])) for d in drawn):
+            missing.append(label)
+    if missing:
+        print(f"  FAIL  {svg_path} no longer draws what that subgraph returns; absent now:")
+        for m in missing[:6]:
+            print(f"          {m[:60]}")
+        # No redirect: the generator writes the file itself and prints a summary line, so
+        # `> docs/img/path.svg` would overwrite the figure with that one line of text.
+        print(f"        ./run.sh in another shell, then: python {gen}")
+        return 1
+    # The generator keeps its own hand-written copy of the dark palette, because an SVG in a
+    # README cannot read a stylesheet. Eight of its nine colours matched web/style.css and one did
+    # not: --edge had moved and the copy had not. Nothing observable broke, which is exactly why it
+    # went unnoticed -- so the duplication is now asserted rather than trusted.
+    css = open("web/style.css").read().lower()
+    adrift = sorted({c for c in re.findall(r"#[0-9a-f]{6}", open(gen).read().lower())
+                     if c not in css})
+    if adrift:
+        print(f"  FAIL  {gen} draws colours web/style.css no longer defines: {', '.join(adrift)}")
+        return 1
+    print(f"  path.svg still draws all {len(live['nodes'])} nodes that subgraph returns, "
+          f"in the stylesheet's own palette")
+    return 0
 
 
 if __name__ == "__main__":
