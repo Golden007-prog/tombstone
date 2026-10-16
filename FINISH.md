@@ -45,15 +45,18 @@ non-root UID, no volumes — and on `99df19d` it built, booted, answered, drafte
 the one it cannot justify, served every static route, peaked at **450 MiB in serial use against
 the 512 MiB ceiling**, and — with FalkorDB killed inside the container — reported down, returned
 `DEGRADED` for a question it had just answered, and kept serving the page.
-**That run is now 65 commits old.** `server.py`, `agent.py` and `tools.py` have all changed since,
-including the fix that stopped `/api/tool` honouring a filesystem argument — which is precisely
-the kind of thing that check exercises. It has not been re-run, and saying "already verified"
-without that caveat was the stale half of this file.
-What *has* run against the current tree, minutes ago: **145 tests, `./preflight.sh` 23/23 against
-a live graph, and CI green on every push.** Those cover the app; they do not build the image.
-So: re-run `./scripts_verify_deploy.sh` before deploying if you want the image covered too — it
-needs Docker and a few minutes and no token — or deploy without it and watch the Space's build
-log, which is the faster path and the one I would take with the clock where it is.
+**That run is now 65 commits old**, and `server.py`, `agent.py` and `tools.py` have all changed
+since. Saying "already verified" without that caveat was the stale half of this file.
+What runs against the current tree: **145 tests and `./preflight.sh` 23/23 against a live graph**,
+and — added since — a CI **`image` job on every push that builds this Dockerfile, boots it as the
+Space does, requires the graph to seed to 681 decisions inside the container, answers a real
+question, and proves the HTTP trust boundary holds on the built image.** So the thing that used to
+be uncovered — does the container a judge gets actually build and work — is now checked by CI
+without anyone running Docker locally.
+What is still only in `./scripts_verify_deploy.sh`: the 512 MiB serial ceiling, the six-way
+concurrency burst, and killing FalkorDB inside the container. Re-run it before deploying if you
+want those too — Docker, a few minutes, no token — or skip it, because the Space's own build log
+and the `image` job now cover the part that would actually stop a judge.
 
 On concurrency, one correction from today: six concurrent `GRAPH.COPY` requests always come back,
 every one either answering or degrading honestly, with no hard failure and no hang. The **split**

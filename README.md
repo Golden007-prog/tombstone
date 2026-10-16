@@ -27,7 +27,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (706 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
 > - **Nothing here is asserted.** 145 tests, 36 graph claims, 18 rendered UI states, and **two of
->   the seven benchmarks** re-run by **33 CI steps on each push** — the other five build a thousand
+>   the seven benchmarks** re-run by **36 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
@@ -798,16 +798,21 @@ docker run -p 8099:8099 tombstone
 ```
 
 That is the same image `./scripts_verify_deploy.sh` builds and boots; it takes a few minutes to
-build rather than seconds to start. **Who has actually verified which path, because this sentence
-used to blur them:** `./run.sh` is verified by CI on every push on Ubuntu — the `quickstart` job
-clones fresh, installs, runs it with a container called `falkordb` already in the way as a
-judge's machine would have, pastes the README's own check-me commands, and asserts the app serves
-and answers. The **container** path is verified by me on macOS with
-`./scripts_verify_deploy.sh`, and **no CI job builds the image** — `docker build` appears in no
-workflow, so a Dockerfile regression would reach you before it reached a green tick. Neither path
-is verified on Windows, which is why this says use WSL rather than claiming it works there.
-An audit asked which of those two the words "best-tested" and "by CI on every push" were
-attached to, and the answer was: the wrong one.
+build rather than seconds to start. **Who verifies which path, stated separately because this
+sentence used to blur them.** `./run.sh`: the `quickstart` job clones fresh on Ubuntu every push,
+installs, runs it with a container called `falkordb` already in the way as a judge's machine would
+have, pastes the README's own check-me commands, and asserts the app serves and answers. **The
+container: the `image` job builds the Dockerfile on every push, boots it as the Space does —
+non-root, no volumes — requires the graph to seed to 681 decisions inside the container, answers a
+real question through `/api/tool`, and then POSTs a filesystem argument at it and requires that no
+directory appears inside the container.** That last step is the only place the HTTP trust boundary
+is checked on the built artefact rather than on the source tree. The deeper container checks —
+the 512 MiB serial ceiling, the concurrency burst, killing FalkorDB inside the container — stay in
+`./scripts_verify_deploy.sh`, which is mine to run and needs no token.
+That `image` job exists because an audit asked which path the words "best-tested" and "verified by
+CI on every push" were attached to, and the answer was: the wrong one. `docker build` appeared in
+no workflow at all. Neither path is verified on Windows, which is why this says use WSL rather
+than claiming it works there.
 
 Then open <http://localhost:8099>. **No API key needed, and the ask box still works** — see
 [routing without a key](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it).

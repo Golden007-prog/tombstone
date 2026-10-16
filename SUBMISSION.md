@@ -254,7 +254,7 @@ vendored from another repository and the exclusion lives in the Cypher; the one 
 refuse is refused because the person's handle is not in the file at all — an alias expands
 to them, so no edit to that file would remove them.
 
-Nothing here is asserted. **33 CI steps on every push** re-check it: 145 tests, 36 graph claims
+Nothing here is asserted. **36 CI steps on every push** re-check it: 145 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other five build a thousand graphs, millions of edges, a memory curve or a second vector index, so they are dated measurements with

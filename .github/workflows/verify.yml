@@ -294,6 +294,57 @@ jobs:
   #
   # It does not run the suite -- that is the verify job's work on one version. This answers a
   # narrower question: can someone at either edge of the range follow the quickstart at all.
+  # The container path had no automated coverage at all: README called it "the best-tested way
+  # in" and said "verified by CI on every push", and `docker build` appeared in no workflow. A
+  # Dockerfile regression would have reached a judge before it reached a red tick. GitHub's
+  # runners have Docker, so this needs nothing from the machine that builds the repo -- which
+  # matters, because that machine's owner has asked three times to keep load off it.
+  #
+  # Also the only place the HTTP trust boundary is checked on the ARTEFACT rather than on the
+  # source tree: the last step POSTs a filesystem argument at the built image and requires that
+  # no directory appears inside the container.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image Hugging Face will build
+        run: docker build -t tombstone .
+
+      - name: Boot it the way the Space does -- non-root, no volumes -- and answer a real question
+        run: |
+          docker run -d --name tomb --user 1000 -p 8099:8099 tombstone
+          for _ in $(seq 1 150); do
+            curl -sf -m 3 http://localhost:8099/api/health >/dev/null && break
+            sleep 4
+          done
+          if ! curl -sf -m 10 http://localhost:8099/api/health -o health.json; then
+            echo "never became healthy; container log follows"; docker logs tomb | tail -60; exit 1
+          fi
+          python3 - <<'PYEOF'
+          import json
+          h = json.load(open("health.json"))
+          assert h["falkordb"] == "up", h
+          got = h["graph_contents"]["decisions"]
+          assert got == 681, f"the image seeded {got} decisions, not 681: {h}"
+          print("healthy, seeded:", h["graph_contents"])
+          PYEOF
+          code=$(curl -s -o answer.json -w '%{http_code}' -m 90 -X POST             http://localhost:8099/api/tool -H 'content-type: application/json'             -d '{"tool":"who_owns","args":{"path":"pkg/scheduler/OWNERS"}}')
+          test "$code" = "200" || { echo "POST /api/tool gave HTTP $code"; cat answer.json; exit 1; }
+          python3 -c "import json;a=json.load(open('answer.json'));assert a['shape'].startswith('ANSWERED'),a['shape'];print('answered:',a['shape'])"
+
+      - name: The built image still refuses a filesystem argument over HTTP
+        run: |
+          curl -s -m 90 -X POST http://localhost:8099/api/tool \
+            -H 'content-type: application/json' \
+            -d '{"tool":"draft_owners_patch","args":{"write_to":"/tmp/pwn"}}' -o draft.json
+          python3 -c "import json;a=json.load(open('draft.json'));assert a['shape']=='ANSWERED_WITH_PATH',a['shape']"
+          if docker exec tomb sh -c 'test -d /tmp/pwn'; then
+            echo "FAIL: the image honoured write_to over HTTP -- the trust boundary is gone"
+            exit 1
+          fi
+          echo "no directory created inside the container; the refusal holds on the built image"
+
   supported-pythons:
     runs-on: ubuntu-latest
     strategy:
