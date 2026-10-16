@@ -459,10 +459,14 @@ argued: six simultaneous `GRAPH.COPY` requests give five answered and one degrad
 - [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a
       container, asserts the serial peak stays under a 512 MB ceiling, then checks it answers,
       forks, embeds in an iframe and survives concurrent use
-- [ ] `export HF_TOKEN=hf_...` then `./deploy_hf.sh` — it sets the repo homepage, writes the live
-      URL into this file, and arms the keep-awake workflow by itself
-- [ ] Open the Space **in a private window** and click chip 1, to confirm it works for someone who
-      is not signed in to Hugging Face. That is every judge.
+- [x] **Deployed — to Render, not Hugging Face.** `./deploy_hf.sh` got HTTP 402: Docker Spaces
+      need PRO. `deploy/render.yaml` via the dashboard instead (Blueprint Path
+      `deploy/render.yaml`), and the repository homepage set by hand, which `deploy_hf.sh` would
+      have done itself
+- [x] Confirmed it works for someone signed in to nothing: every check above was an
+      unauthenticated request from outside the account — health, all thirteen tools, keyless free
+      text, the drawn path, every static route. Worth one look in a real browser before you
+      record, since curl does not run JavaScript
 - [x] Paste the live URL into the README's Rule 10 table (deployment row)
 - [ ] Record the video — `docs/DEMO-SCRIPT.md`, **keyless**, 3:00. The script is checked in CI
       against the live app, so what it says is what the screen shows.
