@@ -1593,3 +1593,18 @@ def test_the_video_is_fingerprinted_against_everything_the_images_are():
     for name, sources in recorded.items():
         gone = sorted(s for s in sources if not os.path.exists(s))
         assert not gone, f"the {name} fingerprint names {gone}, which no longer exist"
+
+    # docs/video/README.md tells a reader how many files that guard covers. It said "tools.py as
+    # well as the three web files" long after the list had grown to nine -- a spelled number in
+    # prose, which is the one shape the drift checks in this repo were not looking for until the
+    # README's own "one of those twenty" survived the eval growing to twenty-five.
+    import re
+    _SPELL = {4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+              11: "eleven", 12: "twelve"}
+    prose = open("docs/video/README.md").read()
+    said = re.search(r"\*\*(\w+)\*\* in total", prose)
+    assert said, "docs/video/README.md no longer says how many files the guard covers"
+    want = len(recorded["walkthrough"])
+    assert said.group(1) == _SPELL.get(want), (
+        f"docs/video/README.md says the guard covers {said.group(1)!r} files; the walkthrough "
+        f"fingerprint records {want} ({_SPELL.get(want)})")

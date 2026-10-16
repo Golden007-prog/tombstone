@@ -12,6 +12,12 @@
 >   `OWNERS_ALIASES`, so some people counted as having no current role did hold one through a group.
 > - **"74 of 370 internal pointers (20.0%) do not resolve"** — it is **55 of 358 (15.4%)**. Some
 >   targets had moved rather than vanished, and the resolver was treating a move as a break.
+> - **"`/keps/sig-network/0752-endpointslices` is cited by FIVE separate KEPs"** — there is no such
+>   missing record in the graph at all; nothing matching `endpointslice` is missing. The real
+>   standout is `/keps/sig-api-machinery/0006-apply.md`, cited by **four**, which the README says
+>   and which the timing table further down this same file says. It is listed here because the
+>   paragraph below calls it "The standout", and this warning exists for figures that read as
+>   settled — leaving out the one wearing that word would defeat the point of writing it.
 >
 > Both corrected figures are the ones the README quotes, and both are re-derived from the live
 > graph on every push. The numbers here that are *about the raw files* — 684 `kep.yaml` parsed,
