@@ -30,7 +30,14 @@ APP = os.environ.get("APP", "http://localhost:8099")
 # while every freshness check reported them current. tools.py was listed because frames
 # render query hashes; the sentence above the hash is at least as load-bearing.
 SHOT_SOURCES = ("web/app.js", "web/style.css", "web/index.html",
-                "src/tombstone/agent.py")
+                "src/tombstone/agent.py",
+                # The data in these frames comes from the corpus through build.py. A reseed
+                # changes names and counts on screen while every file above is untouched.
+                "data/corpus.json.gz", "src/tombstone/build.py",
+                # drafted-patch.png is the output of _draft_owners_patch, which selects its
+                # candidates with a tools.py query and builds each diff in act.py. Either one
+                # changes what that image shows without touching anything above.
+                "src/tombstone/tools.py", "src/tombstone/act.py")
 FINGERPRINT = "docs/img/.shots-fingerprint.json"
 
 

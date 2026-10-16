@@ -1555,3 +1555,41 @@ def test_no_answer_claims_a_count_it_then_lists_short_of(agent):
                     f"{tool}: hedges with 'including' but lists all {listed} of {claimed} — "
                     f"the hedge is noise and trains a reader to distrust it elsewhere")
     assert not problems, "\n  ".join([""] + problems)
+
+
+def test_the_video_is_fingerprinted_against_everything_the_images_are():
+    """The walkthrough renders every chip, so it depends on at least what the stills depend on.
+
+    This invariant exists because the fingerprint lists were wrong four times in a row, each time
+    in the same way: a source got added when something visible broke, rather than by asking what
+    the frame is actually made of. server.py, then agent.py, then the corpus and build.py, then
+    tools.py and act.py for the drafted-patch still. Every one of those was found by changing the
+    file and noticing the checks stayed green.
+
+    A superset check cannot say the lists are COMPLETE -- nothing can, short of rendering twice
+    and diffing -- but it does catch the specific mistake that kept happening: extending one
+    generator's list and forgetting the video, which renders the same answers.
+    """
+    import json
+    import os
+
+    paths = {
+        "shots": "docs/img/.shots-fingerprint.json",
+        "gif": "docs/img/.depthgif-fingerprint.json",
+        "walkthrough": "docs/video/.walkthrough-fingerprint.json",
+    }
+    recorded = {}
+    for name, path in paths.items():
+        assert os.path.exists(path), f"{path} is missing -- regenerate the {name}"
+        recorded[name] = set(json.load(open(path)))
+
+    stills = recorded["shots"] | recorded["gif"]
+    missing = sorted(stills - recorded["walkthrough"])
+    assert not missing, (
+        f"the walkthrough video renders the same answers as the stills but is not fingerprinted "
+        f"against {missing}; a change there would stale the video with every check green")
+
+    # Each list must also name only files that exist, or the guard silently covers nothing.
+    for name, sources in recorded.items():
+        gone = sorted(s for s in sources if not os.path.exists(s))
+        assert not gone, f"the {name} fingerprint names {gone}, which no longer exist"

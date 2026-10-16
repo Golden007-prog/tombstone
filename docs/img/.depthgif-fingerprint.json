@@ -1,5 +1,7 @@
 {
+  "data/corpus.json.gz": "acf66973b25948e1",
   "src/tombstone/agent.py": "d4e3accb86ce1ed2",
+  "src/tombstone/build.py": "e868b7df44d8c543",
   "src/tombstone/server.py": "29d625563458ed32",
   "web/app.js": "bcf35bfae47e7b9b",
   "web/index.html": "54c88d072295970e",

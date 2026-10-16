@@ -20,7 +20,10 @@ import json
 import os
 import sys
 
-SOURCES = ("web/app.js", "web/style.css", "web/index.html", "src/tombstone/agent.py")
+# No SOURCES list here any more. This file used to keep its own copy of what each artefact
+# depends on, and it fell behind the generators twice -- a list that looks authoritative
+# and is out of date is worse than no list, because it reads as the answer. Each
+# fingerprint now declares its own sources and this file hashes exactly those.
 # Two generators, two fingerprints, because running one must not mark the other's output fresh.
 # depth-contrast.gif is the README's FIRST image and carries the product's central argument, and
 # until today it was hand-made with no pipeline at all -- the same flaw the walkthrough video had.
@@ -39,10 +42,29 @@ ARTEFACTS = (
 )
 
 
+def _hash(path: str) -> str:
+    return hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]
+
+
 def main() -> int:
     bad = 0
-    now = {f: hashlib.sha256(open(f, "rb").read()).hexdigest()[:16]
-           for f in SOURCES + ("src/tombstone/tools.py", "src/tombstone/server.py")}
+    # Hash exactly whatever each fingerprint recorded, instead of keeping a second list here that
+    # has to be edited every time a generator's sources change. That second list was the bug twice
+    # running: server.py and then agent.py were added to the generators while this file still
+    # hashed its own older set, so a source the artefact genuinely depended on went unchecked.
+    # A key recorded by a generator and unreadable here should fail loudly, not be skipped.
+    now: dict[str, str] = {}
+    for _fp, _gen, _imgs in ARTEFACTS:
+        if not os.path.exists(_fp):
+            continue
+        for _src in json.load(open(_fp)):
+            if _src in now:
+                continue
+            if not os.path.exists(_src):
+                print(f"  FAIL  {_fp} was taken against {_src}, which no longer exists")
+                bad += 1
+                continue
+            now[_src] = _hash(_src)
     for fingerprint, generator, images in ARTEFACTS:
         missing = [i for i in images if not os.path.exists(i)]
         if missing:
@@ -58,15 +80,20 @@ def main() -> int:
         # render a query hash, the video does.
         moved = [f for f in recorded if recorded.get(f) != now.get(f)]
         if moved:
-            print(f"  FAIL  the interface changed since {', '.join(os.path.basename(i) for i in images)} "
-                  f"{'was' if len(images) == 1 else 'were'} taken:")
+            # Not "the interface changed": these fingerprints now cover the corpus and build.py
+            # too, and a reseed is not an interface change. Naming the wrong cause sends whoever
+            # reads this to the wrong file.
+            print(f"  FAIL  {', '.join(os.path.basename(i) for i in images)} "
+                  f"{'is' if len(images) == 1 else 'are'} out of date — what "
+                  f"{'it was' if len(images) == 1 else 'they were'} made from has changed:")
             for f in moved:
                 print(f"          {f}  {recorded.get(f, 'not recorded')} -> {now[f]}")
             print(f"        ./run.sh in another shell, then: python {generator}")
             bad += 1
         else:
             print(f"  {', '.join(os.path.basename(i) for i in images)} "
-                  f"{'was' if len(images) == 1 else 'were'} taken from this exact interface")
+                  f"{'matches' if len(images) == 1 else 'match'} the code and corpus "
+                  f"{'it was' if len(images) == 1 else 'they were'} made from")
     return bad + _figure_matches_its_data()
 
 

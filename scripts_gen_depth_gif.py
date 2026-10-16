@@ -129,7 +129,8 @@ def main() -> int:
                    # agent.py renders the prose these frames are mostly made of, and
                    # server.py decides what the drawn path contains.
                    for f in ("web/app.js", "web/style.css", "web/index.html",
-                             "src/tombstone/agent.py", "src/tombstone/server.py")},
+                             "src/tombstone/agent.py", "src/tombstone/server.py",
+                             "data/corpus.json.gz", "src/tombstone/build.py")},
                   fh, indent=2, sort_keys=True)
         fh.write("\n")
     print(f"  {OUT}  {W}x{H}  {os.path.getsize(OUT) // 1024}KB, fingerprinted")
