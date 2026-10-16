@@ -218,6 +218,22 @@ rather than improvised.*
 > that organisations re-propose what they already rejected, I could not demonstrate on this
 > corpus at all.
 >
+> Later the same discipline found a different class of defect, and this one was in the demo. An
+> answer's prose and the diagram beside it are built by two different queries, and they filtered
+> rejected options differently — so on the very file the demo script opens with, the sentence
+> named two rejections and the picture drew neither, one of them the alternative the narration
+> reads aloud. That beat's whole claim is that the picture *is* the path the answer came from.
+> The same shape turned up twice more: the honest negative reported "958 rejected alternatives
+> indexed" to someone whose question had been compared against 752 of them, overstating its own
+> haystack by 27% in the one sentence whose entire job is to say what was searched; and the same
+> question asked two ways returned 5 rows and 15 while showing one identical query and one
+> identical hash, because a chip narrows a threshold and free text does not.
+>
+> None of the three was findable by reading either path. All three came from one method — take
+> two code paths that answer the same question and make them disagree out loud — and the two
+> remaining pairs I pointed it at came back clean, which is the result I would have been least
+> able to guess.
+>
 > What I changed as a result is the part I would defend: every number on the page is now
 > re-derived from the live database by a script that runs on each push, the withdrawn claims are
 > struck through rather than deleted, and the eval has a control category that exists so the text
