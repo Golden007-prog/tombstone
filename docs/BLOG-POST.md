@@ -387,7 +387,7 @@ I ended up writing a lot of verification — a script that re-queries the README
 claims against the live database, another that drives every rendered answer state through a
 headless browser, another that reads the demo script's narration and asserts the app actually
 returns what it claims.
-Thirty-two CI steps. The thing nobody warns you about is that **the checks fail in their own
+Thirty-three CI steps. The thing nobody warns you about is that **the checks fail in their own
 ways**, and a check that fails for the wrong reason costs more than the bug it was meant to catch.
 
 The sharpest example came from measuring memory. `INFO memory`'s `used_memory` is *instance-wide*,

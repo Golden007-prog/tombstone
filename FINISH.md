@@ -116,7 +116,8 @@ approver, so approval silently widened to people who never signed up for that co
 "orphaned" at first, was wrong, and the correction is in the README.
 
 **"Could a text search do this?"**
-Measured, not argued: `eval_graph_vs_text.py`, graph 24/25 versus TF-IDF 9/25 over the same 2,224
+Measured, not argued: `eval_graph_vs_text.py`, graph 24/25 versus TF-IDF 9/25 and dense
+retrieval 10/25 over the same 2,224
 documents. The graph loses the title-lookup question on purpose, and on the control category —
 lookups whose answer sits in one document — the text index ties it 9 to 9. Volunteer that tie: it
 is what makes the other fifteen mean anything.

@@ -67,6 +67,16 @@ class TfIdf:
         return scored[:k]
 
 
+# The dense baseline's last measured score, so the documents can state it while the cheap
+# default run still validates every figure they carry. Without this, a README quoting the dense
+# result would read as drift to every run that did not compute it -- and making the default
+# compute it anyway would defeat the point of making it opt-in.
+#
+# It is a published constant, which in this repository means the expensive run re-derives it and
+# fails if it has moved. CI runs --dense on every push, so this cannot quietly go stale.
+DENSE_LAST_MEASURED = 10
+
+
 class Dense:
     """The same documents, retrieved by embedding similarity instead of keyword overlap.
 
@@ -407,11 +417,17 @@ def main() -> int:
                 if b != n:
                     drift.append(f"{doc} scores this benchmark out of {b}; it has {n} questions "
                                  f"(says {a}/{b}, so it predates the eval growing)")
-                elif a not in ((gw, tw, dw) if dense is not None else (gw, tw)):
+                elif a not in ((gw, tw, dw) if dense is not None
+                               else (gw, tw, DENSE_LAST_MEASURED)):
                     drift.append(f"{doc} says {a}/{b}; this run measured {gw}/{n} for the graph "
                                  f"and {tw}/{n} for the text baseline")
     if not _stated:
         drift.append("no tracked document states this score any more; at least one should")
+    # The one direction that matters: when the dense baseline HAS run, it owns the constant the
+    # cheap run trusts. A figure the documents may quote must be re-derived by something.
+    if dense is not None and dw != DENSE_LAST_MEASURED:
+        drift.append(f"the dense baseline scored {dw}/{n}; DENSE_LAST_MEASURED says "
+                     f"{DENSE_LAST_MEASURED}. Update the constant and every document quoting it.")
 
     # The README's 60-second block states the same two facts in WORDS -- "loses one of those
     # twenty-five" and "ties the baseline nine-all" -- and the scan above only matches digits, so

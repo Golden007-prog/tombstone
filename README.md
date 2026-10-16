@@ -16,14 +16,14 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
 >   free-text questions work anyway, routed locally.
 > - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-queries all 36 graph claims against
->   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **24/25 vs 9/25**.
+>   the live graph. `eval_graph_vs_text.py` scores the graph against two baselines over the same documents: **24/25, against 9/25 for TF-IDF and 10/25 for dense retrieval**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
 > - **See it work without running anything:** **[▶ 86-second walkthrough](docs/video/walkthrough-silent.mp4)**
 >   — plays in GitHub's own viewer, captioned, every frame a real screenshot of the running app.
 > - **Nothing here is asserted.** 134 tests, 36 graph claims, 18 rendered UI states, and **two of
->   the seven benchmarks** re-run by **32 CI steps on each push** — the other five build a thousand
+>   the seven benchmarks** re-run by **33 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
@@ -540,22 +540,37 @@ have been five times too alarming, and nothing else in this repository would hav
 
 The hackathon's one published judging lens is whether the graph does work the agent could not do
 without it. Asserting that is cheap, so here it is measured — same corpus, same questions, against
-a TF-IDF index built over **every document the graph was built from** (2,224 of them: KEP titles,
-statuses, the alternatives prose, OWNERS paths and the handles in them). The baseline sees every
-word the graph does.
+**two** baselines built over **every document the graph was built from** (2,224 of them: KEP
+titles, statuses, the alternatives prose, OWNERS paths and the handles in them) — one TF-IDF, one
+*dense*, retrieving by embedding similarity with the product's own model, same documents, same k,
+same grader. Both baselines see every word the graph does.
 
 ```
-category                      n   graph   text
-lookup (control)             10       9      9     a text index ties the graph on its own ground
-inheritance                   4       4      0     tree walks to the nearest live ancestor
-expertise                     2       2      0     co-ownership counted across two edge types
-whole-graph                   2       2      0     betweenness, community detection
-absence                       3       3      0     inbound edges to a node that is ABSENT
-currency                      2       2      0     age + citations + authority, joined
-counterfactual                2       2      0     the graph re-evaluated after a deletion
-                                              
-                             25      24      9
+category                      n   graph   tfidf   dense
+lookup (control)             10       9      9       9   all three tie on the graph's own ground
+inheritance                   4       4      0       1   tree walks to the nearest live ancestor
+expertise                     2       2      0       0   co-ownership across two edge types
+whole-graph                   2       2      0       0   betweenness, community detection
+absence                       3       3      0       0   inbound edges to a node that is ABSENT
+currency                      2       2      0       0   age + citations + authority, joined
+counterfactual                2       2      0       0   the graph re-evaluated after a deletion
+
+                             25      24      9      10
 ```
+
+**The dense baseline exists because "keyword search loses" invites "so use embeddings", and
+leaving that unanswered was a hole in the measurement rather than in the result.** Now there is a
+number for it: moving from keyword to dense retrieval buys **exactly one question out of
+twenty-five**, and the fourteen-point gap survives intact. The control is a **three-way tie at
+nine**, which is the strongest version of that row — where the answer sits in one document, every
+method competes, and the graph wins nothing. Dense picks up one inheritance question TF-IDF
+misses and still scores zero on expertise, whole-graph properties, absence, currency and the
+counterfactual, because for those there is no document to retrieve: the answer was never written
+down anywhere.
+
+It runs in CI on every push rather than in `./preflight.sh`, because embedding 2,224 documents is
+minutes of CPU and that cost belongs on a runner, not on the machine someone is working on. The
+score is also a constant in the script, which the CI run re-derives and fails on if it moves.
 
 **I wrote these questions and the checks that score them**, on a corpus I chose, which is the
 standard weakness of any self-made eval and worth saying before anyone else does. Two things

@@ -143,6 +143,18 @@ jobs:
       # documents is minutes of CPU, which is too much to put in ./preflight.sh and too much to
       # ask of the machine someone is also trying to work on. CI already has FalkorDB and a
       # seeded graph, so the honest place for an expensive measurement is here.
+      #
+      # Cached, because the script's own cache lives under the gitignored data/raw/ and a runner
+      # starts cold: without this, every push pays the full embedding cost again. Keyed on the
+      # corpus and on the file that builds the baseline documents, so a change to either
+      # recomputes rather than scoring last week's text -- and the script re-checks that key
+      # itself, so a cache restored against the wrong corpus is discarded rather than trusted.
+      - name: Cache the dense baseline's document embeddings
+        uses: actions/cache@v4
+        with:
+          path: data/raw/eval-dense-vectors.npz
+          key: dense-vectors-${{ hashFiles('data/corpus.json.gz', 'eval_graph_vs_text.py') }}
+
       - name: Graph against a DENSE retrieval baseline, not only TF-IDF
         run: python eval_graph_vs_text.py --dense
 

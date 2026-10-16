@@ -133,17 +133,25 @@ have rejected a real question at 0.674.
 
 There is a README section that answers exactly this, and the honest summary is: the four
 ownership questions degrade to wrong-but-plausible, and the three whole-graph ones stop existing.
-Against a text baseline over the same documents the graph scores **24 of 25 versus 9 of 25**,
-across seven categories. The number to lead with is not that one: it is that on the *control*
-category — lookups where the answer sits in one document — the text index **ties it, 9 to 9**.
-That tie is what makes the other fifteen mean anything, and the graph loses the title lookup
-outright. Volunteer both before anyone finds them.
+Against **two** baselines over the same documents the graph scores **24 of 25**, versus **9 of 25**
+for TF-IDF and **10 of 25** for dense retrieval with this product's own embedding model, across
+seven categories. The number to lead with is not that one: it is that on the *control* category —
+lookups where the answer sits in one document — **all three tie, nine apiece**. That tie is what
+makes the other fifteen mean anything, and the graph loses the title lookup outright. Volunteer
+both before anyone finds them.
+
+**And if they ask the obvious follow-up — "that is keyword search, what about embeddings?" — the
+answer is one question.** Dense retrieval buys exactly one of the twenty-five over TF-IDF, an
+inheritance question, and still scores zero on expertise, whole-graph properties, absence,
+currency and the counterfactual. Not because the retriever is weak, but because for those there
+is no document to retrieve: the answer was never written down. That baseline runs in CI rather
+than in `./preflight.sh` — embedding 2,224 documents is minutes of CPU, which belongs on a runner.
 
 ## "How do you know any of this is true?"
 
 One command: `./preflight.sh` — twenty-three checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-32 CI steps on every push, 34 runs because two repeat across Python 3.11 and 3.14. 134 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
+33 CI steps on every push, 35 runs because two repeat across Python 3.11 and 3.14. 134 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

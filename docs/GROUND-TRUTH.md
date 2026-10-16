@@ -254,10 +254,15 @@ Not yet independently re-run by me — treat the numbers as the paper's until re
   trustworthy; pin `falkordb/falkordb:v4.22.1`.**
 - 6.0.x (Rust engine) **drops `algo.AStar` and `algo.CCH`**, and `algo.louvain`/`algo.leiden` are
   listed as "still in development" (so still no Louvain/Leiden anywhere).
-- 6.0.x open issues that would wreck a 3-day build: #3279 a trailing MATCH after `CALL..YIELD`
-  **crashes the server**; #3304 a long clause chain **overflows a worker stack and crashes**;
-  #3311 **SIGSEGV** in a hash join; #3325/#3343 **silently wrong results** (0 rows, lost bindings);
-  #3330 unique-constraint inserts **35-120x slower** than 4.20.7 with quadratic scaling.
+- 6.0.x issues that would wreck a 3-day build. **Re-checked against the tracker on 16 Oct**,
+  because citing someone else's open bugs as a reason not to use their newest release is a claim
+  that rots: #3279 a trailing MATCH after `CALL..YIELD` **crashes the server**, still open; #3304
+  a long clause chain **overflows a worker stack and crashes**, still open; #3311 **SIGSEGV** in a
+  hash join, still open; #3325 and #3343 **silently wrong results** (internal alias lookup error,
+  a dropped UNWIND), both still open. **#3330 — unique-constraint inserts 35–120x slower — is now
+  CLOSED**, so it is struck from the reasoning rather than left in to pad it: five open crashes
+  and wrong-result bugs, not six. A competing entry in this hackathon pins 6.0.2 and appears fine,
+  which is worth saying too; this pin is a three-day-risk decision, not a verdict on the release.
 - License is **SSPLv1** — worth one line in a README; it is not OSI-approved open source.
 
 ## The image bakes in three limits that all bite
@@ -387,7 +392,7 @@ submission audit now reads the run for HEAD and says so, which turns "did I chec
 something the machine answers.
 
 **One sentence, wrong three times, each time in my favour.** The 60-second box said "every
-benchmark re-run by 32 CI steps on each push". Two run in CI; the tenancy benchmark builds a
+benchmark re-run by 33 CI steps on each push". Two run in CI; the tenancy benchmark builds a
 thousand graphs and does not — and I had written that down one commit earlier while leaving the
 summary claiming otherwise. I corrected it to "two of the three", and the check I wrote in the
 same commit caught *that* as wrong: there were five benchmark scripts then, not three, counting the

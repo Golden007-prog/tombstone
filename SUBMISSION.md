@@ -210,13 +210,14 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Nothing here is asserted. **32 CI steps on every push** re-check it: 134 tests, 36 graph claims
+Nothing here is asserted. **33 CI steps on every push** re-check it: 134 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other four build a thousand graphs, millions of edges or a memory curve, so they are dated measurements with
 committed scripts rather than gates, and the README says which is which — and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
-it. The graph is scored against a text baseline over the same documents: **24/25 versus 9/25**, in
+it. The graph is scored against two baselines over the same documents — **24/25, against 9/25 for
+TF-IDF and 10/25 for dense retrieval with the product's own embedding model** — in
 seven categories — and on the control category, lookups where the answer sits in one document, the
 text index *ties it nine to nine*, across ten of the twenty-five questions. That tie is why the other fifteen mean anything.
 
