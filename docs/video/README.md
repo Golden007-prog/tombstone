@@ -42,6 +42,23 @@ Beats 3 and 6 are captured through `?ask=<question>&focus=1`, which deep-links a
 question — so a question and its answer can be shared as a URL, and so the walkthrough can show
 someone typing rather than only clicking.
 
+## Which check stands behind each beat
+
+The section below says the captions state behaviours that named checks assert. That was a claim
+about this file made twice without being tested, so here is the mapping, and every script in it
+exists:
+
+| beat | what the caption claims | what asserts it |
+|---|---|---|
+| 1 | depth 1 returns nothing, with what was searched | `scripts_check_ui.py` drives that rendered state; `eval_graph_vs_text.py` scores it |
+| 2 | four hops names who held it and what they decided | `scripts_check_readme_examples.py`; `eval_gold.py` walks the inheritance from the raw corpus |
+| 3 | typed, keyless, routed locally, answered by the same Cypher | `tests/test_invariants.py` locks the routing; `eval_retrieval.py` scores 12/12 |
+| 4–5 | it drafts a patch, and refuses two it cannot justify | `verify_action.py` re-checks all four of that section's claims against a live run |
+| 6 | a poem is declined by name | `tests/test_invariants.py` asserts out-of-domain is offered nothing; `eval_router.py` scores 10/10 |
+| 7 | a near-tie declines and offers its candidates | `scripts_check_ui.py` drives `typed:near-tie`; tests cover which cases may offer |
+| 8 | the cascade: one area stranded, others inherit | `tests/test_invariants.py` asserts the drawing matches the counterfactual's verdict |
+| 9 | betweenness ranks whose stepping back cost most | `scripts_check_readme_examples.py` checks `logicalhan` first at 156.46 |
+
 ## There is one now, and the reason I first gave for it was wrong
 
 The first version of this section explained why this file needed no staleness check: every caption
