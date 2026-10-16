@@ -41,6 +41,13 @@ run() {
 
 echo "pre-push: the checks that need no database"
 run "the demo script is speakable"  python3 scripts_check_demo_timing.py
+
+# This one is here rather than only in preflight because of WHEN it can be right. It
+# computes the upload from `git archive HEAD`, so before a commit HEAD lacks the file you
+# just added and the count passes; after the commit it fails. preflight runs pre-commit
+# and said ok, CI ran post-commit and went red. Adding any file guaranteed one red commit.
+# At the push, HEAD is already what CI will see.
+run "FINISH.md matches what the deploy will upload" python3 scripts_check_deploy_size.py
 # A token-shaped string must never leave this machine. This matters today specifically: the next
 # thing that happens to this repository is somebody exporting HF_TOKEN and running a deploy. The
 # deploy script reads it from the environment and never writes it down, and .env is ignored -- but
