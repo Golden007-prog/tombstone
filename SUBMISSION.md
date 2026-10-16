@@ -21,6 +21,22 @@ Tombstone
 
 The decisions your org already made and forgot. Asked as a graph.
 
+## If the form caps the description
+
+*Nobody can see the form's fields until you are registered, and the Description below is 3556 characters. These are the same pitch at two shorter lengths so a character limit is a paste, not a rewrite at 11pm.*
+
+**~273 characters:**
+
+> Tombstone turns Kubernetes' own governance record into a graph and answers what no document states: one person is the entire review capacity for the apiserver's metrics endpoints. It drafts the OWNERS patch that fixes what it finds, and refuses the cases it cannot justify.
+
+**~1085 characters:**
+
+> Large engineering orgs re-propose things they already rejected, because a rejected option is not a document — it is a subsection buried in a proposal about something else, with no identity, no index entry and no owner. Tombstone makes it a first-class node on FalkorDB, attaches the person who killed it, and answers questions that are traversals rather than lookups: has this been tried, who really owns this, whose stepping back cost the most connective authority, what breaks if one more person leaves.
+>
+> It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
+>
+> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 128 tests, 35 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+
 ## Track
 
 > **Track 03 — Company Brain.**
