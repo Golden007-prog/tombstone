@@ -357,6 +357,18 @@ near-tie — both tools above `MIN_SCORE` and within `MIN_MARGIN` — and there 
 a request to fix a unit test, and a question with no argument are each offered nothing. Caught by
 pulling a frame out of the walkthrough and reading the sentence under the buttons.
 
+**One sentence, wrong three times, each time in my favour.** The 60-second box said "every
+benchmark re-run by 31 CI steps on each push". Two run in CI; the tenancy benchmark builds a
+thousand graphs and does not — and I had written that down one commit earlier while leaving the
+summary claiming otherwise. I corrected it to "two of the three", and the check I wrote in the
+same commit caught *that* as wrong: there are five benchmark scripts, not three, counting the
+ingest-rate ones in `spikes/` that the blog quotes. Then the check failed on a pair of numbers
+that agreed, because its word map stopped at four and "five" mapped to `None`.
+
+Three layers — the claim, the fix, and the check on the fix — and the first two were both wrong
+in the direction that sounds more rigorous. That is the whole argument for making a check fail
+before believing it, in one sentence of prose, in the line a reader sees first.
+
 **A dead-code sweep that would have deleted a live endpoint.** Looking for public functions
 nothing calls, by counting references to each name, flags five in `src/`. One of them is
 `call_tool` — the `@app.post("/api/tool")` handler, which every chip in the UI goes through. It is

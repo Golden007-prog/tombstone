@@ -403,6 +403,20 @@ reported as **a parse failure in the checker**, never as "not visible" — and a
 nesting must exclude void elements, because no closing tag is coming for them.
 
 
+**One sentence, wrong three times, each time in my own favour.** The summary box at the top of my
+README said "every benchmark re-run on each push". Two of them run in CI; the multi-tenancy one
+builds a thousand graphs and does not — and I had written that fact down an hour earlier while
+leaving the summary claiming otherwise. I corrected it to "two of the three", and the check I
+wrote in the same commit caught *that* as wrong too: there are five benchmark scripts, counting
+the ingest-rate ones whose numbers appear in this post. Then the check failed on a pair of numbers
+that agreed, because its word map stopped at four.
+
+The claim, the fix, and the check on the fix. Two of the three were wrong in the direction that
+sounds more rigorous, and none of them was a lie — each was a sentence I believed when I wrote it.
+That is the failure mode worth designing against, because sincerity is not a defence and
+re-reading your own work does not catch it. Only making the thing fail does.
+
+
 ## What I would change
 
 The co-authorship projection is derived data I write back into the graph. I compute it in Cypher
