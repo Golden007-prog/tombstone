@@ -66,7 +66,28 @@ def main() -> int:
         clean += ok
         print(f"  {'PASS' if ok else 'FAIL'}  {q[:70]:<72} -> {ans.shape}")
     print(f"\ncontrols correctly empty: {clean}/{len(CONTROLS)}")
-    return 0 if (hits == len(QUERIES) and clean == len(CONTROLS)) else 1
+
+    # The README prints both of these scores. Until now nothing connected those sentences to this
+    # run, which is how every other number in this repository has gone stale -- and this one had a
+    # live reason to move today: has_this_been_tried started excluding seven section headings from
+    # the haystack, so both scores were worth re-reading rather than assuming.
+    import re as _re
+    readme = open("README.md").read()
+    drift = []
+    m = _re.search(r"\*\*(\d+)/(\d+) return a real titled rejected option", readme)
+    if not m:
+        drift.append("the README no longer states the paraphrase score where this can read it")
+    elif (int(m.group(1)), int(m.group(2))) != (hits, len(QUERIES)):
+        drift.append(f"the README says {m.group(1)}/{m.group(2)} useful top hits; "
+                     f"this run measured {hits}/{len(QUERIES)}")
+    m2 = _re.search(r"(\d+) negative controls?", readme)
+    if m2 and int(m2.group(1)) != len(CONTROLS):
+        drift.append(f"the README says {m2.group(1)} negative controls; this file has "
+                     f"{len(CONTROLS)}")
+    for d in drift:
+        print(f"  FAIL  {d}")
+
+    return 0 if (hits == len(QUERIES) and clean == len(CONTROLS) and not drift) else 1
 
 
 if __name__ == "__main__":
