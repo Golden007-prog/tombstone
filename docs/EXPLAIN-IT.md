@@ -147,6 +147,53 @@ currency and the counterfactual. Not because the retriever is weak, but because 
 is no document to retrieve: the answer was never written down. That baseline runs in CI rather
 than in `./preflight.sh` — embedding 2,224 documents is minutes of CPU, which belongs on a runner.
 
+## "Why a vector index and not FalkorDB's full-text index?"
+
+Both exist here and both were spiked — `db.idx.fulltext.createNodeIndex` works and returns a
+BM25-ish score, which is written up in `docs/GROUND-TRUTH.md`. The reason the product routes
+`has_this_been_tried` through the vector index is that the question is *"has anyone proposed this
+before"*, asked in the asker's words about a rejection written in someone else's. BM25 scores
+shared terms; it cannot match "let the kubelet own this state" to a KEP that wrote "node-local
+ownership of the resource". The eval shows the same thing from the other side: the TF-IDF
+baseline is a keyword retriever over these exact documents and it answers 9 of 25.
+
+**The honest caveat**, because it cuts the other way: a keyword index would be the better tool for
+the 206 options the vector index excludes. They are unindexed, not unembedded, and a full-text
+index over all 958 would reach them without the precision cost that pooling them into the ANN
+index was measured to carry. That is the shape of the fix `bench_index_scope.py` points at, and
+it is a re-ingest rather than an afternoon.
+
+## "Three thousand nodes is tiny. Why a graph database at all?"
+
+The right answer is not "scale", and claiming it would be would be easy to puncture: 3,087 nodes
+and 15,735 edges fit in a laptop's memory, and this repository publishes a benchmark that
+**withdraws** its own networkx comparison — re-measured on the real graph, betweenness is a 1–2x
+difference, not the 18x an earlier table claimed. At this size a graph library would run the
+algorithms perfectly well.
+
+What a library would not give you is one store where four different shapes of question are the
+same data: a variable-hop traversal to the nearest live ancestor, an ANN search over embedded
+prose, a counterfactual that forks the whole graph with `GRAPH.COPY` and drops it, and the
+agent's own memory written back as nodes that `CITED` the records an answer came from. Do that
+with a library and you are maintaining four stores and the joins between them, and the memory
+cannot invalidate itself when the records it cited stop resolving — which is the one feature here
+that depends on all of it being the same graph.
+
+## "What is the write path, and what happens under concurrency?"
+
+Writes are small and there are only two kinds. Every answered question becomes one
+`MERGE (a:Answer {qid})` plus a `MERGE` per citation, so re-asking is idempotent by construction
+rather than by checking first. The corpus itself is never written at runtime: `build()` drops and
+reseeds the graph in about six seconds from a committed snapshot, which is why a restart needs no
+restore and nothing can be half-migrated.
+
+Concurrency was measured rather than reasoned about, and it is the one place this product has a
+hard edge: `GRAPH.COPY` forks the server process, so each in-flight counterfactual needs headroom
+roughly equal to the graph. `./scripts_verify_deploy.sh` fires six at once and reports what
+happens — **five answered, one degraded honestly, no hard failures**, peaking around 900 MB. The
+degraded one is the behaviour to point at: it returns `DEGRADED` with a reason rather than a
+wrong answer or a timeout.
+
 ## "How do you know any of this is true?"
 
 One command: `./preflight.sh` — twenty-three checks. The graph counts are re-derived against the
