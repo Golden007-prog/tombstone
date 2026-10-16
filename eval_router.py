@@ -160,6 +160,35 @@ def main() -> int:
             continue
         if int(row.group(1)) != actual:
             drift.append(f"README says {row.group(1)} for {label!r}; this run measured {actual}")
+    # The table rows above are checked; the PROSE under them was not, and it had drifted. It
+    # said the right tool ranked first in five of the eight declines when it is four, and said
+    # the two unreachable questions were named in a table that only counts them. Both are the
+    # sentence a reader actually takes away, sitting under a table nobody disagrees with.
+    _margin = _top1 = 0
+    for _q, _exp in HELD_OUT:
+        _g = router.route(_q) or {}
+        if _g.get("tool") not in (None, "", "__out_of_domain__"):
+            continue
+        _near = _g.get("near") or []
+        _sc = [x.get("score") for x in _near if x.get("score") is not None]
+        if len(_sc) >= 2 and (_sc[0] - _sc[1]) < 0.015:
+            _margin += 1
+        if _near and _near[0].get("tool") == _exp:
+            _top1 += 1
+    _WORDS = {0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+              7: "seven", 8: "eight", 9: "nine", 10: "ten"}
+    _m = _re.search(r"(\w+) of the eight declines are \*margin\* failures", readme)
+    if not _m:
+        drift.append("README no longer states how many declines are margin failures")
+    elif _m.group(1).lower() != _WORDS.get(_margin):
+        drift.append(f"README says {_m.group(1)} declines are margin failures; measured {_margin}")
+    _m2 = _re.search(r"in (\w+) of them the right tool is the one it ranked first", readme)
+    if not _m2:
+        drift.append("README no longer says in how many the right tool ranked first")
+    elif _m2.group(1).lower() != _WORDS.get(_top1):
+        drift.append(f"README says the right tool ranked first in {_m2.group(1)} declines; "
+                     f"measured {_top1}")
+
     if drift:
         print("\nThe README disagrees with this eval:")
         for d in drift:

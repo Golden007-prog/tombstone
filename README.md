@@ -388,7 +388,7 @@ The zero is the number I care about. It never answers a different question than 
 either answers, or it says which tools it could not choose between.
 
 **And that refusal stopped being a dead end.** Seven of the eight declines are *margin* failures —
-the top two tools within 0.015 — and in five of them the right tool is the one it ranked first and
+the top two tools within 0.015 — and in four of them the right tool is the one it ranked first and
 declined to commit to. The fix was not to lower the bar until it guesses. The refusal now carries
 its candidates and their scores, and [the UI offers them as buttons](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it).
 Clicking one is not the router guessing after all: it declined, showed its work, and a human chose
@@ -396,8 +396,10 @@ Clicking one is not the router guessing after all: it declined, showed its work,
 clicks becomes part of a query. `force` is validated against the same fixed catalogue, because
 otherwise it would be a hole straight through it.
 
-The two it still cannot reach are in the table above, by name, in
-[`eval_router.py`](eval_router.py).
+The two it still cannot reach — *"where did all the approvers leave"* and *"was storing this in
+etcd directly ever considered"* — are named in full by `eval_router.py`'s own output, which
+prints every decline with the tool it expected and whether that tool was offered. The table above
+counts them; it does not name them, and this sentence used to say it did.
 
 ## It remembers what it learns
 
