@@ -57,7 +57,21 @@ if ! "$PY" -c "import falkordb, fastembed, fastapi, pytest" 2>/dev/null; then
   exit 1
 fi
 
-pass=0; fail=0; failed=()
+pass=0; fail=0; skip=0; failed=()
+
+# A check that cannot run here must say so -- never pass, and never read as a product failure.
+# scripts_check_ui.py drives real headless Chrome, and on a machine without Chrome it exits 1, so
+# "one command, one verdict" printed a red FAIL for an environmental reason no document mentioned.
+# The escape hatch (UI_CHECK_OPTIONAL) existed in exactly one line of code and nowhere in the
+# docs. CI structurally cannot see this, because GitHub's runners ship Chrome. Same shape as the
+# pre-push hook's SKIP when no interpreter has pyyaml.
+skip_if_missing() {   # skip_if_missing <label> <reason> <probe-command...>
+  local label="$1" reason="$2"; shift 2
+  if "$@" >/dev/null 2>&1; then return 1; fi
+  printf '  \033[33mSKIP\033[0m  %s\n' "$label"
+  printf '          %s\n' "$reason"
+  skip=$((skip + 1)); return 0
+}
 
 run() {   # run <label> <command...>
   local label="$1"; shift
@@ -89,7 +103,13 @@ run "the memory claims"                    "$PY" verify_memory.py
 run "retrieval, with negative controls"    "$PY" eval_retrieval.py
 run "the keyless router, on held-out language" "$PY" eval_router.py
 run "graph against a text baseline"        "$PY" eval_graph_vs_text.py
-run "every rendered answer state"          "$PY" scripts_check_ui.py
+if ! skip_if_missing "every rendered answer state" \
+      "needs headless Chrome, which is not on this machine. Everything else still ran; CI checks
+          this one on every push, on a runner that has Chrome. Set CHROME=/path/to/chrome to run
+          it here." \
+      "$PY" -c 'import sys; sys.path.insert(0, "."); import scripts_check_ui as u; sys.exit(0 if u.CHROME else 1)'; then
+  run "every rendered answer state"        "$PY" scripts_check_ui.py
+fi
 run "the README's printed output"          "$PY" scripts_check_readme_examples.py
 run "the demo script's facts"              "$PY" scripts_check_demo_facts.py
 run "the demo script's timing"             python3 scripts_check_demo_timing.py
@@ -126,7 +146,13 @@ fi
 
 echo
 if [ "$fail" -eq 0 ]; then
-  printf '  \033[32m%d checks passed.\033[0m Deploy with ./scripts_verify_deploy.sh then ./deploy_hf.sh\n' "$pass"
+  # Skips are named in the verdict rather than folded into the pass count, because "23 checks
+  # passed" over 22 that ran is the kind of quietly-wrong number this whole file exists to catch.
+  if [ "$skip" -gt 0 ]; then
+    printf '  \033[32m%d checks passed\033[0m, \033[33m%d skipped\033[0m (named above, each with its reason).\n' "$pass" "$skip"
+  else
+    printf '  \033[32m%d checks passed.\033[0m Deploy with ./scripts_verify_deploy.sh then ./deploy_hf.sh\n' "$pass"
+  fi
 else
   printf '  \033[31m%d of %d failed:\033[0m %s\n' "$fail" "$((pass + fail))" "${failed[*]}"
 fi

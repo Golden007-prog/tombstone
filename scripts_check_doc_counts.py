@@ -114,7 +114,11 @@ for path in files:
 # seventeenth check landed -- the checklist still said sixteen. It is also the claim a judge is
 # most likely to test, because testing it means running one command.
 pf = open("preflight.sh").read()
-_labels = re.findall(r'^run "([^"]+)"', pf, re.M)
+# Anchored on `run "` anywhere on the line, not at column zero. The Chrome-dependent check now
+# sits inside an `if` that skips it loudly on a machine without Chrome, so it is indented -- and
+# this count silently dropped to 22 while the documents still said twenty-three. A checker keyed
+# to where a line starts rather than to what it does.
+_labels = re.findall(r'^\s*run "([^"]+)"', pf, re.M)
 _body = re.search(r"^run\(\) \{.*?^\}", pf, re.M | re.S)
 _outside = pf[:_body.start()] + pf[_body.end():] if _body else pf
 _inline = _outside.count("[32mok")   # literal, not a regex: r"\033\[32mok" compiles

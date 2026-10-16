@@ -785,6 +785,13 @@ PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 141 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
+One of those 23 checks drives real headless Chrome to photograph every rendered answer state. If
+this machine has no Chrome it is now **skipped by name, with its reason, and the verdict says how
+many were skipped** — it used to print a red `FAIL` for an environmental reason named in no
+document, which on a page whose claim is "nothing here is asserted" is the most expensive possible
+false negative. CI could not see it, because GitHub's runners ship Chrome. Point `CHROME=` at a
+binary to run it here.
+
 ```bash
 PYTHONPATH=src ./.venv/bin/python eval_retrieval.py       # 12 paraphrases + 3 negative controls
 PYTHONPATH=src ./.venv/bin/python eval_graph_vs_text.py   # graph vs a TF-IDF baseline on the same corpus
