@@ -57,7 +57,12 @@ SUBSET = re.compile(r"\b(?:of|in|among|and)\s+$|\bonly\s+$|\bjust\s+$")
 # node counts, not stale versions of them. Its own summary table is checked by hand when it moves.
 files = [pathlib.Path("README.md"), pathlib.Path("SUBMISSION.md"),
          pathlib.Path("deploy/README-hf-space.md"), pathlib.Path("docs/DEMO-SCRIPT.md"),
-         pathlib.Path("docs/BLOG-POST.md"), pathlib.Path("docs/EXPLAIN-IT.md")]
+         pathlib.Path("docs/BLOG-POST.md"), pathlib.Path("docs/EXPLAIN-IT.md"),
+         # Linked from the README, so it is judge-facing whether or not it was written to be.
+         # It carries no corpus counts today -- its numbers are about checks and measurements --
+         # but a document outside this list is a document where the next one can go stale, and
+         # the corpus record two files over proved that is not hypothetical.
+         pathlib.Path("docs/GROUND-TRUTH.md")]
 files = [f for f in files if f.exists()]
 problems = []
 checked = 0
