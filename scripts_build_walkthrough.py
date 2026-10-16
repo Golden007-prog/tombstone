@@ -204,7 +204,7 @@ closing = card(os.path.join(work, "close.mp4"), 5, [
     # are dated measurements rather than gates. This repo has a checker whose entire job
     # is banning that sentence shape, and it scans six markdown files, so the one place
     # the claim survived was the video. Counted instead of generalised.
-    ("31 graph claims re-checked against the live graph on every push.", 25),
+    ("34 graph claims re-checked against the live graph on every push.", 25),
     ("github.com/aviralgarg05/tombstone", 30),
     ("Graph Hacks 2026 - Track 3, Company Brain", 22),
 ])

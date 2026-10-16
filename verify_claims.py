@@ -58,6 +58,16 @@ CLAIMS = [
      "OPTIONAL MATCH (c:Person)-[:APPROVES]->(f) "
      "WITH f, count(DISTINCT c) AS n WHERE n = 0 RETURN count(f)", 7),
     ("OWNERS inheritance edges", "MATCH ()-[r:INHERITS_FROM]->() RETURN count(r)", 584),
+    # The data-model table in docs/EXPLAIN-IT.md is what a judge gets walked through under Rule
+    # 12, and two of its figures were checked nowhere: the Sig count, and the seeded totals the
+    # table's own rows are supposed to add up to. A superseded working record still says 23 Sigs,
+    # which is what an unchecked number looks like from the outside -- you cannot tell which one
+    # is live without running something.
+    ("special-interest groups (:Sig)", "MATCH (s:Sig) RETURN count(s)", 22),
+    ("seeded nodes, before the agent writes any memory",
+     "MATCH (n) WHERE NOT n:Answer RETURN count(n)", 3087),
+    ("seeded edges, before the agent writes any memory",
+     "MATCH (a)-[r]->(b) WHERE NOT a:Answer AND NOT b:Answer RETURN count(r)", 15735),
     ("OWNERS files that sever inheritance",
      "MATCH (o:OwnersFile) WHERE o.severs_inheritance = true RETURN count(o)", 57),
     ("areas genuinely unowned after walking the tree",

@@ -52,7 +52,7 @@ BARE = re.compile(rf"^[^A-Za-z]{{0,4}}(numbers|claims|figures|benchmarks|facts|m
 # about itself, and refusing them would mean refusing to document the thing being prevented.
 # Two kinds of line are fine and the first version of this check flagged both, which is how a
 # check earns its way into being skipped. A SCOPED claim names what it covers -- "in this
-# section", "above", "the 31 graph claims" -- and is a different sentence from "every number".
+# section", "above", "the 34 graph claims" -- and is a different sentence from "every number".
 # A QUOTED one is this repository documenting the mistake, and refusing those would mean refusing
 # to write down the thing being prevented.
 ALLOWED = re.compile(r"used to say|previously|was wrong|overstated|not quite true|"

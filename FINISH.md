@@ -95,7 +95,7 @@ lookups whose answer sits in one document — the text index ties it 9 to 9. Vol
 is what makes the other fifteen mean anything.
 
 **"How do I know the numbers are real?"**
-`python verify_claims.py` re-checks all 31 against the live graph, and CI runs it on every push.
+`python verify_claims.py` re-checks all 34 against the live graph, and CI runs it on every push.
 Every row the product returns carries a `github.com` URL you can click.
 
 **"What's the weakest part?"**

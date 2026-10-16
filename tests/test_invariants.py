@@ -1659,6 +1659,8 @@ def test_no_shipped_string_fakes_a_plural_with_parens():
             text = node.value
             if "\\s" in text or "\\d" in text or "\\b" in text:
                 continue                   # a regex, where (s) is a group
+            if re.search(r"\b(MATCH|RETURN|WHERE|MERGE|CALL)\b", text):
+                continue                   # Cypher, where count(s) references a variable
             if FAKE.search(text):
                 offenders.append(f"{path}:{node.lineno}  {text.strip()[:70]}")
 
