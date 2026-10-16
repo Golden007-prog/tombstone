@@ -124,6 +124,7 @@ def call_tool(c: ToolCall):
         "ms": round(ans.ms, 2),
         "cypher": ans.cypher.strip(),
         "query_sha": query_sha(ans.cypher),
+        "params": ans.params,     # see agent._payload: the hash covers the text, not the values
     }
 
 

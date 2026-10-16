@@ -1882,3 +1882,50 @@ def test_drawn_path_can_cite_what_the_prose_cites(g):
         "RETURN DISTINCT a.title", params={"p": path}).result_set}
     assert cited, "the demo's own file cites no rejections — this test would pass vacuously"
     assert "Doing nothing is a viable alternative." in cited
+
+
+def test_every_answer_that_shows_a_query_says_what_was_asked_of_it(agent):
+    """A query without its arguments is an incomplete provenance.
+
+    The UI's claim is that you can see where an answer came from, and it showed the Cypher and a
+    hash of the Cypher. Those identify the query TEXT -- that it is one of the thirteen constants
+    and was not rewritten -- and deliberately not the values. So "which cited decisions no longer
+    exist" returned 5 rows from the chip and 15 typed by hand, with one identical query and one
+    identical hash on screen either way, because the chip narrows min_cites to 2 and the router
+    uses the default of 1. Nothing visible distinguished them.
+    """
+    from tombstone.tools import CATALOGUE
+
+    probes = {
+        "has_this_been_tried": {"idea_text": "pull profile artifacts into the kubelet"},
+        "successor_for": {"handle": "lavalamp"},
+        "who_owns": {"path": "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS",
+                     "depth": 4},
+        "what_if_they_go": {"handles": ["deads2k", "liggitt"]},
+        "recall": {"question": "who owns the metrics endpoints"},
+        "draft_owners_patch": {"min_stepped_back": 3},
+    }
+    checked = 0
+    for tool in CATALOGUE:
+        ans = agent.dispatch(tool, probes.get(tool, {}))
+        if not (ans.cypher or "").strip():
+            continue                      # nothing ran, so there is nothing to qualify
+        assert ans.params, (
+            f"{tool} shows a Cypher but reports no arguments, so two different answers from it "
+            f"are indistinguishable on screen")
+        assert all(k == k.lower() for k in ans.params), (
+            f"{tool} reports {sorted(ans.params)}; the UI lists the tool's own argument names, "
+            f"which are lower case")
+        checked += 1
+    assert checked >= 10, f"only {checked} tools ran a query — this would pass on almost nothing"
+
+
+def test_the_two_endpoints_agree_on_what_they_return(agent):
+    """`/api/ask` and `/api/tool` build their payloads in one place for a reason: they drifted
+    once, and the model path silently lost `headline`, the one number the UI leads with."""
+    ans = agent.dispatch("sole_approver_risk", {})
+    payload = agent._payload("which areas have exactly one approver", "sole_approver_risk",
+                             {}, ans, "local")
+    for key in ("tool", "shape", "headline", "answer", "rows", "coverage", "note", "ms",
+                "cypher", "query_sha", "params"):
+        assert key in payload, f"/api/ask payload has no {key!r}"

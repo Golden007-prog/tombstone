@@ -148,6 +148,14 @@ class Agent:
             "ms": round(ans.ms, 2),
             "cypher": ans.cypher.strip(),
             "query_sha": query_sha(ans.cypher),
+            # The hash covers the QUERY TEXT, which is what it claims: proof the Cypher is one of
+            # the thirteen constants and was not rewritten. It deliberately does not cover the
+            # bound values, so the same question asked two ways shared one hash and one displayed
+            # query while returning 15 rows and 5 -- the chip narrows broken_lineage to min_cites
+            # 2 and the router uses the default of 1. Showing the query without its parameters is
+            # an incomplete provenance for a product whose claim is that you can see where the
+            # answer came from.
+            "params": ans.params,
         }
         if extra:
             out.update(extra)
@@ -381,6 +389,10 @@ class Agent:
                               # screen that made the most expensive operation look like a no-op.
                               ms=r["total_ms"],
                               cypher=_cf.STRANDED,
+                              # The cohort IS the question here, and these two were the only
+                              # tools showing a query with nothing to say about what was asked
+                              # of it.
+                              params={"handles": handles},
                               note=f"Evaluated on a {r['copy_ms']}ms GRAPH.COPY; the live graph "
                                    f"was never modified and the copy was dropped.")
             if tool == "stale_knowledge":
@@ -399,9 +411,9 @@ class Agent:
                 if not rows:
                     return Answer("NOT_IN_GRAPH", "recall", ms=_ms,
                                   note="Nothing like this has been asked of this graph before.",
-                                  cypher=Memory.RECALL)
+                                  cypher=Memory.RECALL, params={"question": text})
                 return Answer("ANSWERED_WITH_PATH", "recall", rows=rows, ms=_ms,
-                              cypher=Memory.RECALL)
+                              cypher=Memory.RECALL, params={"question": text})
             if tool == "who_owns":
                 return self.tools.who_owns(args.get("path") or "", depth=num(args.get("depth", 4), 4))
         except Exception as e:
@@ -464,6 +476,7 @@ class Agent:
         if found.shape != "ANSWERED_WITH_PATH":
             return Answer("NOT_IN_GRAPH", "draft_owners_patch", ms=found.ms,
                           cypher=found.cypher, coverage=found.coverage,
+            params={"min_stepped_back": min_stepped_back},
                           note="No lopsided ownership records at this threshold, so there is "
                                "nothing to draft. That is a finding, not a failure.")
 
@@ -507,6 +520,7 @@ class Agent:
         refused = len(rows) - drafted
         return Answer("ANSWERED_WITH_PATH", "draft_owners_patch", rows=rows, ms=found.ms,
                       cypher=found.cypher, coverage=found.coverage,
+                      params={"min_stepped_back": min_stepped_back},
                       note=(f"{_n(drafted, 'patch', 'patches')} drafted, {_n(refused, 'candidate')} deliberately "
                             f"not patched with the reason given on each. Nothing was sent "
                             f"anywhere." + (f" Written to {write_to}." if written else "")))

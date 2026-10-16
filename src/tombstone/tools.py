@@ -146,7 +146,8 @@ LIMIT $limit
                           cypher=self.HAS_THIS_BEEN_TRIED,
                           note="No recorded rejected alternative within the distance threshold.")
         return Answer("ANSWERED_WITH_PATH", "has_this_been_tried", rows=rows, ms=ms,
-                      cypher=self.HAS_THIS_BEEN_TRIED, params={"k": k, "maxDist": max_dist})
+                      cypher=self.HAS_THIS_BEEN_TRIED,
+                      params={"k": k, "max_dist": max_dist, "limit": limit})
 
     # ---------- TOOL 2 ----------
     # NOTE: this query replaced an earlier, WRONG one.
@@ -198,6 +199,7 @@ LIMIT $limit
         rows, ms = self._run("ownership_dilution", self.OWNERSHIP_DILUTION, {"limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "ownership_dilution", rows=rows, ms=ms,
+                      params={"limit": limit},
                       cypher=self.OWNERSHIP_DILUTION, coverage=self._coverage())
 
     # ---------- TOOL 3 ----------
@@ -228,7 +230,8 @@ LIMIT $limit
         rows, ms = self._run("stepped_back_bridges", self.DEPARTED_BRIDGES, params)
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "stepped_back_bridges", rows=rows, ms=ms,
-                      cypher=self.DEPARTED_BRIDGES, params=params, coverage=self._coverage(),
+                      cypher=self.DEPARTED_BRIDGES, coverage=self._coverage(),
+                      params={"min_areas": min_areas, "limit": limit, "seed": seed},
                       # A row reading 0.00 is the sampled estimate, not a proof of zero: it means
                       # no sampled shortest path happened to run through that person. Saying so
                       # matters because the list is ranked, and a reader meeting 0.00 at the
@@ -263,7 +266,7 @@ LIMIT $limit
         rows, ms = self._run("successor_for", self.SUCCESSOR_FOR, {"handle": resolved, "limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "successor_for", rows=rows, ms=ms,
-                      cypher=self.SUCCESSOR_FOR, params={"handle": resolved},
+                      cypher=self.SUCCESSOR_FOR, params={"handle": resolved, "limit": limit},
                       coverage=self._coverage() if not rows else {})
 
     # ---------- TOOL 5 ----------
@@ -281,7 +284,8 @@ LIMIT $limit
         rows, ms = self._run("broken_lineage", self.BROKEN_LINEAGE,
                              {"minCites": min_cites, "limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
-        return Answer(shape, "broken_lineage", rows=rows, ms=ms, cypher=self.BROKEN_LINEAGE)
+        return Answer(shape, "broken_lineage", rows=rows, ms=ms, cypher=self.BROKEN_LINEAGE,
+                      params={"min_cites": min_cites, "limit": limit})
 
     # ---------- TOOL 6: which GROUP is hollowing out ----------
     HOLLOWING_COMMUNITIES = """
@@ -325,7 +329,8 @@ LIMIT $limit
         rows, ms = self._run("hollowing_communities", self.HOLLOWING_COMMUNITIES, params)
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "hollowing_communities", rows=rows, ms=ms,
-                      cypher=self.HOLLOWING_COMMUNITIES, params=params,
+                      cypher=self.HOLLOWING_COMMUNITIES,
+                      params={"min_size": max(2, min_size), "limit": limit},
                       coverage=self._coverage(),
                       note="Communities are discovered by label propagation over co-authorship, "
                            "not declared. The algorithm is non-deterministic and has no "
@@ -369,6 +374,7 @@ LIMIT $limit
                               "limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "stepped_back_but_still_listed", rows=rows, ms=ms,
+                      params={"min_stepped_back": min_stepped_back, "limit": limit},
                       cypher=self.STEPPED_BACK_BUT_STILL_LISTED, coverage=self._coverage())
 
     SOLE_APPROVER = """
@@ -393,6 +399,7 @@ LIMIT $limit
         rows, ms = self._run("sole_approver_risk", self.SOLE_APPROVER, {"limit": limit})
         shape = "ANSWERED_WITH_PATH" if rows else "NOT_IN_GRAPH"
         return Answer(shape, "sole_approver_risk", rows=rows, ms=ms,
+                      params={"limit": limit},
                       cypher=self.SOLE_APPROVER, coverage=self._coverage())
 
     # ---------- TOOL 7: keeping knowledge current ----------
@@ -454,7 +461,7 @@ LIMIT $limit
                           note=f"No decision older than {min_years} years is still being cited "
                                f"while formally undecided.")
         return Answer("ANSWERED_WITH_PATH", "stale_knowledge", rows=rows, ms=ms,
-                      cypher=self.STALE_KNOWLEDGE, params={"min_years": min_years})
+                      cypher=self.STALE_KNOWLEDGE, params={"min_years": min_years, "limit": limit})
 
     # ---------- TOOL 8: the depth contrast the rubric asks for ----------
     WHO_OWNS_DEPTH1 = """

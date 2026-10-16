@@ -20,7 +20,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
-> - **Nothing here is asserted.** 131 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 133 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **31 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -736,7 +736,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 131 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 133 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1312,6 +1312,20 @@ times. Each fix made the claim narrower and more defensible.
   guard was tested with `endswith`, so `"al."` matched `"proposal."`. Fixed — **0 list markers
   now, and 179 of the 206 carry a 60-plus character label.** The real fix for the gap itself is
   still a better extractor, which is a re-ingest. Pinned by `eval_gold.py`.
+- **The same question, asked two ways, gave two answers with one hash between them.** Every
+  answer card shows its Cypher and a hash of that Cypher, and that hash covers the query *text* —
+  which is the claim worth making, because it proves the query is one of the thirteen constants
+  and was not rewritten. What it deliberately does not cover is the values bound into it. So the
+  chip "Which cited decisions no longer exist?" answered **5 rows** and the same sentence typed by
+  hand answered **15**, showing the identical query and the identical hash either way: the chip
+  narrows `min_cites` to 2 and free text takes the default of 1. Both answers were correct and
+  nothing on screen distinguished them, which is a poor showing for a product whose whole claim is
+  that you can see where an answer came from. Every answer now states the arguments it was
+  answered with, and a test asserts that any tool showing a query also says what was asked of it —
+  it immediately found two more tools that did not, and then a thirteenth.
+  *(Found by diffing the two endpoints against each other rather than by reading either. It is the
+  same method that found the drawn path omitting a rejection the sentence named: take two code
+  paths that answer the same question and make them disagree out loud.)*
 - **7 of 681 decisions have no usable date** — 3 omit the field entirely, 2 still carry the
   template's literal `'yyyy-mm-dd'`, and 2 give a month above twelve (`2023-14-05`,
   `2025-30-01`), presumably a day-month transposition. "Presumably" is not a date, so they stay

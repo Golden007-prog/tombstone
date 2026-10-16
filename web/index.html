@@ -87,6 +87,10 @@
     <details id="cywrap" class="disclose">
       <summary>The Cypher that produced this <code id="sha"></code></summary>
       <pre id="cypher"></pre>
+      <!-- The hash above covers the query TEXT, not the values bound into it. Without this line
+           the chip and the same question typed by hand showed one identical query and one
+           identical hash while answering 5 rows and 15, because the chip narrows the threshold. -->
+      <p id="cyparams" class="hint hidden"></p>
       <p class="note">Hand-written and parameterised. The model picks a tool and fills arguments;
         it never composes a query, and no model output is concatenated into Cypher.</p>
     </details>

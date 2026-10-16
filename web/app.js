@@ -229,6 +229,22 @@ function show(data, graphArgs) {
   $("cywrap").classList.toggle("hidden", !cy);
   $("cypher").textContent = cy;
   $("sha").textContent = data.query_sha || "";
+  // The arguments this answer was produced with. The hash identifies the query TEXT -- that it
+  // is one of the thirteen constants and was not rewritten -- and deliberately not the arguments,
+  // so the same query and the same hash can answer two different questions: the chip narrows
+  // broken_lineage to min_cites 2 and a typed question uses the default 1, which is 5 rows
+  // against 15. These are the tool's own argument names rather than the Cypher's binding names,
+  // because the two do not map one to one -- who_owns' depth picks between two constants instead
+  // of templating into one, and stale_knowledge's min_years reaches the query as $ageMs.
+  const prm = data.params && Object.keys(data.params).length ? data.params : null;
+  const pel = $("cyparams");
+  if (pel) {
+    pel.classList.toggle("hidden", !prm || !cy);
+    pel.textContent = prm
+      ? "answered with: " + Object.entries(prm)
+          .map(([k, v]) => k + " = " + (Array.isArray(v) ? v.length + " values" : v)).join(", ")
+      : "";
+  }
 
   // ANSWERED_FROM_MEMORY belongs here as much as ANSWERED_WITH_PATH does. A remembered answer
   // is not a cached string: the tool was re-run, the rows are the rows it just returned, and the
