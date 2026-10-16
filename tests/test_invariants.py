@@ -2149,3 +2149,40 @@ def test_the_owners_half_of_the_graph_carries_no_parser_debris(g):
             f"{n} {rel} edges now hang off a malformed Person key. README's Honest limits states "
             f"that the ownership half is unaffected because it is parsed from YAML; that is no "
             f"longer true and the disclosure is now wrong.")
+
+
+# The filesystem trust boundary. draft_owners_patch's `write_to` is correct for a person
+# regenerating docs/patches/ and is an unauthenticated arbitrary-path write when it arrives over
+# HTTP -- and both network routes reached it: /api/tool passed the caller's args verbatim, and on
+# a keyed instance ask() passes the MODEL's args verbatim while the catalogue entry listed
+# `write_to` where the model could read it. One anonymous POST created a directory and wrote files
+# into it. These three pin the refusal, the opt-in, and the silence of the catalogue.
+
+def test_dispatch_refuses_filesystem_arguments_by_default(agent, tmp_path):
+    target = tmp_path / "should-not-exist"
+    ans = agent.dispatch("draft_owners_patch", {"write_to": str(target)})
+    assert ans.shape == "ANSWERED_WITH_PATH", "the tool must still answer, just without writing"
+    assert not target.exists(), (
+        f"dispatch() wrote to {target} without allow_local_writes -- this is the path that was "
+        f"reachable, unauthenticated, from the public /api/tool")
+
+
+def test_dispatch_still_writes_when_a_local_caller_opts_in(agent, tmp_path):
+    target = tmp_path / "patches"
+    agent.dispatch("draft_owners_patch", {"write_to": str(target)}, allow_local_writes=True)
+    written = sorted(p.name for p in target.iterdir()) if target.exists() else []
+    assert len(written) == 2, (
+        f"the opt-in path must still regenerate the committed artefacts; got {written}")
+    assert all(n.endswith(".patch") for n in written)
+
+
+def test_the_catalogue_never_advertises_an_argument_dispatch_refuses():
+    """The catalogue is the model's menu and the sponsor engineer's API reference, both."""
+    from tombstone.agent import UNSAFE_ARGS
+    from tombstone.tools import CATALOGUE
+    assert UNSAFE_ARGS, "the denylist is empty, so this test proves nothing"
+    for name, spec in CATALOGUE.items():
+        for arg in UNSAFE_ARGS:
+            assert arg not in str(spec), (
+                f"the catalogue entry for {name} names '{arg}', which dispatch() strips -- so it "
+                f"advertises a parameter to the routing model and to /api/tools that cannot work")

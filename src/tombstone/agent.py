@@ -67,6 +67,10 @@ _ROUTE_REQUIRED = _LazyRequired()
 # and says why the number is on screen. The rows are never dropped; what changes is the verb.
 DEFAULT_MAX_DIST = 0.45
 
+# Tool arguments that touch the filesystem. Refused by `Agent.dispatch` unless a caller explicitly
+# opts in with allow_local_writes=True, which nothing reachable from the network does.
+UNSAFE_ARGS = ("write_to",)
+
 def _n(count, singular: str, plural: str | None = None) -> str:
     """"1 area", "2 areas" -- written out, because "1 area(s)" reads as unfinished.
 
@@ -355,8 +359,23 @@ class Agent:
                     pass
             return {"falkordb": "down", "error": str(e)[:200]}
 
-    def dispatch(self, tool: str, args: dict) -> Answer:
-        """Run one tool by name. Unknown names are refused, never guessed."""
+    def dispatch(self, tool: str, args: dict, *, allow_local_writes: bool = False) -> Answer:
+        """Run one tool by name. Unknown names are refused, never guessed.
+
+        `allow_local_writes` is the trust boundary for arguments that touch the filesystem, and it
+        is OFF unless a local caller asks for it. `draft_owners_patch` accepts `write_to` and
+        writes the drafted patches into that directory -- correct when a person regenerates the
+        committed artefacts in docs/patches/, and an unauthenticated arbitrary-path write when it
+        arrives over HTTP. Both routes reached here: `/api/tool` passed the caller's args
+        verbatim, and on a keyed instance `ask()` passes the MODEL's args verbatim, with the
+        catalogue entry listing `write_to` where the model could read it. One POST created a
+        directory and wrote files to a path of the caller's choosing.
+
+        The refusal is here rather than in server.py because this is the single chokepoint every
+        route goes through, and a denylist kept in two files is a denylist that drifts.
+        """
+        if not allow_local_writes and args:
+            args = {k: v for k, v in args.items() if k not in UNSAFE_ARGS}
         if tool not in CATALOGUE:
             return Answer("UNKNOWN_ENTITY", tool,
                           note=f"'{tool}' is not a tool in this catalogue. Nothing was run.")

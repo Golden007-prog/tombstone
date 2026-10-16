@@ -86,6 +86,9 @@ def health():
 
 @app.get("/api/tools")
 def tools():
+    # This is what a sponsor engineer reads instead of clicking chips. It used to advertise
+    # `write_to` in draft_owners_patch's arg list, which is both an argument this layer refuses
+    # and a hint the routing model could act on; the catalogue entry no longer mentions it.
     return {"catalogue": CATALOGUE}
 
 
@@ -111,6 +114,7 @@ def call_tool(c: ToolCall):
     graph had been asked this before would have been told no, correctly and damningly.
     """
     a = agent()
+    # dispatch() refuses filesystem arguments unless a local caller opts in; nothing here does.
     ans = a._remember(c.question or _label(c), c.tool, a.dispatch(c.tool, c.args))
     from tombstone.agent import query_sha
     return {

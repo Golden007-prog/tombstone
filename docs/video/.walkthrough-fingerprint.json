@@ -2,10 +2,10 @@
   "data/corpus.json.gz": "acf66973b25948e1",
   "scripts_build_walkthrough.py": "881f11151bdf62c3",
   "src/tombstone/act.py": "6939acbb9fe2bbba",
-  "src/tombstone/agent.py": "ca65e4f9a86c805b",
+  "src/tombstone/agent.py": "dd5ed25c7438716d",
   "src/tombstone/build.py": "6c1d90db7a157aa0",
-  "src/tombstone/server.py": "00c2106e975a04f6",
-  "src/tombstone/tools.py": "ba6985c7350cb525",
+  "src/tombstone/server.py": "3cbbee4e80a838fd",
+  "src/tombstone/tools.py": "15404172c3e9744f",
   "web/app.js": "c7ed82b731d1ca06",
   "web/index.html": "ddfad0f47d5786d9",
   "web/style.css": "6da37a2eeef8c71f"

@@ -576,5 +576,5 @@ CATALOGUE = {
     "stale_knowledge": "What does this graph know that is going stale? Decisions still cited by others, still undecided years later, whose authors have stepped back. Args: min_years.",
     "recall": "Has this graph been asked something like this before, and what did that answer cite? Args: question.",
     "stepped_back_but_still_listed": "Whose ownership record is lopsided — recorded as having stepped back from many areas, yet still named an active approver in one or two? Args: min_stepped_back.",
-    "draft_owners_patch": "ACT: turn that finding into a reviewable OWNERS patch that retires the straggler entry, refusing the cases it cannot justify (vendored trees, approval held via an alias) and saying why. Drafts only; sends nothing. Args: min_stepped_back, write_to.",
+    "draft_owners_patch": "ACT: turn that finding into a reviewable OWNERS patch that retires the straggler entry, refusing the cases it cannot justify (vendored trees, approval held via an alias) and saying why. Drafts only; sends nothing. Args: min_stepped_back.",
 }
