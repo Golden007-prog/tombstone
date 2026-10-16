@@ -613,11 +613,17 @@ def render(a: Answer) -> str:
         # The caveat is NOT optional. A tool-specific note adds precision; it never replaces the
         # statement of what was actually searched, because an empty traversal only means this
         # corpus does not record it.
-        return (
-            head
-            + (f"\n\nSearched: {scope}." if scope else "")
-            + "\nAn empty traversal means this corpus does not record it — that is not proof it never happened."
-        )
+        # recall searches this instance's MEMORY, not the corpus, so the corpus sentence is the
+        # wrong caveat on it: a freshly deployed Space starts with an empty memory, and "nothing
+        # like this has been asked" says nothing whatever about what the corpus covers. A judge
+        # who clicks the recall chip first on a new deployment lands exactly here. Every other
+        # tool keeps the corpus caveat unchanged, which is why this is a branch and not an edit.
+        caveat = ("\nThat is a statement about this instance's memory, not about the corpus — "
+                  "a freshly deployed one starts empty."
+                  if a.tool == "recall" else
+                  "\nAn empty traversal means this corpus does not record it — that is not "
+                  "proof it never happened.")
+        return head + (f"\n\nSearched: {scope}." if scope else "") + caveat
 
     t = a.tool
     n = len(a.rows)
