@@ -12,6 +12,18 @@ deploy. Both are needed for step 4.
 
 ## 1. Deploy (~20 min, mostly waiting on the build)
 
+> **Do this first, and watch the first minute of output.** Hugging Face's Spaces overview,
+> read 16 Oct, says Docker Spaces "require a paid plan to create: PRO for personal accounts".
+> This Space is `sdk: docker`. If your account is free, `./deploy_hf.sh` may be refused the
+> moment it tries to create the Space — which is survivable if you find out now and fatal to
+> your evening if you find out at 23:00. The Docker SDK page says nothing about plans, so this
+> is a risk rather than a certainty, and the script fails fast and loudly either way.
+>
+> **If it is refused:** `DEPLOY.md` has Render and Fly.io configured, and Rule 10 is already
+> satisfied with no deployment at all — complete local setup plus the committed walkthrough.
+> You lose a bonus the FAQ calls "preferred", not the submission. Do not spend the last hours
+> fighting it; spend them on the video.
+
 ```bash
 export HF_TOKEN=hf_xxxxxxxxxxxx      # huggingface.co/settings/tokens -> New token -> WRITE
 ./deploy_hf.sh

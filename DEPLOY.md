@@ -18,10 +18,30 @@ Verified from their docs: free instances are **stopped after 1 day of inactivity
 7**, with no persistence, no backups and no TLS. A link submitted on Oct 18 and clicked a week later
 would be dead or empty. Carrying the data in the image avoids the whole class of problem.
 
-## Hugging Face Spaces (recommended for a free tier)
+## Hugging Face Spaces
 
-No card required, wakes on request, and the image is kept. Sleeps after 48h idle but restarts on the
-next visit — which the fast boot makes tolerable.
+> **Check this before you spend time on it: a Docker Space may need a paid account.**
+> Hugging Face's [Spaces overview](https://huggingface.co/docs/hub/spaces-overview), read on
+> 16 Oct, says: *"Static Spaces are free for everyone. Gradio and Docker Spaces run on compute
+> and require a paid plan to create: PRO for personal accounts."* This Space is `sdk: docker`,
+> so on a free personal account `./deploy_hf.sh` may be refused at creation. The
+> [Docker Spaces page](https://huggingface.co/docs/hub/spaces-sdks-docker) says nothing about
+> plans either way, and I cannot test it without your token — so treat it as a real risk rather
+> than a settled fact, and find out in the first five minutes rather than the last.
+>
+> **If it is refused:** `## Render (free)` and `## Fly.io` below are both configured and
+> documented, and a static Space cannot host this (it needs a server and FalkorDB). Either way
+> Rule 10 is already satisfied without any deployment — complete local setup plus the committed
+> walkthrough — so a refused Space costs the "preferred" bonus, not the submission.
+
+Hardware, when it does run: **16 GB RAM, 2 vCPU, 50 GB non-persistent disk** on CPU Basic. Note
+what that means for the memory figures in the README — the 512 MB ceiling asserted by
+`./scripts_verify_deploy.sh` is **self-imposed discipline, not a platform limit**, and the real
+headroom is thirty times it. Disk is not persistent and free Spaces sleep when idle, neither of
+which matters here: the app seeds its graph on boot in seconds and keeps nothing it cannot rebuild.
+
+No card required to visit, wakes on request, and the image is kept. Sleeps after idle but restarts
+on the next visit — which the fast boot makes tolerable.
 
 1. Create a Space, SDK = **Docker**.
 2. Copy `deploy/README-hf-space.md` to `README.md` **in the Space repo** (its front-matter sets
