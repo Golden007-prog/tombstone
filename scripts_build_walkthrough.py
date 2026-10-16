@@ -202,7 +202,7 @@ opening = card(os.path.join(work, "open.mp4"), 4, [
     ("Asked as a graph, over the real Kubernetes governance record.", 24),
 ])
 closing = card(os.path.join(work, "close.mp4"), 5, [
-    ("Every number is checked against the live graph.", 28),
+    ("Numbers re-checked against the live graph on every push.", 26),
     ("github.com/aviralgarg05/tombstone", 30),
     ("Graph Hacks 2026 - Track 3, Company Brain", 22),
 ])

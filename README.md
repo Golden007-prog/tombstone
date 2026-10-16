@@ -1199,7 +1199,11 @@ inferred from missing or second-hand evidence.**
 
 The last one is the one I mind most: it put an unverifiable quote in a public repo whose whole
 pitch is checkable claims. Every organizer attribution has been removed or marked unverified, and
-every number here is re-checked by `verify_claims.py` against the live graph.
+every number *in this section* is re-checked by `verify_claims.py` against the live graph. Not
+every number on the page: the benchmark timings are a measurement on one machine and are
+[reported rather than gated](#why-falkordb-measured-honestly--including-where-it-loses), which
+the table says where it prints them. Writing "every number here is re-checked" was the easier
+sentence and it is the kind this very section exists to apologise for.
 
 The irony is not lost on me. This is a product about honest negatives, and I committed the exact
 failure its design warns about — *"an empty traversal means your graph does not know"* — four
