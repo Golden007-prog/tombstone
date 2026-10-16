@@ -55,6 +55,9 @@ the three below were read closely, and the census of the twenty largest is furth
 | `Sumit99589/orion` | forks the company graph into a "parallel universe" before a change, live on Vercel, MCP server, per-person memory graphs | all three |
 | `Vaibhaav-Tiwari/lineage` | truth maintenance: when a decision reverses, the answers and beliefs built on it are struck through and actions blocked. 745 PEPs plus forum threads and commits since 2015 | two |
 | `StarKnightt/threadline` | 3D replay of every traversal, a verifier agent that path-checks each citation, 60-question eval | all three |
+| `kh-bikash/cairn` | **the closest competitor.** Live, no sign-up. Two workspaces on two FalkorDB graphs: 13 real FalkorDB-org repositories, and a fictional 24-person company in real Slack/Jira/ADR export formats. Betweenness and label propagation, drift detection, rejected alternatives with verbatim quotes, MCP, and a **four-system eval** — graph agent, graph-with-no-AI, dense vector RAG, keyword RAG — graded twice, automatically and by a second model | two |
+| `Prashant-thakur77/Faultline` | "no path, no claim": the model suggests, a read-only query decides. Live demo, hosted MCP with a public read-only key, a GitHub Pages replay that needs no backend, a v1.0.0 release, **a narrated 4:24 video already published**, and a real pull request merged after two-step approval | T1 primary, T3 secondary |
+| `srinjoy356/keystone` | public codebase history as a graph; every answer shows its subgraph and exact Cypher, and each quoted decision is checked against its source text by code. FalkorDB Cloud + Vercel, and a real issue opened after human approval | all three |
 
 **Three of the four serious Track 3 builds use invented data; one does not, and it is the one to
 take seriously.** orion's demo company, Corvane, is explicitly synthetic; dealership-brain's is a
@@ -124,6 +127,14 @@ have actually opened is honest and one extrapolated from a sample is not. Two of
 time out under Python's default headers and answer 200 to `curl`; reporting a live competitor as
 dead would have been the convenient mistake.
 
+**A sharper reading of the same census.** Across all 85 the deployment rate is low, but that
+average flattens the part that matters. The three entries read closely here — `cairn`, `Faultline`,
+`keystone` — are **all three deployed**, all three enter more than one track, and one of them has
+its narrated video already published and a v1.0.0 release tagged. At the top of this field a live
+link is not a differentiator, it is the entry fee; the differentiator is further in. So the
+instruction that follows from the census is not "relax, most of them have no demo" — it is "the
+ones you will actually be compared against all have one."
+
 **One conclusion from the old passage was backwards and is withdrawn.** It said a live demo "is
 now the one thing the rest of the field has and this does not". Fourteen of the twenty largest
 entries have no reachable demo either. Deploying is still clearly worth doing — the FAQ prefers a
@@ -139,7 +150,25 @@ them one. Note what a deployment does *not* settle: orion's demo company is expl
 dealership-brain's is a fictional dealership. Being deployed and being checkable are different
 claims, and this entry has the second without the first.*
 
-*Reasoning, and the new field strengthens it rather than weakening it:* Track 02 (Agent Memory)
+*Reasoning.* **There are three tracks and this analysis only ever examined one of them**, which
+is a gap worth naming before the conclusions: Track 01 is *Agents That Act on Connected Data*,
+Track 02 is *Agent Memory and Coordination*, Track 03 is *Company Brain*. The paragraph below
+weighed 02 carefully and declined it, and never enumerated 01 at all — rigorous-looking and
+incomplete, which is the same shape as the competitor count that was off by an order of
+magnitude. Both are declined, and here is each on its own evidence.
+
+**Track 01 (Agents That Act) is the closer fit of the two, and still declined.** The action here
+is real and committed: a finding becomes a reviewable OWNERS patch, two candidates are refused
+with their reasons (one file is vendored from another repo, one person's handle is not in the file
+at all and only reaches it through an alias), and both drafts sit in `docs/patches/` so a judge
+can read them without running anything. The README leads on it. But the entries leading that
+track *execute*: `Faultline` merged a real pull request on its own demo-infra repository after a
+two-step approval and verified it APPLIED; `keystone` opened a real issue on a sandbox repo. This
+drafts a patch and deliberately stops, which is the right product decision and the weaker
+submission on an "acts" axis. Entering 01 would invite exactly the comparison the paragraph below
+refuses for 02, against an entry that also already has its narrated video released.
+
+*Track 02 (Agent Memory)
 is arguable but not yet earned. Answers persist as `(:Answer)` nodes that `CITED` the real records they came from, and a
 later session gets `ANSWERED_FROM_MEMORY` only when those citations still resolve — so memory
 invalidates itself when the graph moves underneath it. What Track 02 also asks for is agents that
