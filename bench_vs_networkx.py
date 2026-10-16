@@ -94,6 +94,28 @@ if len(nx_components) != fdb_components:
     sys.exit(1)
 print(f"  cross-check: both engines agree on {fdb_components} weakly-connected components\n")
 
+
+def readme_range(label: str) -> tuple[float, float] | None:
+    """The ratio range the README prints for a row, e.g. "FalkorDB 54-145x" -> (54, 145).
+
+    The absolute milliseconds in that table are deliberately NOT asserted: they are a measurement
+    on one machine at one moment, and a check that fails because CI runs on slower hardware is a
+    check people learn to skip. The RATIO is the claim, and a ratio survives a change of machine
+    well enough to be worth holding to.
+    """
+    import re
+    row = re.search(rf"^\|[^|]*{re.escape(label)}[^|]*\|[^|]*\|[^|]*\|([^|]*)\|",
+                    open("README.md").read(), re.M)
+    if not row:
+        return None
+    nums = re.findall(r"(\d+(?:\.\d+)?)", row.group(1))
+    if not nums:
+        return None
+    lo = float(nums[0])
+    hi = float(nums[1]) if len(nums) > 1 else lo
+    return (lo, hi)
+
+
 t_bc_nx, _ = ms(lambda: nx.betweenness_centrality(G, k=SAMPLES, seed=SEED))
 t_bc_fdb, _ = ms(lambda: g.ro_query(
     "CALL algo.betweenness({samplingSize: $k, samplingSeed: $s}) "
@@ -127,3 +149,30 @@ for name, a, b in rows:
 
 db.select_graph(GRAPH).delete()
 print("\n  networkx wins in-process pointer chasing; FalkorDB wins the global algorithms.")
+
+# The ratios this run measured, against the ranges the README prints. Absolute milliseconds are
+# NOT checked -- they are one machine at one moment. The ratio is the claim, and the ranges are
+# wide because re-running widened them: a loaded machine gave PageRank 30x where the page had
+# said 54-145x, and that is the page's problem, not the machine's.
+_drift = []
+
+def _check_ratio(label: str, measured: float) -> None:
+    rng = readme_range(label)
+    if rng is None:
+        _drift.append(f"the README has no ratio for {label!r}")
+        return
+    lo, hi = rng
+    if not (lo * 0.9 <= measured <= hi * 1.1):
+        _drift.append(f"{label}: this run measured {measured:.0f}x, the README prints "
+                      f"{lo:g}-{hi:g}x")
+
+
+_check_ratio("betweenness", max(t_bc_nx, t_bc_fdb) / max(min(t_bc_nx, t_bc_fdb), 1e-9))
+_check_ratio("PageRank", max(t_pr_nx, t_pr_fdb) / max(min(t_pr_nx, t_pr_fdb), 1e-9))
+_check_ratio("WCC", max(t_wcc_nx, t_wcc_fdb) / max(min(t_wcc_nx, t_wcc_fdb), 1e-9))
+if _drift:
+    print()
+    for _d in _drift:
+        print(f"  FAIL  {_d}")
+    sys.exit(1)
+print("\n  every ratio this run measured falls inside the range the README prints.")

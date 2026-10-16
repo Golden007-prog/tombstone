@@ -597,13 +597,21 @@ graph. So I wrote the benchmark against the real one and ran it.
 15,735 edges**, both engines cross-checked to agree on the result before being timed. Median of
 three runs:
 
-| operation | networkx | FalkorDB v4.22.1 | winner |
+| operation | networkx | FalkorDB v4.22.1 | winner, across runs |
 |---|---|---|---|
-| build graph *(not comparable — see below)* | 8.1 ms | 803 ms | networkx 94x |
-| 2-hop neighbourhood (p50) | 0.004 ms | 0.3 ms | **networkx ~80x** |
-| WCC | 2.1 ms | 5.4 ms | **networkx 2–3x** |
-| **betweenness (k=32, seed=42)** — *used by `stepped_back_bridges`* | 25.8 ms | 16.7 ms | FalkorDB 1–2x |
-| PageRank — *benchmarked, used by no tool* | 338 ms | 5.7 ms | FalkorDB 54–145x |
+| build graph *(not comparable — see below)* | 8 ms | 765–803 ms | networkx 94–99x |
+| 2-hop neighbourhood (p50) | 0.004 ms | 0.3 ms | **networkx 80–93x** |
+| WCC | 2.1 ms | 5.4–10.2 ms | **networkx 2–5x** |
+| **betweenness (k=32, seed=42)** — *used by `stepped_back_bridges`* | 25 ms | 16 ms | FalkorDB 1–2x |
+| PageRank — *benchmarked, used by no tool* | 338–456 ms | 5.7–15.1 ms | FalkorDB **30–145x** |
+
+**The ranges are wider than they were, because I re-ran it and the first set did not hold.** A
+later run on a loaded machine gave PageRank 30x where this table had claimed 54–145x, and WCC 5x
+against a claimed 2–3x. Both are inside the new ranges. The absolute milliseconds are a
+measurement on one machine at one moment and are **not asserted by any check** — a test that goes
+red because CI runs on slower hardware is one people learn to skip. What is asserted is that the
+ratio a fresh run measures falls inside the range printed here; `bench_vs_networkx.py` reads these
+rows back and fails if it does not.
 
 **This table replaces one that claimed FalkorDB won betweenness by 18x and PageRank by 153x, and
 that networkx won WCC.** None of those survived measurement on the real graph. The old numbers
