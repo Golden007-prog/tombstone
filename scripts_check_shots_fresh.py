@@ -29,12 +29,20 @@ ARTEFACTS = (
      ("docs/img/drafted-patch.png", "docs/img/keyless-refusal.png")),
     ("docs/img/.depthgif-fingerprint.json", "scripts_gen_depth_gif.py",
      ("docs/img/depth-contrast.gif",)),
+    # The walkthrough too, and it is the one I argued did not need this. Its CAPTIONS state
+    # behaviours that named checks assert, which is why they cannot go quietly wrong -- but its
+    # FRAMES render the hash of the query behind every answer, so changing a Cypher constant
+    # leaves the video showing a hash that no longer exists. It had: tools.py moved at 05:47 and
+    # the video was built at 04:04. Hence tools.py in its source list and not in the others'.
+    ("docs/video/.walkthrough-fingerprint.json", "scripts_build_walkthrough.py",
+     ("docs/video/walkthrough-silent.mp4",)),
 )
 
 
 def main() -> int:
     bad = 0
-    now = {f: hashlib.sha256(open(f, "rb").read()).hexdigest()[:16] for f in SOURCES}
+    now = {f: hashlib.sha256(open(f, "rb").read()).hexdigest()[:16]
+           for f in SOURCES + ("src/tombstone/tools.py",)}
     for fingerprint, generator, images in ARTEFACTS:
         missing = [i for i in images if not os.path.exists(i)]
         if missing:
@@ -46,7 +54,9 @@ def main() -> int:
             bad += 1
             continue
         recorded = json.load(open(fingerprint))
-        moved = [f for f in SOURCES if recorded.get(f) != now[f]]
+        # Compare only the sources that artefact was fingerprinted against: the images do not
+        # render a query hash, the video does.
+        moved = [f for f in recorded if recorded.get(f) != now.get(f)]
         if moved:
             print(f"  FAIL  the interface changed since {', '.join(os.path.basename(i) for i in images)} "
                   f"{'was' if len(images) == 1 else 'were'} taken:")

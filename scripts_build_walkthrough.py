@@ -221,3 +221,18 @@ subprocess.run([*FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", listing,
 
 total = sum(b[1] for b in BEATS) + 9
 print(f"\n{OUT}  —  {total}s, {len(BEATS)} beats, {os.path.getsize(OUT) // 1024}KB")
+
+# Fingerprint the sources whose output APPEARS IN THE FRAMES. I argued this file needed no
+# staleness guard because its captions state behaviours that named checks already assert -- true
+# of the captions, and wrong about the frames. Every answer in this video renders the hash of the
+# query that produced it, so changing a Cypher constant leaves the video showing a hash that no
+# longer exists. It did: tools.py changed at 05:47 and this was built at 04:04.
+import hashlib as _hashlib
+import json as _json
+
+_SOURCES = ("web/app.js", "web/style.css", "web/index.html", "src/tombstone/tools.py")
+with open("docs/video/.walkthrough-fingerprint.json", "w") as _fh:
+    _json.dump({f: _hashlib.sha256(open(f, "rb").read()).hexdigest()[:16] for f in _SOURCES},
+               _fh, indent=2, sort_keys=True)
+    _fh.write("\n")
+print(f"  fingerprinted against {', '.join(_SOURCES)}")

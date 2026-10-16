@@ -42,18 +42,25 @@ Beats 3 and 6 are captured through `?ask=<question>&focus=1`, which deep-links a
 question — so a question and its answer can be shared as a URL, and so the walkthrough can show
 someone typing rather than only clicking.
 
-## Why there is no staleness check on this file
+## There is one, and I argued there should not be
 
-The obvious one would fingerprint the sources and fail when they move, and I started writing it
-before noticing it would be redundant. Every caption here states a **behaviour**, not a number --
-"depth 1 returns nothing", "it refuses the handle an alias expands to", "it declines the poem by
-name" -- and each of those behaviours is already asserted by a named check: the rendered-state
-check covers the depth-1 refusal and the alias strand, the router's out-of-domain bucket is tested
-directly, and betweenness is in the Cypher-drift check. So the way this video goes wrong is by a
-check going red, not by a number drifting underneath it.
+The first version of this section explained why this file needed no staleness check: every caption
+states a **behaviour** — "depth 1 returns nothing", "it refuses the handle an alias expands to" —
+and each of those is asserted by a named check elsewhere, so the video cannot go quietly wrong
+while the checks stay green.
 
-Had the captions quoted figures, the fingerprint would be worth having. They deliberately do not,
-which is also why they are still true sixty-seven seconds at a time.
+That is true of the captions and wrong about the frames. Every answer in this video renders the
+**hash of the query that produced it**, right under the result. Change a Cypher constant and the
+video shows a hash that no longer exists anywhere. Which is exactly what happened: `tools.py`
+changed at 05:47 when `has_this_been_tried` started excluding seven section headings, and this
+file had last been built at 04:04.
+
+So it is fingerprinted like the screenshots are — and against `src/tombstone/tools.py` as well as
+the three web files, because the images do not render a query hash and this does.
+`scripts_check_shots_fresh.py` fails if any of the four moves, which `./preflight.sh` runs.
+
+The lesson is narrower than "fingerprint everything": ask what a generated artefact actually shows
+on screen, not what it is about. I asked the second question and got the right answer to it.
 
 One trap worth keeping written down: ffmpeg's `drawtext` **silently drops** a line containing an
 unescaped `%`, with no error. That is how "72%" vanished from a caption in the first cut. The
