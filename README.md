@@ -69,13 +69,8 @@ alternatives — one of them titled "Doing nothing is a viable alternative."*
 
 *The path behind an answer, generated from the live API by `scripts_gen_readme_figure.py`.*
 
-> **On a phone, open this image rather than squinting at it.** Measured, not guessed: the figure's
-> `viewBox` is 860 units wide, a 375px screen gives it 343px after gutters, and at that 0.399 scale
-> its `font-size="11"` labels land at **4.4 real pixels** — against a legibility floor around nine.
-> The *running app* does not have this problem: `renderPath` multiplies every font size by the same
-> width factor, and `scripts_check_ui.py` fails the build if any font size bypasses that helper,
-> precisely because a raw one breaks only on small screens where nobody looks again. This committed
-> snapshot is a desktop-width capture of that drawing and carries no such compensation.
+> **On a phone, tap this image rather than squinting at it** — measured at 4.4 effective pixels,
+> along with [every other figure here](#honest-limits).
 
 It runs on **Kubernetes' own governance record** — a real organisation of thousands of people that
 publishes its decision history, its ownership map, and, unusually, its own attrition. Apache-2.0,
@@ -1291,6 +1286,22 @@ times. Each fix made the claim narrower and more defensible.
 
 ## Honest limits
 
+- **Every figure on this page is a desktop capture, and they are illegible on a phone.** Measured
+  rather than assumed, by serving each one the way GitHub serves a README image and driving it at
+  375×812. A phone gives an image 343px after gutters, so: `drafted-patch.png` and
+  `keyless-refusal.png` are 1280px native and scale to **0.268**, `path.svg` is 860 units wide and
+  scales to **0.399**, `depth-contrast.gif` is 760px and scales to **0.451**. At 0.399 the path
+  figure's `font-size="11"` labels land at **4.4 real pixels**, against a legibility floor around
+  nine; the 0.268 pair are worse. GitHub lets a reader tap through to the full-size image and zoom,
+  which is the answer, but it is a thing the reader has to do rather than a thing this page does
+  for them.
+  The contrast worth knowing is that the **running app is defended against exactly this** and only
+  these snapshots are not: `renderPath` multiplies every font size by the same width factor the
+  drawing is scaled by, and `scripts_check_ui.py` fails the build if any font size bypasses that
+  helper — a check whose own comment says a raw one "reintroduces the bug silently and only on
+  small screens, where I would not have looked again". It was right about where I would not look.
+  Fixing the figures means regenerating them with type sized for the width they are read at, which
+  needs the live app.
 - **Memory grows with use, and nothing evicts it.** Every answered question becomes an
   `(:Answer)` node, deduplicated by question so repeats only bump a counter.
   [`bench_memory_growth.py`](bench_memory_growth.py) records answers in blocks and watches the
