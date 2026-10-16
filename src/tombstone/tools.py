@@ -21,7 +21,7 @@ empty traversal only means the graph does not know -- it is not proof that nothi
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any
 
 # A fixed "now" is injected per request. FalkorDB v4.22.1 cannot do datetime arithmetic, so all
@@ -40,9 +40,6 @@ class Answer:
     cypher: str = ""
     params: dict = field(default_factory=dict)
     ms: float = 0.0
-
-    def to_dict(self) -> dict:
-        return asdict(self)
 
 
 class Tools:

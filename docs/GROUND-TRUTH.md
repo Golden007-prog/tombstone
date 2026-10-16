@@ -357,6 +357,17 @@ near-tie — both tools above `MIN_SCORE` and within `MIN_MARGIN` — and there 
 a request to fix a unit test, and a question with no argument are each offered nothing. Caught by
 pulling a frame out of the walkthrough and reading the sentence under the buttons.
 
+**A dead-code sweep that would have deleted a live endpoint.** Looking for public functions
+nothing calls, by counting references to each name, flags five in `src/`. One of them is
+`call_tool` — the `@app.post("/api/tool")` handler, which every chip in the UI goes through. It is
+referenced by a decorator and never by name, so a reference count says zero. Same shape for
+anything dispatched dynamically: the thirteen tool methods are reached by string, not by call.
+The sweep is still worth running — it found three genuinely dead helpers in the ingest module,
+including one that implied alias expansion happened somewhere it does not — but its output is a
+list of questions, not a list of deletions. The two I left alone are corpus-building functions
+that plausibly belong to a regeneration path, and removing those to save a few lines two days from
+a deadline would be trading real risk for tidiness.
+
 **A DOM parser that lost any element containing another element.** The rendered-state check
 tracks a handful of ids and counts nesting depth to know when each one closes. It incremented the
 depth of only the innermost open frame, so when a tracked element contained another tracked
