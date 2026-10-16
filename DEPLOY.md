@@ -18,7 +18,7 @@ read under deadline. In short, so you can choose in thirty seconds:
 
 | path | config | state |
 |---|---|---|
-| **Hugging Face Spaces** | `deploy/README-hf-space.md` | Front-matter valid against HF's field reference, now gated in the push gate. **One open risk:** HF's own overview says a Docker Space "requires a paid plan to create" for personal accounts. Check in your first five minutes. |
+| **Hugging Face Spaces** | `deploy/README-hf-space.md` | Front-matter valid against HF's field reference, now gated in the push gate. HF's docs say a Docker Space "requires a paid plan to create"; **measured on 16 Oct, three free accounts had created one within the hour** — see below. Proceed, and the script fails fast if your case differs. |
 | **Render (free)** | `deploy/render.yaml` | Valid against the current blueprint spec, using `runtime:` rather than the deprecated `env:`. Fits in the free 512 MB serially; concurrency will not. Spins down after 15 min. |
 | **Fly.io** | `deploy/fly.toml` | Valid, current `[[vm]]` syntax, `min_machines_running = 1` so it never cold-starts. No free allowance — a few dollars a month. |
 
@@ -33,14 +33,22 @@ would be dead or empty. Carrying the data in the image avoids the whole class of
 
 ## Hugging Face Spaces
 
-> **Check this before you spend time on it: a Docker Space may need a paid account.**
+> **The documentation says a Docker Space needs a paid account. The platform does not appear to
+> agree, and I measured that rather than guessing.**
 > Hugging Face's [Spaces overview](https://huggingface.co/docs/hub/spaces-overview), read on
 > 16 Oct, says: *"Static Spaces are free for everyone. Gradio and Docker Spaces run on compute
 > and require a paid plan to create: PRO for personal accounts."* This Space is `sdk: docker`,
-> so on a free personal account `./deploy_hf.sh` may be refused at creation. The
-> [Docker Spaces page](https://huggingface.co/docs/hub/spaces-sdks-docker) says nothing about
-> plans either way, and I cannot test it without your token — so treat it as a real risk rather
-> than a settled fact, and find out in the first five minutes rather than the last.
+> and that sentence would block it.
+>
+> So I asked the API instead. Of the sixty most recently created Spaces on 16 Oct, three were
+> `sdk: docker`, the newest about an hour old — and all three owners return `isPro: false` from
+> HF's own public user endpoint. Free accounts were creating Docker Spaces that morning. The
+> [Docker Spaces page](https://huggingface.co/docs/hub/spaces-sdks-docker) also says nothing
+> about plans either way.
+>
+> So: probably fine, not certainly. The docs may describe a policy being rolled out, or one that
+> applies to accounts newer than those three. `./deploy_hf.sh` fails fast and loudly, so the cost
+> of finding out is a minute.
 >
 > **If it is refused:** `## Render (free)` and `## Fly.io` below are both configured and
 > documented, and a static Space cannot host this (it needs a server and FalkorDB). Either way

@@ -12,12 +12,13 @@ deploy. Both are needed for step 4.
 
 ## 1. Deploy (~20 min, mostly waiting on the build)
 
-> **Do this first, and watch the first minute of output.** Hugging Face's Spaces overview,
-> read 16 Oct, says Docker Spaces "require a paid plan to create: PRO for personal accounts".
-> This Space is `sdk: docker`. If your account is free, `./deploy_hf.sh` may be refused the
-> moment it tries to create the Space — which is survivable if you find out now and fatal to
-> your evening if you find out at 23:00. The Docker SDK page says nothing about plans, so this
-> is a risk rather than a certainty, and the script fails fast and loudly either way.
+> **Do this first, and watch the first minute of output.** Hugging Face's Spaces overview says
+> Docker Spaces "require a paid plan to create: PRO for personal accounts", and this Space is
+> `sdk: docker` — so I went and checked whether that is enforced. Of the sixty most recently
+> created Spaces on 16 Oct, three were Docker, the newest about an hour old, and **all three
+> owners show `isPro: false`**. Free accounts were creating Docker Spaces that morning, so this
+> will most likely just work. Not certainly: the script fails fast and loudly, which is why it
+> goes first.
 >
 > **If it is refused:** `DEPLOY.md` has Render and Fly.io configured, and Rule 10 is already
 > satisfied with no deployment at all — complete local setup plus the committed walkthrough.
