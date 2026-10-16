@@ -195,7 +195,7 @@ weakest things — stated first, because every one of them is already written do
 - [x] `git config core.hooksPath scripts` — done; `submission_audit.py` confirms it. The push
       gate now also refuses any commit carrying a credential-shaped string, which matters on the
       next line of this list.
-- [ ] `./preflight.sh` — one command, twenty checks: every number against the live graph,
+- [ ] `./preflight.sh` — one command, twenty-one checks: the graph counts against the live graph,
       every rendered answer state, the README's printed output, the demo script's facts and
       timing, both benchmarks, and whether the page still renders on GitHub
 - [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a

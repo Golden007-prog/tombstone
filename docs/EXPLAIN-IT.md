@@ -128,7 +128,8 @@ outright. Volunteer both before anyone finds them.
 
 ## "How do you know any of this is true?"
 
-One command: `./preflight.sh` — seventeen checks, every number re-derived against the live graph.
+One command: `./preflight.sh` — twenty-one checks. The graph counts are re-derived against the
+live database; the benchmark ratios are reported with their conditions rather than gated.
 31 CI steps on every push. 119 tests. Each answer in the UI carries its Cypher, that query's hash,
 a coverage statement, and a line saying no model wrote the prose.
 
