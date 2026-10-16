@@ -465,18 +465,36 @@ def main() -> int:
         rows = [i for i in QUESTIONS if i.get("cat", "uncategorised") == cat]
         g_c = sum(by_cat[id(i)][0] for i in rows)
         t_c = sum(by_cat[id(i)][1] for i in rows)
-        m = _re.search(rf"^{_re.escape(cat)}\s+(\d+)\s+(\d+)\s+(\d+)", readme, _re.M)
+        # The fourth column is the dense baseline, optional because the table predates it and
+        # this check must keep working whether or not the expensive run has happened. When the
+        # README prints it, it is validated -- an unchecked column in a checked table is the
+        # worst of both.
+        d_c = sum(by_cat[id(i)][2] for i in rows)
+        d_expect = d_c if dense is not None else None
+        m = _re.search(rf"^{_re.escape(cat)}\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(\d+))?",
+                       readme, _re.M)
         if not m:
             drift.append(f"README has no category row for {cat!r}")
         elif (int(m.group(1)), int(m.group(2)), int(m.group(3))) != (len(rows), g_c, t_c):
-            drift.append(f"README's {cat!r} row says {m.groups()}; "
+            drift.append(f"README's {cat!r} row says {m.groups()[:3]}; "
                          f"this run measured ({len(rows)}, {g_c}, {t_c})")
+        elif m.group(4) is not None and d_expect is not None and int(m.group(4)) != d_expect:
+            drift.append(f"README's {cat!r} dense column says {m.group(4)}; "
+                         f"this run measured {d_expect}")
 
     # The totals line under that table, which this check did not read until it was found wrong by
     # eye: the category rows all said 25/24/9 while the row beneath them still said 20/19/4 from
     # before the eval grew. The comment above has claimed since it was written that hand-written
     # totals are how this goes stale, and the totals were the one line it was not looking at.
-    _tot = _re.search(rf"^\s+{n}\s+(\d+)\s+(\d+)\s*$", readme, _re.M)
+    # A third total is allowed and checked, same as the columns above. The first version of this
+    # anchored on \s*$ after exactly two numbers, so adding the dense column to the table turned
+    # CI red -- the check was right to fire and wrong about why, which is its own small lesson:
+    # a drift check keyed to a fixed number of columns breaks when the table legitimately grows.
+    _tot = _re.search(rf"^\s+{n}\s+(\d+)\s+(\d+)(?:\s+(\d+))?\s*$", readme, _re.M)
+    _tot_d = dw if dense is not None else DENSE_LAST_MEASURED
+    if _tot and _tot.group(3) is not None and int(_tot.group(3)) != _tot_d:
+        drift.append(f"README's totals row says {_tot.group(3)} for the dense baseline; "
+                     f"the figure to beat is {_tot_d}")
     if not _tot:
         drift.append(f"README's eval table has no totals row reading {n} questions")
     elif (int(_tot.group(1)), int(_tot.group(2))) != (gw, tw):
