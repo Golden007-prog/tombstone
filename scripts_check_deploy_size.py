@@ -73,6 +73,14 @@ def space_front_matter() -> list[str]:
 
     The block is flat `key: value` lines, so a hand parser is sufficient; anything structurally
     richer is reported rather than quietly accepted.
+
+    ./scripts/pre-push does have a yaml-capable interpreter to hand -- it tries $PY, the venv,
+    `python3` and /usr/bin/python3 in turn, because on macOS the system python3 ships PyYAML
+    while the Homebrew one that shadows it does not. I could have used it. I did not, because
+    that discovery can come up empty and the gate then SKIPS the check that depends on it, and a
+    check that silently does not run is the wrong shape for the one file that is read by someone
+    else's build service at a deadline. Hand-parsing always runs; when it meets something it
+    cannot read it says so instead of passing.
     """
     path = pathlib.Path("deploy/README-hf-space.md")
     if not path.exists():
