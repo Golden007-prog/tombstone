@@ -592,14 +592,26 @@ else:
                         f"deploy check asserts, so the projection starts out of room")
     else:
         checked += 1
-    for _doc, _pat in (("README.md", r"(\d+) MiB serial peak"),
-                       ("deploy/README-hf-space.md", r"peaks at about (\d+) MiB in serial use")):
+    # Every live phrasing, across every tracked document, not two filenames and two patterns.
+    # Unifying this figure the first time, I edited three places and missed two more -- "peaks at
+    # ~400 MB" in the README's GRAPH.COPY section and "serial use at ~400MB" in GROUND-TRUTH --
+    # because the check only knew the one phrase I happened to have written. A claim stated five
+    # ways needs a check that reads five ways, or it gates the copies it already agrees with.
+    #
+    # The convention this relies on, and it is stated here because the check depends on it: a
+    # LIVE figure is written in MiB, and a figure quoted historically while explaining a
+    # correction is written in MB. That is what lets the README keep "387 MB here and about
+    # 400 MB in the Space README" in its own note about having been wrong, without this failing.
+    _LIVE = (r"(\d+) MiB serial peak",
+             r"peaks at about (\d+) MiB in serial use",
+             r"peaks at \*\*~(\d+) MiB",
+             r"serial use[^.]{0,40}?at ~(\d+)MiB")
+    for _doc in _docs:
         _t = _flat(open(_doc).read())
-        _found = re.findall(_pat, _t)
+        _found = [m for _pat in _LIVE for m in re.findall(_pat, _t)]
         if not _found:
-            problems.append(f"{_doc}: no longer states the serial peak, so nothing pins it to "
-                            f"bench_memory_growth.py's BASELINE_MB of {_want}")
-        elif any(int(x) != _want for x in _found):
+            continue
+        if any(int(x) != _want for x in _found):
             problems.append(f"{_doc}: says a {_found[0]} MiB serial peak; "
                             f"BASELINE_MB is {_want}")
         else:

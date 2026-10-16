@@ -316,7 +316,8 @@ returning `ANSWERED_FROM_MEMORY` and the check reported "0 answered" out of six 
 succeeded — indistinguishable from a concurrency collapse, and an hour to tell apart.
 
 **A limit sized for one workload, imposed on another.** The deploy check ran everything in 512MB,
-right for serial use at ~400MB. Six concurrent `GRAPH.COPY` calls need ~900MB, because each
+right for serial use, which the deploy check now measures at ~450MiB (it read ~400MB when this
+was written; see the README's note on that figure having been stated three ways). Six concurrent `GRAPH.COPY` calls need ~900MB, because each
 materialises a whole graph. The container was OOM-killed and it looked like the product dying.
 Measure the workload you are capping, not the one you happen to have in mind.
 
