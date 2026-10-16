@@ -69,8 +69,18 @@ You do **not** need to fix ffmpeg first. It is broken on this machine and nothin
 the voiceover goes over the capture in iMovie, and the committed artefacts that do call ffmpeg
 fall back to a container.
 
-Upload unlisted to YouTube, and set **"Not for Kids"** — that setting is what blocks judges from
-viewing. Then open the link in a private window and confirm it plays.
+Upload **Unlisted**, not Private. That is the one that matters, and it is the one I had the
+reason wrong for: this file used to say the "Made for Kids" setting is "what blocks judges from
+viewing", which YouTube's own documentation does not support — the list of what that setting
+restricts is autoplay, cards, comments, playlists, the miniplayer and notifications, and viewing
+by link is not on it. What actually locks a judge out is **Private**, which is viewable only by
+email addresses you invite one at a time. **Unlisted** is viewable by anyone with the link and
+YouTube says explicitly that they do not need a Google account.
+
+Still set **Not for Kids**, because a technical demo is not children's content and declaring it
+otherwise is a false declaration — just not for the reason this file gave. Then open the link in
+a private window and confirm it plays with no sign-in, which is the check that catches a wrong
+visibility setting whatever the cause.
 
 ## 3. Publish the blog post (~45 min, most of it reading)
 
