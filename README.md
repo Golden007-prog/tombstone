@@ -628,9 +628,11 @@ a ratio would survive a change of machine — **and CI proved that wrong within 
 code gives betweenness 2x on this laptop and **6x on a GitHub runner**, and WCC 5x here against
 1x there. The build went red for a claim that was never false; the hardware had changed.
 
-So neither the milliseconds nor the ratios are asserted. The table is what this project has
-observed across machines, the script prints what the run in front of you measured, and a
-divergence is information. **What is gated is the cross-check**: both engines must agree on the
+So neither the milliseconds nor the ratios are asserted. **The table is one machine** — median
+of three runs on the laptop described above — and not a range spanning hardware: the runner
+figures in the paragraph before it, betweenness 6x and WCC 1x, both fall outside their table
+rows, which is the point rather than an oversight. The script prints what the run in front of
+you measured, and a divergence from either is information. **What is gated is the cross-check**: both engines must agree on the
 answer — the same number of weakly-connected components — before either is timed. A benchmark
 where one engine is quietly solving a different problem is worse than no benchmark, and that is
 the part a machine cannot make wrong.
