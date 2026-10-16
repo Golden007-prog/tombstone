@@ -17,8 +17,9 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   free-text questions work anyway, routed locally.
 > - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-queries all 31 graph claims against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **24/25 vs 9/25**.
-> - **The graph loses one of those twenty on purpose,** and ties the baseline on the
->   control category. See why below.
+> - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
+>   on the control category. See why below.
+> - **Live demo:** _not deployed yet — paste the Space URL here._
 > - **Nothing here is asserted.** 124 tests, 31 graph claims, 18 rendered UI states, and **two of
 >   the five benchmarks** re-run by **31 CI steps on each push** — the other three build a thousand
 >   graphs or millions of edges, so they are dated measurements with committed scripts rather than

@@ -332,6 +332,32 @@ def main() -> int:
                                  f"and {tw}/{n} for the text baseline")
     if not _stated:
         drift.append("no tracked document states this score any more; at least one should")
+
+    # The README's 60-second block states the same two facts in WORDS -- "loses one of those
+    # twenty-five" and "ties the baseline nine-all" -- and the scan above only matches digits, so
+    # growing the eval from 20 to 25 left "one of those twenty" sitting in the first thing a judge
+    # reads. Spelled numbers drift exactly as readily as digits and are harder to grep for.
+    _SPELL = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven",
+              8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen",
+              14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen",
+              19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two",
+              23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
+              27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty"}
+    _readme_txt = open("README.md").read()
+    _m = _re.search(r"loses (?:one|\w+) of those ([\w-]+) on purpose", _readme_txt)
+    if not _m:
+        drift.append("README no longer says how many questions the graph loses one of")
+    elif _m.group(1) != _SPELL.get(n):
+        drift.append(f"README says 'one of those {_m.group(1)}'; the eval has {n} questions "
+                     f"({_SPELL.get(n)})")
+    _ctrl = [i for i in QUESTIONS if i.get("cat") == "lookup (control)"]
+    _ctrl_t = sum(by_cat[id(i)][1] for i in _ctrl)
+    _m2 = _re.search(r"ties the baseline ([\w-]+)-all", _readme_txt)
+    if not _m2:
+        drift.append("README no longer states the control-category tie in words")
+    elif _m2.group(1) != _SPELL.get(_ctrl_t):
+        drift.append(f"README says the baseline ties {_m2.group(1)}-all on the control category; "
+                     f"this run measured {_ctrl_t}")
     # ...and the per-category table the README prints, row by row. Writing that table by hand is
     # how the totals got stale in the first place.
     readme = open("README.md").read()

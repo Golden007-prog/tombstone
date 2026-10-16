@@ -24,11 +24,13 @@ curl -s https://aviralgarg05-tombstone.hf.space/api/health | python3 -m json.too
 
 Expect `"falkordb": "up"` and 681 decisions. Then click the chips in the UI.
 
-Once it is live:
-```bash
-gh repo edit aviralgarg05/tombstone --homepage https://huggingface.co/spaces/aviralgarg05/tombstone
-```
-and add the link to the top of `README.md` — the 60-second block has a slot for it.
+`deploy_hf.sh` sets the repo's homepage to the live app itself on its way out, so there is
+nothing to run here — and do **not** set it by hand to the `huggingface.co/spaces/...` page
+instead, which is what this file used to tell you: that replaces a link to the running demo with
+a link to its project page. If the script could not reach `gh` it prints the exact command to run.
+
+One thing it does not do: the README's 60-second block has a **Live demo** line reading _"not
+deployed yet"_. Replace that with the URL — it is the first thing on the page a judge reads.
 
 ## 2. Record the video (~45 min including retakes)
 
