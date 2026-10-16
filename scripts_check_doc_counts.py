@@ -173,6 +173,30 @@ for _doc in _docs:
         problems.append(f"{_doc}: says {', '.join(_said)} CI steps, the workflow has {_steps}")
 if not _seen_steps:
     problems.append("no document states the CI step count; one is expected")
+
+# And the EXECUTION count, which is not the same number. supported-pythons is a matrix job over
+# two Pythons, so 31 named steps produce 33 runs. The docs said 31 and meant definitions, which
+# understates -- the safe direction, and still a figure nobody could check.
+_runs = 0
+_job, _per = None, {}
+for _ln in open(".github/workflows/verify.yml"):
+    _m = re.match(r"^  ([a-z_-]+):$", _ln)
+    if _m:
+        _job = _m.group(1)
+        _per.setdefault(_job, 0)
+    if re.match(r"^\s*- name:", _ln) and _job:
+        _per[_job] += 1
+_matrix = len(re.findall(r'python: \[([^\]]*)\]', open(".github/workflows/verify.yml").read()))
+_pys = re.search(r'python: \[([^\]]*)\]', open(".github/workflows/verify.yml").read())
+_n_py = len([x for x in _pys.group(1).split(",")]) if _pys else 1
+_runs = sum(n * (_n_py if j == "supported-pythons" else 1) for j, n in _per.items())
+for _doc in _docs:
+    for _said in re.findall(r"\((\d+) runs", _flat(open(_doc).read())) + \
+                 re.findall(r"(\d+) runs because", _flat(open(_doc).read())):
+        if int(_said) != _runs:
+            problems.append(f"{_doc}: says {_said} CI runs; the workflow produces {_runs}")
+        else:
+            checked += 1
 else:
     checked += _seen_steps
     print(f"  the workflow has {_steps} steps, stated {_seen_steps}x across the documents")
