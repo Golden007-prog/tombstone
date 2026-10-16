@@ -96,8 +96,24 @@ leaving that field empty gives you a blueprint-not-found error rather than a dep
 4. Apply. First build takes a few minutes on 0.1 CPU; `healthCheckPath` is `/api/health`,
    which only answers once FalkorDB is up and the graph is seeded, so a green health check means
    the graph really built.
+5. **Set the repository homepage to the Render URL.** `./deploy_hf.sh` did this itself; nothing
+   in the Render flow does, and two things read that field: the About box a judge clicks, and
+   `.github/workflows/keepwarm.yml`, which every six hours proves the deployment still answers
+   with real rows from the graph. Leave it empty and both are silently off.
+   ```bash
+   gh repo edit --homepage https://tombstone.onrender.com   # your actual URL
+   ```
+   Then paste the same URL into the README's **Live demo** line and SUBMISSION.md.
 
 No token is handled anywhere in that flow — it is a browser and your own account throughout.
+
+**What that six-hourly job can and cannot do here.** On Hugging Face a free CPU Space idles for
+48 hours before sleeping, so a six-hourly ping genuinely keeps it warm. Render free spins down
+after **15 minutes**, which no cron on this schedule can hold open — and pinging a free tier
+every fourteen minutes to try is unreliable on GitHub's scheduler and not a reasonable thing to
+do to someone else's free compute. So on Render it is a **health check**: it proves the thing
+still works. The ~1 minute cold start stays a disclosed property of the free plan, which is why
+the submission should say so rather than hope a judge clicks twice.
 
 Two caveats, and they are the reason this is the fallback rather than the plan. Free web services
 **spin down after 15 minutes** of no traffic and take ~1 minute to wake, so a judge's first click

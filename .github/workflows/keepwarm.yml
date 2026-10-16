@@ -22,18 +22,37 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Find the deployed Space, if there is one
+      # Matches the three hosts this project is actually configured to deploy to, not just the
+      # one it planned to. Hugging Face refused a Docker Space on a free account with a 402 on
+      # 17 Oct, so Render is the likely home -- and this job matched `*hf.space*` only, meaning it
+      # would have sat quietly doing nothing for the entire judging period on the path that was
+      # taken. Anchored on the host, not on a substring of the whole URL, so a repository homepage
+      # that merely mentions one of these words does not get probed.
+      #
+      # Naming what this job can and cannot do, per host. On Hugging Face a free CPU Space idles
+      # for 48 hours before sleeping, so six-hourly really does keep it warm. On Render's free
+      # plan a web service spins down after 15 MINUTES, which no cron on this schedule can hold
+      # open -- and hammering a free tier every fourteen minutes to try is both unreliable on
+      # GitHub's scheduler and not a thing to do to someone else's free compute. So on Render
+      # this is a HEALTH CHECK, not a keep-warm: it proves the deployment still answers with real
+      # rows from the graph, and the ~1 minute cold start stays a disclosed property of that
+      # plan rather than something this job pretends to solve.
+      - name: Find the deployment, if there is one
         id: find
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           url="$(gh api "repos/${{ github.repository }}" --jq '.homepage // ""')"
-          case "$url" in
-            *hf.space*|*huggingface.co/spaces*)
+          host="$(printf '%s' "$url" | sed -E 's#^[a-z]+://##; s#/.*$##')"
+          case "$host" in
+            *.hf.space|huggingface.co|*.onrender.com|*.fly.dev)
               echo "url=$url" >> "$GITHUB_OUTPUT"
-              echo "found $url" ;;
+              echo "found $url (host $host)" ;;
+            "")
+              echo "the repository homepage is empty — nothing deployed yet, nothing to check" ;;
             *)
-              echo "no Space in the homepage field yet — nothing to keep awake" ;;
+              echo "homepage is $host, which is not one of the configured deploy targets"
+              echo "(hf.space, huggingface.co, onrender.com, fly.dev) — not probing it" ;;
           esac
 
       - name: Wake it and check it actually answers
