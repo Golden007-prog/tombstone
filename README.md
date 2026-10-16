@@ -749,6 +749,21 @@ only learn by running it rather than by having run it once a while ago.
 `run.sh` prefers `./.venv` if it exists, so there is nothing to activate. It needs Docker running,
 and it tells you plainly if Docker or a dependency is missing rather than failing halfway.
 
+**On Windows, use WSL or go straight to Docker.** `run.sh` is a bash script, so PowerShell stops
+it at the first line with a shell error rather than reaching any of the checks above — which
+would be a stranger's whole experience of this repository. The container path needs no shell of
+mine and is two commands:
+
+```bash
+docker build -t tombstone .
+docker run -p 8099:8099 tombstone
+```
+
+That is the same image `./scripts_verify_deploy.sh` builds and boots, so it is the best-tested
+way in; it just takes a few minutes to build rather than seconds to start. Verified on macOS and,
+by CI on every push, on Ubuntu — not on Windows, which is why this says use WSL rather than
+claiming it works there.
+
 Then open <http://localhost:8099>. **No API key needed, and the ask box still works** — see
 [routing without a key](#free-text-without-an-api-key-and-the-bug-that-made-me-build-it).
 `run.sh` starts FalkorDB, seeds it from the committed snapshot in **~1.1s**, and serves the app.
