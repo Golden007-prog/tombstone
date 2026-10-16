@@ -22,6 +22,11 @@ SCRIPT = "docs/DEMO-SCRIPT.md"
 OWNERS = "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS"
 
 script = open(SCRIPT).read()
+# Flattened too, because the script is a 100-column markdown blockquote and a claim that wraps is
+# a claim no \b-anchored regex can see: "left far\n> fewer" defeated a check that was looking for
+# "left far fewer", and this repository has lost three regexes to wrapped prose already. Match
+# phrasing against `flat`, never against `script`; numbers and whole words are fine in either.
+_flat = __import__("re").sub(r"\s*\n>?\s*", " ", script)
 agent = Agent(graph_name="tomb:k8s")
 fails = []
 
@@ -60,13 +65,13 @@ most_areas_rank = 1 + max(range(len(rows)), key=lambda i: int(rows[i][2]))
 check("beat 5: top of the ranking did NOT leave the most areas",
       most_areas_rank != 1, f"top left {top_areas}, the most-areas person ranks {most_areas_rank}")
 check("beat 5 names the most-areas figure and the graph agrees",
-      bool(re.search(r"\bthirty-one\b", script)) and most_areas == 31,
+      bool(re.search(r"\bthirty-one\b", _flat)) and most_areas == 31,
       f"the most areas anyone left is {most_areas}")
 check("beat 5 says that person is not at the top",
-      bool(re.search(r"\bnot at the top\b", script)) and most_areas_rank != 1,
+      bool(re.search(r"\bnot at the top\b", _flat)) and most_areas_rank != 1,
       f"most-areas person ranks {most_areas_rank}")
 check("beat 5 says whoever is at the top left far fewer",
-      bool(re.search(r"\bleft far fewer\b", script)) and top_areas < most_areas,
+      bool(re.search(r"\bleft far fewer\b", _flat)) and top_areas < most_areas,
       f"top left {top_areas}, against {most_areas}")
 
 # Beat 6 — the drafting action: three candidates, two drafted, one refused.
