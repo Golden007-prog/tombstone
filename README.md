@@ -15,12 +15,12 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   finds — and refuses to patch the strongest-looking case, because that file is vendored.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
 >   free-text questions work anyway, routed locally.
-> - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-queries all 34 graph claims against
+> - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-queries all 35 graph claims against
 >   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **24/25 vs 9/25**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
-> - **Nothing here is asserted.** 128 tests, 34 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 128 tests, 35 graph claims, 18 rendered UI states, and **two of
 >   the five benchmarks** re-run by **31 CI steps on each push** — the other three build a thousand
 >   graphs or millions of edges, so they are dated measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
@@ -736,7 +736,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
 PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 128 invariant tests
-PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 34 graph claims
+PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 35 graph claims
 ```
 
 ```bash
@@ -821,7 +821,7 @@ label gives a genuinely pre-filtered ANN index with no recall loss.
 
 **Why `CO_AUTHORED` exists.** Centrality over the raw bipartite `Person-[:AUTHORED]->Kep` graph is
 degenerate: every score 1.0, every community size 1. The projection is a 2-hop co-occurrence over
-shared decisions, **computed in Cypher by the database** (5,870 edges, ~95ms) — not in numpy and
+shared decisions, **computed in Cypher by the database** (5,879 edges, ~95ms) — not in numpy and
 written back, which would mean the algorithm was partitioning a matrix the database never computed.
 
 ```cypher

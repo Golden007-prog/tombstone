@@ -64,6 +64,11 @@ CLAIMS = [
     # which is what an unchecked number looks like from the outside -- you cannot tell which one
     # is live without running something.
     ("special-interest groups (:Sig)", "MATCH (s:Sig) RETURN count(s)", 22),
+    # The Track 3 table answers "who owns what, and who knows what" with this pair, and nothing
+    # checked either half. The gap between 729 and the 585 ownership files IS the answer to that
+    # question, so it is the last figure on the page that should go unverified.
+    ("people carrying expertise edges to a decision",
+     "MATCH (p:Person)-[:AUTHORED|APPROVED|REVIEWED]->(:Kep) RETURN count(DISTINCT p)", 729),
     ("seeded nodes, before the agent writes any memory",
      "MATCH (n) WHERE NOT n:Answer RETURN count(n)", 3087),
     ("seeded edges, before the agent writes any memory",
