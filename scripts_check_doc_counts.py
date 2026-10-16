@@ -530,6 +530,26 @@ for _doc in _docs:
                             f"the graph has {_substantive}")
         else:
             checked += 1
+# The field-survey figures are a DATED measurement -- scripts_survey_field.py queries GitHub and
+# the answer changes hourly, so there is nothing live to check them against. Their internal
+# agreement is checkable though, and that is the half that went wrong last time: the Track 3
+# field size is stated three times in SUBMISSION.md and the repository count twice, and a claim
+# written more than once is a claim where one copy gets edited.
+_sub_raw = _flat(open("SUBMISSION.md").read())
+for _label, _pats in (
+    ("the Track 3 field size",
+     (r"(\d+)\s+are Track 3", r"(\d+) of them are Track 3", r"of (\d+) by size",
+      r"(\d+) distinct Track 3")),
+    ("the FalkorDB repository count",
+     (r"\*\*(\d+)\s*\n?>?\s*repositories created since", r"(\d+) repositories created since")),
+):
+    _said = {int(m) for _p in _pats for m in re.findall(_p, _sub_raw)}
+    if len(_said) > 1:
+        problems.append(f"SUBMISSION.md states {_label} as {sorted(_said)}; one copy was edited "
+                        f"and the others were not")
+    elif _said:
+        checked += 1
+
 # This repository withdraws claims rather than deleting them, which is the right habit and has
 # one failure mode: the document ends up BOTH withdrawing a claim and still asserting it
 # somewhere else. That happened -- SUBMISSION.md quoted "it is now the one thing the rest of the
