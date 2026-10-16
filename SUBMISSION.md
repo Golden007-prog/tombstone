@@ -27,7 +27,7 @@ The decisions your org already made and forgot. Asked as a graph.
 
 **~273 characters:**
 
-> Tombstone turns Kubernetes' own governance record into a graph and answers what no document states: one person is the entire review capacity for the apiserver's metrics endpoints. It drafts the OWNERS patch that fixes what it finds, and refuses the cases it cannot justify.
+> Tombstone turns Kubernetes' own governance record into a graph and answers what no document states: one person is the entire review capacity for the apiserver's metrics endpoints. It drafts two real OWNERS patches for what it finds, and refuses the one it cannot justify.
 
 **~1085 characters:**
 
