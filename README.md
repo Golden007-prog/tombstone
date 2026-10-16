@@ -654,6 +654,12 @@ did not survive being re-run**, so here is the corrected version:
 | 500 | 2.19 ms | **12.79 ms** | 494.3 |
 | 1000 | 2.25 ms | 6.69 ms | 491.7 |
 
+These are a recorded measurement, not an asserted one: re-running it creates a thousand graphs,
+which is too expensive to put in a gate that has to stay fast enough to run before every push.
+That is the same distinction the networkx table draws, and worth stating here so the two are not
+read as equally guarded — the ratios in that table *are* checked on every run; these numbers are
+dated, scripted and reproducible by hand.
+
 What holds: **memory is linear at 491–513 KB/tenant**, and **isolation is physical** — a second
 tenant running the identical Cypher gets `[]`, and `db.labels()` does not even list the label.
 Creating 1000 tenant graphs took 5.4 s, and `select_graph` stays negligible (0.4 → 3.6 µs).
