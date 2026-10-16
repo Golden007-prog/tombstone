@@ -27,6 +27,18 @@ def count(query: str) -> int:
 
 
 # noun -> (live count, the phrasings used across the docs)
+def _flat(text: str) -> str:
+    """One long line, so a pattern cannot miss because the sentence wrapped.
+
+    Three checks written today matched nothing for exactly this reason: markdown wraps prose, and
+    inside a blockquote the break becomes "\n> ", so "made it 83, because" is split and a
+    literal-space pattern finds nothing. A check that silently matches nothing is the failure
+    mode this file exists to prevent, so the text is flattened before these scans rather than
+    each pattern being taught about newlines one at a time.
+    """
+    return re.sub(r"\s*\n>?\s*", " ", text)
+
+
 COUNTS = {
     "decisions": (count("MATCH (k:Kep) RETURN count(k)"),
                   [r"decisions?", r"KEPs?\b"]),
@@ -127,7 +139,7 @@ _docs = [d for d in _subp.run(["git", "ls-files", "*.md"], capture_output=True,
                               text=True).stdout.split() if pathlib.Path(d).exists()]
 _claims = 0
 for _doc in _docs:
-    for _tok in re.findall(r"([\w-]+) checks\b", open(_doc).read()):
+    for _tok in re.findall(r"([\w-]+) checks\b", _flat(open(_doc).read())):
         _n = int(_tok) if _tok.isdigit() else _SPELLED.get(_tok)
         if _n is None:          # "the checks that need no database" -- not a count at all
             continue
@@ -149,7 +161,7 @@ _steps = sum(1 for _l in open(".github/workflows/verify.yml") if re.match(r"^\s*
 # in two others.
 _seen_steps = 0
 for _doc in _docs:
-    _said = re.findall(r"(\d+) CI steps", open(_doc).read())
+    _said = re.findall(r"(\d+) CI steps", _flat(open(_doc).read()))
     _seen_steps += len(_said)
     if any(int(x) != _steps for x in _said):
         problems.append(f"{_doc}: says {', '.join(_said)} CI steps, the workflow has {_steps}")
@@ -206,7 +218,13 @@ if not _m:
 else:
     _tests = int(_m.group(1))
     for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md"):
-        for _said in re.findall(r"(\d+) (?:invariant )?tests\b", open(_doc).read()):
+        # A rival's test count is not a claim about this one. Flattening the prose made
+        # "185\ntests to 128" -- lineage's figure beside ours in the competitor analysis --
+        # match as though it described this repository. It also exposed that the "124" beside it
+        # was stale, which the line break had been hiding from every check in the file.
+        _body = re.sub(r"[^.]*\b(?:tests to|to this graph's|relationships to)\b[^.]*\.", " ",
+                       _flat(open(_doc).read()))
+        for _said in re.findall(r"(\d+) (?:invariant )?tests\b", _body):
             if int(_said) != _tests:
                 problems.append(f"{_doc}: says {_said} tests, pytest collects {_tests}")
             else:
@@ -218,7 +236,7 @@ _chips = len(re.findall(r'tool:\s*"[a-z_]+"', open("web/app.js").read()))
 _extra = _ui[_ui.index("cases = chips() + ["):_ui.index("]", _ui.index("cases = chips() + ["))]
 _states = _chips + len(re.findall(r'^\s{8}\("', _extra, re.M))
 for _doc in ("README.md", "SUBMISSION.md"):
-    for _said in re.findall(r"(\d+) rendered UI states", open(_doc).read()):
+    for _said in re.findall(r"(\d+) rendered UI states", _flat(open(_doc).read())):
         if int(_said) != _states:
             problems.append(f"{_doc}: says {_said} rendered UI states, the check drives {_states}")
         else:
@@ -341,7 +359,7 @@ else:
 _tools = len(re.findall(r'^\s{4}"(\w+)":', open("src/tombstone/tools.py").read(), re.M))
 _WORDS_T = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen"}
 for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md"):
-    _txt = open(_doc).read()
+    _txt = _flat(open(_doc).read())
     for _w in re.findall(r"\b(eleven|twelve|thirteen|fourteen|fifteen)\s+(?:tools|queries|chips)\b",
                          _txt):
         if _w != _WORDS_T.get(_tools):
@@ -416,12 +434,12 @@ _markers = count("MATCH (n:Alternative) WHERE NOT n:NamedOption "
 # so if the number moved, EXPLAIN-IT would fail and the submission copy would quietly keep the
 # old one. Its phrasing is recognised too.
 for _doc in _docs:
-    _t = open(_doc).read()
+    _t = _flat(open(_doc).read())
     for _said in (re.findall(r"\*\*(\d+) are 60", _t) + re.findall(r"\*\*(\d+) are 60\+", _t)
                   # \s and an optional ">" because the sentence wraps inside a blockquote,
                   # so the phrase is split by "\n> " in the file and a literal-space pattern
                   # matched nothing -- the same wrapped-prose miss as the demo-timing check.
-                  + re.findall(r"(\d+) rejections the search cannot\s+>?\s*see", _t)):
+                  + re.findall(r"(\d+) rejections the search cannot see", _t)):
         if int(_said) != _substantive:
             problems.append(f"{_doc}: says {_said} substantive excluded alternatives, "
                             f"the graph has {_substantive}")
@@ -443,18 +461,6 @@ print(f"  {_gap} alternatives are outside the haystack; {_substantive} of them a
 _emeritus_total = count("MATCH (p:Person)-[:EMERITUS_OF]->() RETURN count(DISTINCT p)")
 _emeritus_only = count("MATCH (p:Person)-[:EMERITUS_OF]->() WHERE NOT (p)-[:APPROVES]->() "
                        "RETURN count(DISTINCT p)")
-def _flat(text: str) -> str:
-    """One long line, so a pattern cannot miss because the sentence wrapped.
-
-    Three checks written today matched nothing for exactly this reason: markdown wraps prose, and
-    inside a blockquote the break becomes "\n> ", so "made it 83, because" is split and a
-    literal-space pattern finds nothing. A check that silently matches nothing is the failure
-    mode this file exists to prevent, so the text is flattened before these scans rather than
-    each pattern being taught about newlines one at a time.
-    """
-    return re.sub(r"\s*\n>?\s*", " ", text)
-
-
 for _doc in _docs:
     _t = _flat(open(_doc).read())
     for _said in re.findall(r"made it (\d+), because", _t):

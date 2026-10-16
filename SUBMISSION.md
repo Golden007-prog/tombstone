@@ -66,7 +66,7 @@ means part of any graph-versus-text gap is a gap you authored.
 `Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
 PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
-tests to 124.** It is bigger and better-tested, it is honest about its own limits, and it is not
+tests to 128.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not.
 
