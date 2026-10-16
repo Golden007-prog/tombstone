@@ -18,7 +18,7 @@ export HF_TOKEN=hf_xxxxxxxxxxxx      # huggingface.co/settings/tokens -> New tok
 ```
 
 The script creates the Space, swaps in the Space README (Spaces reads config from its own
-front-matter, not this repo's) and uploads 94 files / 3.1 MB. First build takes a few minutes;
+front-matter, not this repo's) and uploads 96 files / 3.1 MB. First build takes a few minutes;
 after that it boots in seconds.
 
 **This path has already been verified on the committed tree**, so the token is the only thing
@@ -50,6 +50,10 @@ deployed yet"_. Replace that with the URL — it is the first thing on the page 
 
 `docs/DEMO-SCRIPT.md` is written and timed to 3:00, beat by beat, staged on the apiserver
 example (falls back to **one** approver — the sharpest row in the data).
+
+**Read `docs/DEMO-NARRATION.md` while you record**, not the script. Same words, nothing else —
+cue times and one sentence per line, so you are not skipping over stage directions with a clock
+running. It is generated from the script, and the push gate fails if the two ever disagree.
 
 Three things that save a bad night:
 - **Record the voiceover separately** from the screen capture. Narrating live while clicking is

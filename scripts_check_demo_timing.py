@@ -35,59 +35,75 @@ def secs(t: str) -> int:
     return int(m) * 60 + int(s)
 
 
-text = open(PATH).read()
-beats = re.split(r"^### (\d:\d\d)–(\d:\d\d) — (.+?) · (\d+) words$", text, flags=re.M)
-if len(beats) < 6:
-    sys.exit(f"{PATH}: found no beats with the '### m:ss–m:ss — title · N words' shape.")
+# Named, because a second reader of this file now exists -- scripts_build_narration.py imports
+# BEAT and narration() from here rather than writing its own copy. Two parsers for one format is
+# the drift this repository keeps finding in its own documents.
+BEAT = r"^### (\d:\d\d)–(\d:\d\d) — (.+?) · (\d+) words$"
 
-fails, prev, total_w, total_s, worst = [], 0, 0, 0, []
-print(f"{'beat':<46}{'sec':>5}{'budget':>8}{'actual':>8}{'w/s':>7}")
-print("-" * 74)
-for i in range(1, len(beats), 5):
-    start, end, title, budget, body = beats[i:i + 5]
-    spoken = narration(body)
-    words, dur = len(spoken.split()), secs(end) - secs(start)
-    wps = words / dur if dur else 999
-    total_w += words
-    worst.append(wps)
-    total_s += dur
-    if secs(start) != prev:
-        fails.append(f"{title}: starts at {start}, but the previous beat ended at "
-                     f"{prev // 60}:{prev % 60:02d}")
-    prev = secs(end)
-    if wps > MAX_WPS:
-        fails.append(f"{title}: {words} words in {dur}s = {wps:.1f} w/s, over {MAX_WPS}")
-    if abs(int(budget) - words) > 6:
-        fails.append(f"{title}: heading claims {budget} words, body has {words}")
-    print(f"{title[:44]:<46}{dur:>5}{budget:>8}{words:>8}{wps:>7.1f}")
 
-print("-" * 74)
-print(f"{'TOTAL':<46}{total_s:>5}{'':>8}{total_w:>8}{total_w / total_s:>7.1f}")
-if total_s != 180:
-    fails.append(f"beats total {total_s}s, not the 180s the script caps itself at")
+def split_beats(text: str) -> list:
+    parts = re.split(BEAT, text, flags=re.M)
+    if len(parts) < 6:
+        raise SystemExit(f"{PATH}: found no beats with the '### m:ss–m:ss — title · N words' shape.")
+    return parts
 
-# The prose above the beats states the totals in words, and nothing re-derived that sentence, so
-# it drifted: it claimed 464 words at 2.6 w/s while the beats summed to 489 at 2.7. That is the
-# precise failure this product is an argument against -- a figure written once and never checked --
-# sitting in the one document that gets read aloud. Checked here, where the figures are produced.
-# (\d+(?:\.\d+)?) rather than [\d.]+ : the latter is greedy and swallowed the full stop that ends
-# the sentence, so the claim parsed as "2.9." and the check died on float() instead of reporting.
-claim = re.search(r"holds \*\*(\d+)\*\*,\s+at\s+(\d+(?:\.\d+)?)\s+w/s,"
-                  r"\s+with no beat above\s+(\d+(?:\.\d+)?)", text)
-if not claim:
-    fails.append("the script no longer states its own word total in the form this check reads")
-else:
-    said_total, said_wps, said_max = int(claim[1]), float(claim[2]), float(claim[3])
-    measured_wps = round(total_w / total_s, 1)
-    measured_max = round(max(worst), 1)
-    if said_total != total_w:
-        fails.append(f"the prose says this script holds {said_total} words; the beats hold {total_w}")
-    if said_wps != measured_wps:
-        fails.append(f"the prose says {said_wps} w/s overall; the beats measure {measured_wps}")
-    if said_max != measured_max:
-        fails.append(f"the prose says no beat is above {said_max} w/s; the worst is {measured_max}")
 
-if fails:
-    print("\n" + "\n".join("  FAIL  " + f for f in fails))
-    sys.exit(1)
-print(f"\nSpeakable: {total_w} words across {total_s}s, every beat at or under {MAX_WPS} w/s.")
+def main() -> int:
+  text = open(PATH).read()
+  beats = split_beats(text)
+
+  fails, prev, total_w, total_s, worst = [], 0, 0, 0, []
+  print(f"{'beat':<46}{'sec':>5}{'budget':>8}{'actual':>8}{'w/s':>7}")
+  print("-" * 74)
+  for i in range(1, len(beats), 5):
+      start, end, title, budget, body = beats[i:i + 5]
+      spoken = narration(body)
+      words, dur = len(spoken.split()), secs(end) - secs(start)
+      wps = words / dur if dur else 999
+      total_w += words
+      worst.append(wps)
+      total_s += dur
+      if secs(start) != prev:
+          fails.append(f"{title}: starts at {start}, but the previous beat ended at "
+                       f"{prev // 60}:{prev % 60:02d}")
+      prev = secs(end)
+      if wps > MAX_WPS:
+          fails.append(f"{title}: {words} words in {dur}s = {wps:.1f} w/s, over {MAX_WPS}")
+      if abs(int(budget) - words) > 6:
+          fails.append(f"{title}: heading claims {budget} words, body has {words}")
+      print(f"{title[:44]:<46}{dur:>5}{budget:>8}{words:>8}{wps:>7.1f}")
+
+  print("-" * 74)
+  print(f"{'TOTAL':<46}{total_s:>5}{'':>8}{total_w:>8}{total_w / total_s:>7.1f}")
+  if total_s != 180:
+      fails.append(f"beats total {total_s}s, not the 180s the script caps itself at")
+
+  # The prose above the beats states the totals in words, and nothing re-derived that sentence, so
+  # it drifted: it claimed 464 words at 2.6 w/s while the beats summed to 489 at 2.7. That is the
+  # precise failure this product is an argument against -- a figure written once and never checked --
+  # sitting in the one document that gets read aloud. Checked here, where the figures are produced.
+  # (\d+(?:\.\d+)?) rather than [\d.]+ : the latter is greedy and swallowed the full stop that ends
+  # the sentence, so the claim parsed as "2.9." and the check died on float() instead of reporting.
+  claim = re.search(r"holds \*\*(\d+)\*\*,\s+at\s+(\d+(?:\.\d+)?)\s+w/s,"
+                    r"\s+with no beat above\s+(\d+(?:\.\d+)?)", text)
+  if not claim:
+      fails.append("the script no longer states its own word total in the form this check reads")
+  else:
+      said_total, said_wps, said_max = int(claim[1]), float(claim[2]), float(claim[3])
+      measured_wps = round(total_w / total_s, 1)
+      measured_max = round(max(worst), 1)
+      if said_total != total_w:
+          fails.append(f"the prose says this script holds {said_total} words; the beats hold {total_w}")
+      if said_wps != measured_wps:
+          fails.append(f"the prose says {said_wps} w/s overall; the beats measure {measured_wps}")
+      if said_max != measured_max:
+          fails.append(f"the prose says no beat is above {said_max} w/s; the worst is {measured_max}")
+
+  if fails:
+      print("\n" + "\n".join("  FAIL  " + f for f in fails))
+      return 1
+  print(f"\nSpeakable: {total_w} words across {total_s}s, every beat at or under {MAX_WPS} w/s.")
+  return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

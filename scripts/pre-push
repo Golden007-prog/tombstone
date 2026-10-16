@@ -41,6 +41,7 @@ run() {
 
 echo "pre-push: the checks that need no database"
 run "the demo script is speakable"  python3 scripts_check_demo_timing.py
+run "the narration cut matches the script" python3 scripts_build_narration.py --check
 
 # This one is here rather than only in preflight because of WHEN it can be right. It
 # computes the upload from `git archive HEAD`, so before a commit HEAD lacks the file you

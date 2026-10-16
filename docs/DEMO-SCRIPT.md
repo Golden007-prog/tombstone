@@ -14,6 +14,12 @@ does that in the first eight words, and a card would spend six seconds repeating
 Record the voiceover **separately** from the screen capture and lay them together. Narrating live
 while driving the UI is the single biggest cause of ten retakes at midnight.
 
+**While recording, read [`DEMO-NARRATION.md`](DEMO-NARRATION.md), not this file.** It is this
+script with everything but the spoken words removed — cue times, one sentence per line, no stage
+directions to skip past on take four. It is generated from this file by
+`scripts_build_narration.py` and the push gate refuses a push where the two disagree, so it
+cannot quietly fall behind an edit made here.
+
 **Every beat below is written to a word budget**, because an earlier draft of this script was not.
 It held 767 spoken words in 180 seconds — 4.3 words per second, which is not a narration, it is a
 countdown. Read aloud it ran about 4:35, so the 3:00 cap would have been discovered at midnight
