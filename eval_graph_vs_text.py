@@ -211,6 +211,39 @@ QUESTIONS = [
          args={"handles": ["deads2k", "liggitt", "jpbetz", "smarterclayton", "enj", "serathius"]},
          check=lambda t: "baseline before the change: 0 areas" in t.lower(), cat="counterfactual",
          why="needs a baseline the corpus never states"),
+    # --- Added after comparing this eval's SIZE against the field's: 20 questions where rival
+    # entries publish 29 and 60. Growing it is only worth anything if the new questions can go
+    # against me, so all five are control lookups whose answer IS written in a document and
+    # which the text baseline duly won -- all five, taking it from 4/20 to 9/25.
+    #
+    # Three more were written and then deleted: sole_approver_risk, hollowing_communities and
+    # stepped_back_but_still_listed were already covered above, and I added them without
+    # checking. Three questions the graph wins, re-asked in different words, would have moved
+    # the ratio without telling anyone anything -- which is the exact padding this comment
+    # opened by disclaiming.
+    dict(q="is there a proposal about sidecar containers?",
+         tool="has_this_been_tried",
+         args={"idea_text": "run a sidecar container alongside the main one"},
+         check=lambda t: "sidecar" in t.lower(), cat="lookup (control)",
+         why="a KEP title — text should find this"),
+    dict(q="has node system swap support been proposed?",
+         tool="has_this_been_tried", args={"idea_text": "let nodes use swap memory"},
+         check=lambda t: "swap" in t.lower(), cat="lookup (control)",
+         why="a KEP title — text should find this"),
+    dict(q="is there anything about seccomp by default?",
+         tool="has_this_been_tried", args={"idea_text": "enable seccomp profiles by default"},
+         check=lambda t: "seccomp" in t.lower(), cat="lookup (control)",
+         why="a KEP title — text should find this"),
+    dict(q="has in-place resize of pod resources been proposed?",
+         tool="has_this_been_tried", args={"idea_text": "resize pod resources without restarting"},
+         check=lambda t: "in-place" in t.lower() or "resize" in t.lower(),
+         cat="lookup (control)", why="a KEP title — text should find this"),
+    dict(q="is there a proposal about writable cgroups?",
+         tool="has_this_been_tried",
+         args={"idea_text": "make cgroups writable from inside the container"},
+         check=lambda t: "cgroup" in t.lower(), cat="lookup (control)",
+         why="a KEP title — text should find this"),
+
 ]
 
 

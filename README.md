@@ -16,7 +16,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **Try it:** `./run.sh`, then open <http://localhost:8099>. **No API key, no account** — and
 >   free-text questions work anyway, routed locally.
 > - **Check me:** `PYTHONPATH=src ./.venv/bin/python verify_claims.py` re-queries all 31 graph claims against
->   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **19/20 vs 4/20**.
+>   the live graph. `eval_graph_vs_text.py` scores the graph against a text baseline: **24/25 vs 9/25**.
 > - **The graph loses one of those twenty on purpose,** and ties the baseline on the
 >   control category. See why below.
 > - **Nothing here is asserted.** 124 tests, 31 graph claims, 18 rendered UI states, and **two of
@@ -537,7 +537,7 @@ word the graph does.
 
 ```
 category                      n   graph   text
-lookup (control)              5       4      4     a text index ties the graph on its own ground
+lookup (control)             10       9      9     a text index ties the graph on its own ground
 inheritance                   4       4      0     tree walks to the nearest live ancestor
 expertise                     2       2      0     co-ownership counted across two edge types
 whole-graph                   2       2      0     betweenness, community detection
@@ -549,7 +549,7 @@ counterfactual                2       2      0     the graph re-evaluated after 
 ```
 
 **The graph loses one, and that is the point.** It loses the title lookup — "find the KEP about
-coscheduling" — and on the control category as a whole the text index *ties it, 4 to 4*. Where a
+coscheduling" — and on the control category as a whole the text index *ties it, 9 to 9*. Where a
 question is a lookup, a text index competes or wins, and pretending otherwise would make the other
 fifteen worthless. Where the answer
 is a path, an absence, or a whole-graph property, there is no document to find — **because the

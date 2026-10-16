@@ -120,9 +120,9 @@ have rejected a real question at 0.674.
 
 There is a README section that answers exactly this, and the honest summary is: the four
 ownership questions degrade to wrong-but-plausible, and the three whole-graph ones stop existing.
-Against a text baseline over the same documents the graph scores **19 of 20 versus 4 of 20**,
+Against a text baseline over the same documents the graph scores **24 of 25 versus 9 of 25**,
 across seven categories. The number to lead with is not that one: it is that on the *control*
-category — lookups where the answer sits in one document — the text index **ties it, 4 to 4**.
+category — lookups where the answer sits in one document — the text index **ties it, 9 to 9**.
 That tie is what makes the other fifteen mean anything, and the graph loses the title lookup
 outright. Volunteer both before anyone finds them.
 

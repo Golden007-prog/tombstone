@@ -112,9 +112,9 @@ Nothing here is asserted. **31 CI steps on every push** re-check it: 124 tests, 
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, both benchmarks re-run, and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
-it. The graph is scored against a text baseline over the same documents: **19/20 versus 4/20**, in
+it. The graph is scored against a text baseline over the same documents: **24/25 versus 9/25**, in
 seven categories — and on the control category, lookups where the answer sits in one document, the
-text index *ties it four to four*. That tie is why the other fifteen mean anything.
+text index *ties it nine to nine*, across ten of the twenty-five questions. That tie is why the other fifteen mean anything.
 
 Several claims did not survive that process and are **marked in the README rather than deleted**:
 a benchmark that said FalkorDB computed betweenness 18x faster than networkx (on the real graph it

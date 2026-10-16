@@ -84,10 +84,10 @@ approver, so approval silently widened to people who never signed up for that co
 "orphaned" at first, was wrong, and the correction is in the README.
 
 **"Could a text search do this?"**
-Measured, not argued: `eval_graph_vs_text.py`, graph 19/20 versus TF-IDF 4/20 over the same 2,224
+Measured, not argued: `eval_graph_vs_text.py`, graph 24/25 versus TF-IDF 9/25 over the same 2,224
 documents. The graph loses the title-lookup question on purpose, and on the control category —
-lookups whose answer sits in one document — the text index ties it 4 to 4. Volunteer that tie: it
-is what makes the other sixteen mean anything.
+lookups whose answer sits in one document — the text index ties it 9 to 9. Volunteer that tie: it
+is what makes the other fifteen mean anything.
 
 **"How do I know the numbers are real?"**
 `python verify_claims.py` re-checks all 31 against the live graph, and CI runs it on every push.
