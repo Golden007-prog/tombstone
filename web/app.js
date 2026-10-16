@@ -439,7 +439,15 @@ function renderPath(d) {
     if (label.length * em > room) {
       label = label.slice(0, Math.max(1, Math.floor(room / em) - 1)) + "…";
     }
-    svg += `<text x="${tx}" y="${n.y + 3.5}" fill="${P.ink}" font-size="${fs(10.5)}" text-anchor="${anchor}">${esc(label)}<title>${esc(n.full || n.label)}</title></text>`;
+    // paint-order="stroke" draws the panel-coloured stroke BEHIND the glyphs, so a label sits in
+    // its own halo instead of having an edge run through it. That was not merely untidy here: a
+    // line through a label reads as a strikethrough, and a strike is exactly what this picture
+    // uses to mean "gone" -- on the person node and on an area with nobody left. A decision with
+    // a line through it looked like a decision that had been struck.
+    svg += `<text x="${tx}" y="${n.y + 3.5}" fill="${P.ink}" font-size="${fs(10.5)}" `
+        + `text-anchor="${anchor}" stroke="${P.panel}" stroke-width="${fs(3)}" `
+        + `stroke-linejoin="round" paint-order="stroke">`
+        + `${esc(label)}<title>${esc(n.full || n.label)}</title></text>`;
   });
 
   svg += `</svg>`;
