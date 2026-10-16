@@ -141,7 +141,9 @@ would remove them.
 
 Nothing here is asserted. **31 CI steps on every push** re-check it: 128 tests, 31 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
-the drafting action's own output, the memory claims, both benchmarks re-run, and a job that runs
+the drafting action's own output, the memory claims, two of the five benchmarks re-run — the
+other three build a thousand graphs or millions of edges, so they are dated measurements with
+committed scripts rather than gates, and the README says which is which — and a job that runs
 the quickstart on a machine that already has a `falkordb` container — the case that used to break
 it. The graph is scored against a text baseline over the same documents: **24/25 versus 9/25**, in
 seven categories — and on the control category, lookups where the answer sits in one document, the
@@ -241,7 +243,7 @@ weakest things — stated first, because every one of them is already written do
       add it here while it is cheap.
 
 - [ ] **Submit something early.** The schedule page says the event opened and *"submissions open
-      with it"* on 15 October, so the form has been accepting entries for two days. If it allows
+      with it"* on 15 October, so the form has been accepting entries since then. If it allows
       edits, a provisional submission now removes the single largest risk in this plan — a panel
       that is slow, or a required field discovered at 23:30 — and everything after it becomes an
       update rather than a race. Check whether edits are allowed the moment you are inside.
