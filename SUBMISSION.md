@@ -50,10 +50,21 @@ back, and the whole product is built on reading it. A synthetic company cannot h
 repository's commit history only implies it. (Searches are evidence of absence only to the extent
 GitHub's index is complete, and entries can be private until submission.)
 
-Read their READMEs rather than run them, so this is what they claim, not what they do. Two things
-follow that are worth acting on. **Multi-track entry is normal here**, so entering one track is a
-choice and should be a reasoned one. And **all three are deployed** — the live demo is the clearest
-gap in this submission, not a nice-to-have.*
+Two more Track 3 entries have appeared since: `volfiros/axon-brain`, which stores access rules in
+the graph and filters every query before anything reaches the model, and `rossycoder/dealership-brain`,
+whose README separates what is real from what is stubbed and whose dataset is a fictional dealership.
+
+Read their READMEs rather than run them, so the feature claims are what they claim, not what they
+do — but the deployments I did check, by request rather than by reading. **On 16 Oct, four of the
+five answered HTTP 200**: orion, threadline, axon-brain and dealership-brain. Only `lineage` has no
+public URL. All five last pushed on 15 Oct.
+
+Two things follow that are worth acting on. **Multi-track entry is normal here**, so entering one
+track is a choice and should be a reasoned one. And the live demo is the clearest gap in this
+submission, not a nice-to-have — it is now the one thing the rest of the field has and this does
+not. Note what the deployment does *not* settle: orion's demo company is explicitly synthetic,
+dealership-brain's is a fictional dealership. Being deployed and being checkable are different
+claims, and this entry has the second without the first.*
 
 *Reasoning, and the new field strengthens it rather than weakening it:* Track 02 (Agent Memory)
 is arguable but not yet earned. Answers persist as `(:Answer)` nodes that `CITED` the real records they came from, and a
