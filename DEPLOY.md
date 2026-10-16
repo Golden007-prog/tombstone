@@ -12,6 +12,19 @@ docker build -t tombstone .
 docker run -p 8099:8099 tombstone
 ```
 
+**All three hosting paths below were validated against their providers' current documentation on
+16 Oct**, because configuration files rot quietly against other people's platforms and this one is
+read under deadline. In short, so you can choose in thirty seconds:
+
+| path | config | state |
+|---|---|---|
+| **Hugging Face Spaces** | `deploy/README-hf-space.md` | Front-matter valid against HF's field reference, now gated in the push gate. **One open risk:** HF's own overview says a Docker Space "requires a paid plan to create" for personal accounts. Check in your first five minutes. |
+| **Render (free)** | `deploy/render.yaml` | Valid against the current blueprint spec, using `runtime:` rather than the deprecated `env:`. Fits in the free 512 MB serially; concurrency will not. Spins down after 15 min. |
+| **Fly.io** | `deploy/fly.toml` | Valid, current `[[vm]]` syntax, `min_machines_running = 1` so it never cold-starts. No free allowance — a few dollars a month. |
+
+Rule 10 is satisfied with **no deployment at all** — complete local setup plus the committed
+walkthrough — so none of these is load-bearing for the submission itself.
+
 ## Why not FalkorDB Cloud's free tier
 
 Verified from their docs: free instances are **stopped after 1 day of inactivity and deleted after
