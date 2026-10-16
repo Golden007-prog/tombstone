@@ -39,16 +39,26 @@ three are serious Track 3 builds:
 | `Vaibhaav-Tiwari/lineage` | truth maintenance: when a decision reverses, the answers and beliefs built on it are struck through and actions blocked. 745 PEPs plus forum threads and commits since 2015 | two |
 | `StarKnightt/threadline` | 3D replay of every traversal, a verifier agent that path-checks each citation, 60-question eval | all three |
 
-**Every serious Track 3 build I have read uses invented data — three for three.** orion's demo
-company, Corvane, is explicitly synthetic; dealership-brain's is a fictional dealership;
-`RISHIK92/company-brain` generates its world from its own `world.build` module and seeds, and
-labels itself a practice build rather than the submission. That last one volunteers the cost in
-its own README: because its synthetic text is not paraphrased, it *"flatters the pattern extractor
-and lexical baselines alike"*. Which is the trap precisely — when you write both the documents and
-the questions, the gap you measure between a graph and a text baseline is partly a gap you
-authored. This entry's 24/25 against 9/25 is over prose written by thousands of Kubernetes
-contributors who had never heard of it, which is why the control category ties nine-all instead of
-collapsing.
+**Three of the four serious Track 3 builds use invented data; one does not, and it is the one to
+take seriously.** orion's demo company, Corvane, is explicitly synthetic; dealership-brain's is a
+fictional dealership; `RISHIK92/company-brain` generates its world from its own `world.build`
+module and calls itself a practice build. That third one volunteers the cost in its own README:
+because its synthetic text is not paraphrased, it *"flatters the pattern extractor and lexical
+baselines alike"* — which is the trap exactly, since writing both the documents and the questions
+means part of any graph-versus-text gap is a gap you authored.
+
+`Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
+PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
+since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
+tests to 124.** It is bigger and better-tested, it is honest about its own limits, and it is not
+deployed either — its README says the demo and video come before submission. Do not tell anyone
+this is the only entry using real data. It is not.
+
+What is actually distinctive is narrower and survives the comparison. Kubernetes publishes
+`emeritus_approvers`: an explicit, maintained record of who stepped back, which is what every
+finding here is built on. lineage discloses the opposite in its own weaknesses — *"Listed owners
+are known only for today"* — so it has the decisions and the people without the attrition. That is
+the gap this corpus was chosen for, and it is the one claim worth making about it.
 
 **No other entry found is using this corpus.** Three GitHub searches — for `emeritus_approvers`,
 for FalkorDB entries mentioning OWNERS files, and for Kubernetes enhancements plus KEP — return
