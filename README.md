@@ -20,7 +20,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 > - **The graph loses one of those twenty-five on purpose,** and ties the baseline nine-all
 >   on the control category. See why below.
 > - **Live demo:** _not deployed yet — paste the Space URL here._
-> - **Nothing here is asserted.** 125 tests, 31 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 126 tests, 31 graph claims, 18 rendered UI states, and **two of
 >   the five benchmarks** re-run by **31 CI steps on each push** — the other three build a thousand
 >   graphs or millions of edges, so they are dated measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
@@ -647,7 +647,7 @@ work with. On *this* graph the honest reading is:
 
 Two caveats that cut against me, stated rather than buried: the build row is **not a like-for-like
 comparison** — FalkorDB's figure includes loading the snapshot, ingesting and creating seven
-indexes, while networkx is handed an edge list already in memory — and PageRank's 54–145x is the
+indexes, while networkx is handed an edge list already in memory — and PageRank's 30–145x is the
 one lopsided row, on the one algorithm nothing uses.
 
 So the case for a graph database here is the structural one, and it is the one
@@ -733,7 +733,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 125 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 126 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 31 graph claims
 ```
 

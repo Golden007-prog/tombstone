@@ -130,7 +130,7 @@ outright. Volunteer both before anyone finds them.
 
 One command: `./preflight.sh` — twenty-one checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-31 CI steps on every push. 125 tests. Each answer in the UI carries its Cypher, that query's hash,
+31 CI steps on every push. 126 tests. Each answer in the UI carries its Cypher, that query's hash,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"
@@ -144,7 +144,9 @@ Say these before you are asked:
    proves nothing. Kubernetes publishes its decisions, its ownership map *and* its attrition.
 4. **A withdrawn benchmark.** The networkx comparison claimed an 18x betweenness win on a graph
    that was not this product's. Re-measured on the real one it is 1–2x, and the claim is struck
-   through rather than deleted. PageRank held up at 54–145x.
+   through rather than deleted. PageRank held up, at 30–145x across machines — the low end
+   is a loaded laptop, and the range is reported rather than gated because gating a ratio
+   turned CI red for a claim that was never false.
 5. **Three of fourteen questions draw a reasoning path**, not all of them — there is no path to
    draw for "which areas have exactly one approver", and inventing a picture for a list would be
    decoration.

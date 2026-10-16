@@ -1664,3 +1664,43 @@ def test_no_shipped_string_fakes_a_plural_with_parens():
 
     assert not offenders, (
         "a string fakes a plural with (s); write both words out:\n  " + "\n  ".join(offenders))
+
+
+def test_the_benchmark_table_and_the_prose_under_it_agree():
+    """The PageRank range is stated twice in one section, and the two disagreed.
+
+    The table row said 30-145x after a loaded machine widened it, the paragraph below narrated
+    that widening -- "a loaded machine gave PageRank 30x where this table had claimed 54-145x" --
+    and the caveat two paragraphs further down still said 54-145x. A section that documents its
+    own correction and then fails to apply it a few lines later is worse than one that never
+    corrected anything, because the reader cannot tell which number is the live one.
+
+    This does NOT gate the measurement. The ranges are deliberately reported rather than
+    asserted, because gating a ratio turned CI red for a claim that was never false when the
+    hardware changed. It gates only that the README agrees with itself.
+    """
+    import re
+
+    readme = open("README.md").read()
+    row = re.search(r"\|\s*PageRank[^|]*\|[^|]*\|[^|]*\|\s*FalkorDB\s*\*\*(\d+)[–-](\d+)x\*\*",
+                    readme)
+    assert row, "the README's benchmark table no longer has a PageRank row in the expected shape"
+    table_range = (row.group(1), row.group(2))
+
+    # Every other PageRank range in the file must match it, except one that is explicitly the
+    # superseded figure being quoted -- "had claimed", past tense.
+    for m in re.finditer(r"PageRank[^.\n]{0,40}?(\d+)[–-](\d+)x", readme):
+        # "had claimed" sits INSIDE the matched span -- "PageRank 30x where this table had
+        # claimed 54-145x" -- not before it, which is where the first version of this looked.
+        if "had claimed" in m.group(0) or "previously" in m.group(0):
+            continue
+        assert (m.group(1), m.group(2)) == table_range, (
+            f"the README states PageRank at {m.group(1)}-{m.group(2)}x where its own table says "
+            f"{table_range[0]}-{table_range[1]}x")
+
+    # The explainer answers a judge's question out loud, so it must not quote a retired range.
+    explain = open("docs/EXPLAIN-IT.md").read()
+    for m in re.finditer(r"PageRank[^.\n]{0,40}?(\d+)[–-](\d+)x", explain):
+        assert (m.group(1), m.group(2)) == table_range, (
+            f"docs/EXPLAIN-IT.md says PageRank {m.group(1)}-{m.group(2)}x; the README's table "
+            f"says {table_range[0]}-{table_range[1]}x")
