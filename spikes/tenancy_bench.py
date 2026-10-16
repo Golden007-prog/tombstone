@@ -119,4 +119,32 @@ print(f"  tenant 1 db.labels() -> {labels_1}  <-- 'Secret' {'absent' if 'Secret'
 print(f"  => isolation is physical (separate graph keyspaces), not a WHERE-clause filter.")
 
 json.dump(rows, open('/private/tmp/claude-501/-Users-aviralgarg-graph-hack/fc30c4d5-48b3-421d-a907-6b8c81f1ecb3/scratchpad/tenancy_results.json','w'), indent=1)
+# Reconcile against the README, because the networkx benchmark drifted on exactly the two rows
+# it printed and never compared. This one feeds the tenancy table and compared nothing. It is a
+# dated measurement and stays reported rather than gated -- the point is that whoever runs it is
+# told whether the page still matches, instead of having to hold eight numbers in their head.
+try:
+    import re as _re
+    _readme = _re.sub(r"\s*\n>?\s*", " ", open("README.md").read())
+    _compared = 0
+    for _n in (1, 100, 500, 1000):
+        _row = _re.search(rf"\|\s*{_n}\s*\|\s*([\d.]+) ms\s*\|\s*\*{{0,2}}([\d.]+) ms",
+                          _readme)
+        _got = next((r for r in rows if int(r.get("tenants", -1)) == _n), None)
+        if not _row or not _got:
+            continue
+        _p50, _p99 = float(_row.group(1)), float(_row.group(2))
+        _m50 = float(_got.get("read_p50", 0))      # already milliseconds, see lat.append above
+        _near = abs(_m50 - _p50) <= max(1.0, _p50 * 0.5)
+        _compared += 1
+        print(f"  {'ok  ' if _near else 'note'}  {_n} tenants: this run p50 {_m50:.2f} ms, "
+              f"the README says {_p50:.2f} ms"
+              + ("" if _near else "  <- outside, re-measure before trusting either"))
+    if not _compared:
+        print("  note  nothing was reconciled against the README -- the table moved, or these "
+              "key names did. The first version of this block read `results` and `p50_ms`, "
+              "neither of which exists here, and said nothing at all.")
+except Exception as _exc:                       # never let the comparison break the benchmark
+    print(f"  note  could not reconcile against the README ({type(_exc).__name__})")
+
 print("\nresults -> tenancy_results.json")
