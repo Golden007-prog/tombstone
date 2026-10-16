@@ -1634,7 +1634,17 @@ def test_the_video_is_fingerprinted_against_everything_the_images_are():
     # This surfaced the day the artefacts were first regenerated after self-inclusion was added to
     # the generators: every committed fingerprint predated it, so the sets happened to nest and
     # this test passed for the wrong reason.
-    import scripts_check_shots_fresh as fresh
+    # Loaded by path, not by `import scripts_check_shots_fresh`. The plain import worked under
+    # `python -m pytest`, which puts the working directory on sys.path, and CI runs bare
+    # `pytest tests/ -q` with PYTHONPATH=src, which does not -- so it passed here and failed
+    # there. The file guards its own main(), so executing the module just defines ARTEFACTS.
+    import importlib.util
+    import pathlib as _pl
+    _src = _pl.Path(__file__).resolve().parent.parent / "scripts_check_shots_fresh.py"
+    assert _src.exists(), f"{_src} is missing -- this test reads its ARTEFACTS table"
+    _spec = importlib.util.spec_from_file_location("_shots_fresh_for_test", _src)
+    fresh = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(fresh)
     generators = {fp: gen for fp, gen, _ in fresh.ARTEFACTS}
 
     def inputs(name):
