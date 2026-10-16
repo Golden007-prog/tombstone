@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 128 tests, 35 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts a real OWNERS patch and refuses the strongest-looking candidate because that file is vendored. Nothing here is asserted — 128 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -155,7 +155,7 @@ is excluded because that file is vendored from another repository, and a second 
 the person's handle is not in the file at all — an alias expands to them, so no edit to that file
 would remove them.
 
-Nothing here is asserted. **31 CI steps on every push** re-check it: 128 tests, 35 graph claims
+Nothing here is asserted. **31 CI steps on every push** re-check it: 128 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the five benchmarks re-run — the
 other three build a thousand graphs or millions of edges, so they are dated measurements with
