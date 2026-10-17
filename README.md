@@ -30,7 +30,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   depth 1 returns nothing, depth 4 explains why. There is also an
 >   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (704 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 152 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 155 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **36 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -835,7 +835,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 152 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 155 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1492,12 +1492,13 @@ times. Each fix made the claim narrower and more defensible.
   [`bench_memory_growth.py`](bench_memory_growth.py) records answers in blocks and watches the
   database: **about 3 KB each, marginal** — 2.7, 3.0 and 3.6 KB across three runs from a cold database. Most of that is the 384-dimension embedding, stored
   as a native `Vectorf32` at 1,536 bytes. A thousand distinct answered questions costs ~5 MB on
-  top of the **450 MiB serial peak** that [`scripts_verify_deploy.sh`](scripts_verify_deploy.sh)
-  measures and asserts on the real linux/amd64 image; **ten thousand reaches about 484 MiB
-  against the 512 MiB ceiling** — inside it, with roughly 28 MiB of room. That floor was stated
-  as 387 MB here and "about 400 MB" in the Space README, two undated constants for a quantity
-  only one script actually measures, and the real figure is the larger one. The per-answer cost
-  is FalkorDB's own `used_memory` while the ceiling is whole-container RSS, so the totals are
+  top of the **288 MiB** that [`scripts_verify_deploy.sh`](scripts_verify_deploy.sh) now measures
+  under concurrency at the hosted size, on the real linux/amd64 image; **ten thousand reaches
+  about 318 MiB against the 512 MiB ceiling** — inside it, with roughly 194 MiB of room. That
+  floor has now been wrong three ways: stated as 387 MB here, "about 400 MB" in the Space README,
+  then 450 MiB — undated constants for a quantity one script measures, each left behind by the
+  change that moved it. The per-answer cost is FalkorDB's own `used_memory` while the ceiling is
+  whole-container RSS, so the totals are
   "about": the projection assumes database growth shows up one-for-one in the container, which is
   roughly true because the database is in it. There is no cap and no eviction, deliberately — a memory that silently
   forgets is a different product — and `./run.sh --forget` clears it in one command. A question
@@ -1620,29 +1621,43 @@ times. Each fix made the claim narrower and more defensible.
   by. Normal use cannot approach the bound above — the thirteen chips contribute thirteen
   questions however often they are pressed — but a determined crawler sending thousands of
   *distinct* free-text questions could. Said plainly rather than discovered.
-- **The counterfactual needs memory headroom to fork.** `GRAPH.COPY` copies the graph in the
-  server process, so on a small box, or when two counterfactuals overlap, it can fail with
-  "could not fork". Measured: the whole app — FalkorDB, the embedding model and a copy in
-  flight — peaks at **~450 MiB and runs inside a 512 MB container without being OOM-killed**, and
-  repeated copies do not grow it, so the copies are genuinely dropped. **Concurrency is a
-  different number**: six counterfactuals at once peak around **900 MB**, because each `GRAPH.COPY`
-  materialises a whole graph — measured, they OOM a 768 MB container and a 1 GB one and survive at
-  2 GB. The hosted tier has far more. The deploy check gives the container 2 GB and asserts the
-  *serial* peak stays under 512 MB, so a serial regression still fails there rather than as a
-  crash on the demo. It
-  retries once, and if it still cannot copy it returns `DEGRADED` saying so — which is not
-  theoretical. **Six fired at once always come back: every one either answers or degrades
-  honestly, and no run has produced a hard failure, a 500 or a hung request.** The *split* is not
-  stable and should not be quoted as if it were — which fork loses the race varies. Measured
-  5 answered / 1 degraded in the deploy check's 2 GB container, and 4 answered / 2 degraded in
-  1.5s against a local instance on 16 Oct. Two earlier versions of this sentence were wrong in
-  opposite directions: the first said "into a 512 MB container … and no OOM", contradicting the
-  measurement three lines above it — 512 MB is the *serial* ceiling asserted before any
-  concurrency, not the size the burst runs in — and the second quoted the 5/1 split as though one
-  run had settled it. Judges share links, so concurrent
-  use of one container is the normal case, and that is the behaviour it was built for. It never reports a number from a copy that did not happen — a counterfactual that
-  answered "0 areas would be left unowned" because the diff was empty would be the worst bug
-  this product could have, so there is a test that drives that exact path.
+- **The hosted demo was killed for exceeding its memory limit, and the cause was not what this
+  file used to say it was.** On **17 Oct** the platform restarted the free instance mid-serve.
+  Reproduced in the shipped image at exactly the hosted size — 512 MB, no swap, non-root — by
+  asking *distinct* questions concurrently: one at a time is **292 MiB** resident and flat over
+  four rounds, two at a time is **415 MiB**, and eight at a time is **OOM-killed on the first
+  round**, on arm64 and again on linux/amd64, the architecture the host runs. The marginal cost of
+  the **second** concurrent embed is **119 MiB**: ONNX Runtime takes an arena per concurrent `Run`,
+  far larger than BGE-small's 67 MB of weights. Three visitors is the edge of the box and four is
+  past it — and a link shared with judges is concurrent by definition, so this was the expected
+  case rather than a tail risk. The fix is [`src/tombstone/embedding.py`](src/tombstone/embedding.py):
+  **one embed at a time, process-wide**, so resident memory is the one-at-a-time figure however
+  many people are asking. Measured after: **144 asks at 24 concurrent sit flat at 305 MiB** inside
+  the same 512 MB with no dropped request. The queueing is real and it is tens of milliseconds;
+  the alternative is not "faster", it is a container that answers nothing.
+- **What this file blamed instead, wrongly, for a day.** It said six concurrent counterfactuals
+  peak around 900 MB "because each `GRAPH.COPY` materialises a whole graph", and that 512 MB was a
+  serial-only ceiling. Re-measured with six **distinct** counterfactuals, so none can be served
+  from memory: **319 MiB at 512 MB — five answered, one honestly degraded, no kill, no leftover
+  dump files.** `GRAPH.COPY` was never the multiplier. The 900 MB figure was true when it was
+  taken and was never retaken after the lock in `Agent._remember` landed, which is the change that
+  made it false. It then justified giving the deploy check 2 GB — so the check never ran at the
+  size the demo actually has, and the burst it did run went through `/api/tool`, the one path
+  `_remember` already serialised. The path it never ran, free text through `/api/ask` with two
+  unbounded embed sites, is the path that died. A stale measurement is worse than no measurement:
+  it ends the argument.
+- **The counterfactual still needs headroom to fork, and still says so.** `GRAPH.COPY` forks —
+  the engine's own words are `GRAPH.COPY failed, could not fork` — and the child hands the graph
+  back through a dump file under `/tmp` that is deleted after decoding (measured: none left behind
+  after six). It retries once, then returns `DEGRADED` naming the capacity limit, and **never a
+  number from a copy that did not happen**: a counterfactual answering "0 areas would be left
+  unowned" because the diff was empty would be the worst bug this product could have, so a test
+  drives that exact path. Which copy loses the race is not stable and should not be quoted as
+  though one run settled it.
+- **The deploy check now runs at the hosted size.** It keeps the 2 GB container for the functional
+  checks, then starts a second one at **exactly 512 MB with no swap**, floods it with 24 distinct
+  free-text asks eight at a time, and fails if the kernel kills it or if any request comes back
+  without an answer. No stats reading and no ceiling to argue with — the kernel is the judge.
 
 ## AI assistance disclosure
 

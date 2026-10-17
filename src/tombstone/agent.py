@@ -23,6 +23,7 @@ import time
 
 from graphkit.ingest import connect
 from tombstone import counterfactual as _cf
+from tombstone.embedding import embed_one
 from tombstone.counterfactual import Counterfactual
 from tombstone.memory import Memory
 from tombstone.tools import CATALOGUE, Answer, Tools, searchable_names
@@ -140,7 +141,19 @@ class Agent:
     def embedder(self):
         if self._embedder is None:
             from fastembed import TextEmbedding
-            self._embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+            # threads=1 because the deploy target has 0.1 CPU. ONNX Runtime's default is one
+            # intra-op thread per core of the HOST, which on a shared instance means several
+            # threads competing for a tenth of one -- and an arena each. Single-threaded is not
+            # a sacrifice here: there is no second tenth of a CPU for the second thread to use.
+            #
+            # enable_cpu_mem_arena=False because the arena never gives anything back. Measured in
+            # this image: with it, 60 short embeds hold 177.9 MiB and ONE paragraph-long input
+            # takes that to 187.1 MiB and keeps it; without it, 175.7 MiB flat through the same
+            # sequence, at 12.4 vs 12.7 ms per embed -- no measurable cost. On a box that gets
+            # killed at 512 MB, a figure that only grows with the longest thing anyone has ever
+            # pasted is not a figure you can size against.
+            self._embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5", threads=1,
+                                           enable_cpu_mem_arena=False)
         return self._embedder
 
     def corpus(self):
@@ -227,16 +240,17 @@ class Agent:
 
         # Additive and best-effort: a memory write must never break the answer that was asked for.
         #
-        # Serialised, because it embeds. When chip clicks began being remembered, every tool call
-        # started running fastembed, and six concurrent counterfactuals in a 512MB container went
-        # from five answered to four dropped connections -- the server died rather than degraded,
-        # which is the one outcome this product is not allowed to have. Embedding six questions at
-        # once buys nothing; one at a time costs a few milliseconds of queueing and keeps the
-        # answer path alive.
+        # This lock is now about the WRITE, not the embed. It was added when chip clicks began
+        # being remembered and every tool call started running fastembed -- but a lock over one
+        # of five embed call sites bounded nothing, which is why the container was still killed
+        # in production and why the bound now lives in `tombstone.embedding` and covers all five.
+        # What is left here is the MERGE: two threads recording the same question would race on
+        # `times_asked`, so one at a time, and keep the reason visible so this does not get
+        # deleted as redundant.
         if ans.shape in ("ANSWERED_WITH_PATH", "ANSWERED_FROM_MEMORY"):
             try:
                 with _MEMORY_WRITE_LOCK:
-                    qv = list(self.embedder().embed([question]))[0].tolist()
+                    qv = embed_one(self.embedder, question)
                     self.memory.record(question, ans, qvec=qv)
             except Exception:
                 pass
@@ -396,7 +410,7 @@ class Agent:
                 text = args.get("idea_text") or args.get("text") or ""
                 if not text.strip():
                     return Answer("UNKNOWN_ENTITY", tool, note="No idea text supplied.")
-                qvec = list(self.embedder().embed([text]))[0].tolist()
+                qvec = embed_one(self.embedder, text)
                 # The names in the question, found by rule and never by a word list. Computed
                 # here rather than in the tool because this is the only place the raw question
                 # exists -- the tool receives a vector, which is the whole reason it could not
@@ -462,7 +476,7 @@ class Agent:
                 # that reported 0ms, which reads as "nothing ran" for the tool whose whole claim
                 # is that recall is a traversal over what those answers cited, not a cache.
                 _t0 = time.perf_counter()
-                qvec = list(self.embedder().embed([text]))[0].tolist()
+                qvec = embed_one(self.embedder, text)
                 rows = self.memory.recall(qvec)
                 _ms = round((time.perf_counter() - _t0) * 1000, 2)
                 if not rows:

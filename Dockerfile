@@ -9,6 +9,19 @@ FROM falkordb/falkordb:v4.22.1
 # Hugging Face Spaces runs containers as UID 1000 with no write access outside a few paths, so
 # every cache lives under /app/.cache (owned by that UID) rather than $HOME or /tmp, which the
 # platform may mount differently. Verified by running this image with `--user 1000:1000`.
+#
+# The four allocator variables are here because the hosted instance was killed for exceeding
+# 512 MB on 17 Oct, and they apply to redis as much as to python:
+#   MALLOC_ARENA_MAX=2       glibc opens an arena per thread, up to 8x the HOST's core count --
+#                            on a shared instance that is fragmentation bought with memory this
+#                            box does not have. Measured: 313 -> 290 MiB resident under eight
+#                            concurrent asks, and 32 -> 21 threads in the server process.
+#   MALLOC_TRIM_THRESHOLD_   return freed pages to the kernel instead of hoarding them.
+#   OMP_NUM_THREADS=1        the target has 0.1 CPU. There is no second thread's worth of it.
+#   ORT_DISABLE_TELEMETRY=1  onnxruntime otherwise initialises a telemetry subsystem and logs
+#                            "Failed to persist telemetry device ID" on every boot, which in a
+#                            product whose claim is that it runs offline is both noise and a
+#                            question nobody should have to ask.
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -18,7 +31,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/app \
     HF_HOME=/app/.cache/hf \
     XDG_CACHE_HOME=/app/.cache \
-    FASTEMBED_CACHE_PATH=/app/.cache/fastembed
+    FASTEMBED_CACHE_PATH=/app/.cache/fastembed \
+    MALLOC_ARENA_MAX=2 \
+    MALLOC_TRIM_THRESHOLD_=131072 \
+    OMP_NUM_THREADS=1 \
+    ORT_DISABLE_TELEMETRY=1
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 python3-pip python3-venv curl \

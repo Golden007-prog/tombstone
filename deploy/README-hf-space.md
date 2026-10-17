@@ -47,11 +47,14 @@ snapshot on every boot, so there is nothing to go stale and no external database
 Measured on the image this Space is built from: **3.7 s** from container start to the health
 endpoint reporting FalkorDB up, and **1.5 s** more for the first real answer. That was an
 M-series laptop; a Space's shared CPU will be slower, and a Space that has gone to sleep pays its
-own wake-up before any of this starts. The whole thing peaks at about 450 MiB in serial use, measured on the real
-linux/amd64 image, and runs inside a 512 MB container without being killed.
+own wake-up before any of this starts. The whole thing boots at **144 MiB** and holds **288 MiB
+under eight concurrent free-text asks**, measured on the real linux/amd64 image inside a 512 MB
+container with no swap. That is the figure to trust: the earlier one, ~450 MiB "in serial use",
+was measured serially and the hosted Render instance was killed on 17 Oct by concurrency it never
+covered.
 
 The graph counts above — 681, 958, 794, 585 — are re-queried against the live database by
-scripts that run in CI on every push, along with 36 named claims and 152 tests. The boot and
+scripts that run in CI on every push, along with 36 named claims and 155 tests. The boot and
 memory figures are not: they need Docker and a built image, so they are measured by
 `scripts_verify_deploy.sh` on a developer machine and are dated readings rather than gates. This
 sentence used to say "every number above", which covered both and was true of only one.

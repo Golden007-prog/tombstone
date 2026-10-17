@@ -19,7 +19,7 @@ read under deadline. In short, so you can choose in thirty seconds:
 | path | config | state |
 |---|---|---|
 | **Hugging Face Spaces** | `deploy/README-hf-space.md` | Front-matter valid against HF's field reference and gated in the push gate — but **refused on a free account: HTTP 402, tested 17 Oct.** Docker Spaces need PRO ($9/month), which buys the 16 GB CPU Basic box this image was sized for. See below for the prediction I got wrong. |
-| **Render (free)** | `deploy/render.yaml` | Valid against the current blueprint spec, using `runtime:` rather than the deprecated `env:`. Fits in the free 512 MB serially; concurrency will not. Spins down after 15 min. |
+| **Render (free)** | `deploy/render.yaml` | **Live, and the one that is actually serving.** Valid against the current blueprint spec, using `runtime:` rather than the deprecated `env:`. It was killed for exceeding 512 MB on 17 Oct and now fits **under concurrency** — 352 MiB under eight concurrent asks on the host's own architecture, verified at 512 MB in the deploy check. Spins down after 15 min. |
 | **Fly.io** | `deploy/fly.toml` | Valid, current `[[vm]]` syntax, `min_machines_running = 1` so it never cold-starts. No free allowance — a few dollars a month. |
 
 Rule 10 is satisfied with **no deployment at all** — complete local setup plus the committed
@@ -64,10 +64,11 @@ would be dead or empty. Carrying the data in the image avoids the whole class of
 > Rule 10 is already satisfied without any deployment — complete local setup plus the committed
 > walkthrough — so a refused Space costs the "preferred" bonus, not the submission.
 
-Hardware, when it does run: **16 GB RAM, 2 vCPU, 50 GB non-persistent disk** on CPU Basic. Note
-what that means for the memory figures in the README — the 512 MB ceiling asserted by
-`./scripts_verify_deploy.sh` is **self-imposed discipline, not a platform limit**, and the real
-headroom is thirty times it. Disk is not persistent and free Spaces sleep when idle, neither of
+Hardware, when it does run: **16 GB RAM, 2 vCPU, 50 GB non-persistent disk** on CPU Basic — thirty
+times the headroom of the free Render box, and the size this image was originally sized for. That
+framing is what made the 512 MB number feel like discipline rather than a constraint, and it was
+wrong about where the app actually runs: Render is what is serving, 512 MB is a platform limit
+there, and on 17 Oct it was enforced by the kernel. Disk is not persistent and free Spaces sleep when idle, neither of
 which matters here: the app seeds its graph on boot in seconds and keeps nothing it cannot rebuild.
 
 No card required to visit, wakes on request, and the image is kept. Sleeps after idle but restarts
@@ -118,9 +119,15 @@ the submission should say so rather than hope a judge clicks twice.
 Two caveats, and they are the reason this is the fallback rather than the plan. Free web services
 **spin down after 15 minutes** of no traffic and take ~1 minute to wake, so a judge's first click
 can hit a blank page — acceptable only if the submission says so. And the free plan is **0.1 CPU
-and 512 MB**: serial use at ~450 MiB fits, one counterfactual at a time is fine, and six at once
-(~900 MB, measured) will be killed. On a tenth of a CPU the first boot will also be slow, which
-the `healthCheckPath` needs to outlast.
+and 512 MB**, which on **17 Oct killed the hosted instance mid-serve**: four concurrent free-text
+asks were enough, because each concurrent embed took its own ~119 MiB ONNX arena. That is fixed —
+embedding is serialised process-wide in [`src/tombstone/embedding.py`](src/tombstone/embedding.py)
+and the allocator is bounded in the `Dockerfile` — and the fix is checked at the hosted size
+rather than argued about: `./scripts_verify_deploy.sh` now runs a second container at exactly
+512 MB with no swap and floods it with concurrent free text. Measured on **linux/amd64, the
+architecture Render runs**: 145 MiB booted, 352 MiB under eight concurrent asks, flat across
+rounds, where the same flood before the fix was OOM-killed on the first one. On a tenth of a CPU
+the first boot will also be slow, which the `healthCheckPath` needs to outlast.
 
 ## Fly.io
 

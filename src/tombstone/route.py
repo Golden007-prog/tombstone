@@ -28,6 +28,8 @@ import re
 
 import numpy as np
 
+from tombstone.embedding import embed_rows
+
 # Example phrasings per tool. These are routing data, and they double as documentation of what
 # each tool is actually for. A question is matched against the BEST single phrase of a tool, not
 # the average, so adding a phrasing can only ever help that tool.
@@ -197,14 +199,14 @@ class LocalRouter:
             for phrase in phrases:
                 flat.append(phrase)
                 owners.append(tool)
-        vecs = np.asarray(list(self._embed().embed(flat)), dtype=np.float32)
+        vecs = np.asarray(embed_rows(self._embed, flat), dtype=np.float32)
         vecs /= np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-9
         self._matrix, self._tools = vecs, owners
 
     def route(self, question: str) -> dict:
         """-> {"tool": name, "args": {...}, "score": float} or {"tool": None, "near": [...]}"""
         self._ready()
-        q = np.asarray(list(self._embed().embed([question]))[0], dtype=np.float32)
+        q = np.asarray(embed_rows(self._embed, [question])[0], dtype=np.float32)
         q /= np.linalg.norm(q) + 1e-9
         sims = self._matrix @ q
 

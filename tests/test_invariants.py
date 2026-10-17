@@ -2391,3 +2391,100 @@ def test_every_consumer_reads_this_tool_by_a_derived_column_index(agent):
             f"memory.py, agent.py and eval_retrieval.py derives from that tuple")
     assert COLS[DIST_COL] == "distance" and COLS[-1] == "found_by"
     assert all(r[DIST_COL] is None or isinstance(r[DIST_COL], (int, float)) for r in a.rows)
+
+
+# ---------------- the memory envelope the hosted demo actually runs in ----------------
+
+def test_only_one_embedding_runs_at_a_time():
+    """The hosted demo was killed by the platform for exceeding 512 MB while serving.
+
+    Measured in the shipped image, non-root, 512 MB, no swap: one ask at a time is 292 MiB
+    resident, two at a time is 415 MiB, and eight at a time is OOM-killed on the first round.
+    The marginal cost of the *second* concurrent embed is 119 MiB -- ONNX Runtime takes an arena
+    per concurrent `Run`, far larger than BGE-small's 67 MB of weights. So three visitors is the
+    edge of the box and four is past it, which on a link shared with judges is the ordinary case.
+
+    This asserts the bound itself rather than a byte count: a byte count measured on a laptop
+    says nothing about a shared instance, but "never two at once" is the property that makes the
+    byte count the one-at-a-time figure on any host.
+    """
+    import threading
+    from tombstone.embedding import embed_rows
+
+    live = peak = 0
+    seen = threading.Lock()
+
+    class Slow:
+        """Stands in for the model: holds the critical section long enough that an unserialised
+        caller would overlap, and records how many callers were inside at once."""
+        def embed(self, texts):
+            nonlocal live, peak
+            with seen:
+                live += 1
+                peak = max(peak, live)
+            time.sleep(0.02)
+            with seen:
+                live -= 1
+            return [[0.0] * 384 for _ in texts]
+
+    model = Slow()
+    threads = [threading.Thread(target=embed_rows, args=(lambda: model, ["x"])) for _ in range(12)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert peak == 1, (
+        f"{peak} embeddings ran concurrently; each one costs ~119 MiB of arena on the deploy "
+        f"target, so {peak} of them is {peak * 119} MiB of a 512 MB box")
+
+
+def test_no_embed_call_site_bypasses_the_bound():
+    """A lock over one of five call sites bounds nothing, which is the actual history here.
+
+    `Agent._remember` serialised its embed in a comment that named this exact failure -- and the
+    container was still killed, because the other four sites were not covered: both query paths
+    in `Agent` and both of `LocalRouter`'s. The free-text ask box went through two of them, so
+    `/api/ask` was unbounded while `/api/tool` was fine, and the burst the deploy check ran went
+    through `/api/tool`.
+
+    Scanning the source is the only check that holds for the *next* call site somebody adds.
+    """
+    import pathlib
+    from tombstone import agent as _probe
+    src = pathlib.Path(_probe.__file__).parent
+    offenders = []
+    for path in sorted(src.glob("*.py")):
+        if path.name == "embedding.py":
+            continue
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            code = line.split("#", 1)[0]
+            if ".embed(" in code:
+                offenders.append(f"{path.name}:{n}: {line.strip()}")
+    assert not offenders, (
+        "these call the model directly instead of tombstone.embedding, so they are not bounded "
+        "and a concurrent request through them can exceed the deploy target:\n  "
+        + "\n  ".join(offenders))
+
+
+def test_a_list_argument_is_part_of_the_remembered_question():
+    """`what_if_they_go` takes `handles`, a list, and the label filter admitted only str and int.
+
+    So every counterfactual for every person collapsed onto one qid. The rows were always
+    recomputed, but the NOTE was not: ask about deads2k and then about thockin, and the second
+    answer said "Asked before (2x) ... re-running it just now returned the same rows" about
+    somebody else's counterfactual. Row counts collide constantly here, because most people
+    strand nothing, so the false note was the common case rather than a corner.
+    """
+    from tombstone.server import _label
+
+    class C:
+        def __init__(self, tool, args):
+            self.tool, self.args = tool, args
+
+    a = _label(C("what_if_they_go", {"handles": ["deads2k"]}))
+    b = _label(C("what_if_they_go", {"handles": ["thockin"]}))
+    assert a != b, f"two different counterfactuals share one label: {a!r}"
+    assert "deads2k" in a and "thockin" in b
+    assert _label(C("sole_approver_risk", {})) == "sole approver risk"
+    # A dict argument has no place in a question label, and must not crash one either.
+    assert _label(C("who_owns", {"path": "a/OWNERS", "opts": {"x": 1}})) == "who owns a/OWNERS"

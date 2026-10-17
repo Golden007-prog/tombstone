@@ -1,5 +1,8 @@
 falkordb>=1.0.10
-fastembed>=0.4
+# >=0.9 is a floor, not a preference: it is the first release that honours
+# enable_cpu_mem_arena, and an older one would absorb that keyword into **kwargs and
+# silently give the hosted instance back the growth it was killed for.
+fastembed>=0.9
 fastapi>=0.115
 uvicorn>=0.32
 pyyaml>=6.0

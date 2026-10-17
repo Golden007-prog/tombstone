@@ -338,10 +338,16 @@ returning `ANSWERED_FROM_MEMORY` and the check reported "0 answered" out of six 
 succeeded — indistinguishable from a concurrency collapse, and an hour to tell apart.
 
 **A limit sized for one workload, imposed on another.** The deploy check ran everything in 512MB,
-right for serial use, which the deploy check now measures at ~450MiB (it read ~400MB when this
-was written; see the README's note on that figure having been stated three ways). Six concurrent `GRAPH.COPY` calls need ~900MB, because each
-materialises a whole graph. The container was OOM-killed and it looked like the product dying.
-Measure the workload you are capping, not the one you happen to have in mind.
+right for serial use. Six concurrent `GRAPH.COPY` calls measured ~900MB, the container was
+OOM-killed, and it looked like the product dying. Measure the workload you are capping, not the
+one you happen to have in mind. **The lesson was then applied backwards**, which is the part worth
+keeping: the 900MB figure justified giving the check 2GB, nobody retook it after the lock that
+made it false, and so the check stopped running at the size the hosted demo actually has. On
+17 Oct the platform killed that demo for exceeding 512MB. The real multiplier was never
+`GRAPH.COPY` — six distinct counterfactuals fit in 319MiB — it was the embedder, ~119MiB of ONNX
+arena per concurrent run, on the one path the check never exercised. A stale measurement is worse
+than none: it ends the argument. Dates on figures, and the production size imposed rather than
+asserted.
 
 **A timing harness that never checked its result.** `CALL algo.WCC(NULL, NULL)` returns **zero
 rows and no error** on v4.22.1, by false analogy with the valid `algo.pageRank(NULL, NULL)`. The

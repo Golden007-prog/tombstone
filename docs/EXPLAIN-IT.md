@@ -192,18 +192,23 @@ server is starting at the same time; **2.26s** in the container running as UID 1
 used to say "about six seconds" flat, which quoted the container figure at someone asking about a
 restart and disagreed with the README by five and a half times.
 
-Concurrency was measured rather than reasoned about, and it is the one place this product has a
-hard edge: `GRAPH.COPY` forks the server process, so each in-flight counterfactual needs headroom
-roughly equal to the graph. `./scripts_verify_deploy.sh` fires six at once and reports what
-happens — **five answered, one degraded honestly, no hard failures**, peaking around 900 MB. The
-degraded one is the behaviour to point at: it returns `DEGRADED` with a reason rather than a
-wrong answer or a timeout.
+Concurrency was measured rather than reasoned about — and then the hosted instance was killed by
+it anyway, on **17 Oct**, because the measurement was pointed at the wrong thing. The suspect was
+`GRAPH.COPY`, which forks and needs headroom roughly equal to the graph; six at once were fired at
+every deploy and came back **five answered, one degraded honestly, no hard failures**. All true,
+and not the problem. The multiplier was the **embedder**: ONNX Runtime takes its own ~119 MiB
+arena per concurrent run, so four people typing at once exceeded a 512 MB box while six
+counterfactuals fitted in 319 MiB. Embedding is now serialised process-wide, the allocator is
+bounded, and the check runs at the hosted size: **288 MiB under eight concurrent asks on
+linux/amd64**, where the same flood was previously OOM-killed on the first round. The degraded
+counterfactual is still the behaviour to point at: it returns `DEGRADED` with a reason rather than
+a wrong answer or a timeout.
 
 ## "How do you know any of this is true?"
 
 One command: `./preflight.sh` — twenty-three checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-36 CI steps on every push, 38 runs because two repeat across Python 3.11 and 3.14. 152 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
+36 CI steps on every push, 38 runs because two repeat across Python 3.11 and 3.14. 155 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

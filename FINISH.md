@@ -26,9 +26,13 @@ deploy. Both are needed for step 4.
 > the same as attempting the thing. The only test that settled it was running it.
 >
 > **So pick one of these — all three are already configured and documented in `DEPLOY.md`:**
-> - **Render free** (`deploy/render.yaml`): costs nothing, and the honest caveats are measured —
->   512 MB fits serial use at ~450 MiB, six concurrent counterfactuals (~900 MB) will be killed,
->   and it spins down after 15 minutes so a judge's first click waits ~1 minute.
+> - **Render free** (`deploy/render.yaml`): costs nothing, and the honest caveats are measured.
+>   This is the one that is live, and on **17 Oct it was killed for exceeding 512 MB while
+>   serving** — four concurrent free-text asks did it, each concurrent embed taking its own
+>   ~119 MiB ONNX arena. Fixed and re-measured at the hosted size on the host's own architecture:
+>   **144 MiB booted, 288 MiB under eight concurrent asks, flat**, where the same flood before the
+>   fix was OOM-killed on the first round. It still spins down after 15 minutes, so a judge's
+>   first click waits ~1 minute.
 > - **HF PRO**, $9/month, which is the only way to get the 16 GB CPU Basic box this image was
 >   sized for. Your call and your money; I am not making that decision for you.
 > - **No deployment.** Rule 10 is satisfied without one — complete local setup plus the committed
@@ -54,7 +58,9 @@ own build log rather than silently.
 `./scripts_verify_deploy.sh` reproduces the Space locally — same `linux/amd64` platform, same
 non-root UID, no volumes — and on `99df19d` it built, booted, answered, drafted a patch, refused
 the one it cannot justify, served every static route, peaked at **450 MiB in serial use against
-the 512 MiB ceiling**, and — with FalkorDB killed inside the container — reported down, returned
+the 512 MiB ceiling** (a figure since re-measured at **288 MiB under eight concurrent asks**,
+after the hosted instance was killed for exceeding that ceiling on 17 Oct and the cause turned out
+to be the embedder rather than `GRAPH.COPY`), and — with FalkorDB killed inside the container — reported down, returned
 `DEGRADED` for a question it had just answered, and kept serving the page.
 **That run is now 65 commits old**, and `server.py`, `agent.py` and `tools.py` have all changed
 since. Saying "already verified" without that caveat was the stale half of this file.
