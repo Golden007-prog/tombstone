@@ -3,7 +3,7 @@
   "scripts_gen_readme_shots.py": "579433c961144e11",
   "src/tombstone/act.py": "6939acbb9fe2bbba",
   "src/tombstone/agent.py": "dd5ed25c7438716d",
-  "src/tombstone/build.py": "6c1d90db7a157aa0",
+  "src/tombstone/build.py": "ce51fa6badc56d4d",
   "src/tombstone/tools.py": "15404172c3e9744f",
   "web/app.js": "c7ed82b731d1ca06",
   "web/index.html": "ddfad0f47d5786d9",

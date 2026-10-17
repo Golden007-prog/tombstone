@@ -364,7 +364,7 @@ rather than improvised.*
 | Repository | https://github.com/aviralgarg05/tombstone |
 | Live demo | <https://tombstone-vvn9.onrender.com> — Render free: sleeps after 15 min idle, first click ~1 min. Hugging Face refused a Docker Space on a free account (HTTP 402; they require PRO). |
 | Demo video | *(fill in — narrated cut per `docs/DEMO-SCRIPT.md`)* |
-| Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 706 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
+| Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 697 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
 | Blog post | *(fill in if published — side prize is for the best post)* |
 
 ## How FalkorDB is used (Rule: it must support a central part of the product)
