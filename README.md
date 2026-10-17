@@ -1644,8 +1644,17 @@ times. Each fix made the claim narrower and more defensible.
   case rather than a tail risk. The fix is [`src/tombstone/embedding.py`](src/tombstone/embedding.py):
   **one embed at a time, process-wide**, so resident memory is the one-at-a-time figure however
   many people are asking. Measured after: **144 asks at 24 concurrent sit flat at 305 MiB** inside
-  the same 512 MB with no dropped request. The queueing is real and it is tens of milliseconds;
-  the alternative is not "faster", it is a container that answers nothing.
+  the same 512 MB with no dropped request.
+- **Then measured on the live instance, which is the only measurement that settles it.**
+  `/api/health` now reports the instance's own RSS and cgroup limit, so the numbers below came off
+  the judged URL rather than a laptop, and anyone can re-read them. Idle after a wake: **91.6 MiB
+  of 512**. Then the same traffic shape that killed it — 16 distinct free-text asks, eight
+  concurrent: **all 16 answered or honestly refused, nothing dropped, 263.7 MiB of 512 afterwards,
+  248 MiB of headroom.** One question at a time comes back in **0.4–1.7 s** round trip on a tenth
+  of a CPU. Sixteen arriving at once took **67 s for the last one out**, and that queue is the
+  CPU's rather than the lock's: a tenth of a core runs one embedding at a time whether or not
+  anything says so. What serialising changed is the memory, and therefore whether there is still a
+  container at the end of it.
 - **What this file blamed instead, wrongly, for a day.** It said six concurrent counterfactuals
   peak around 900 MB "because each `GRAPH.COPY` materialises a whole graph", and that 512 MB was a
   serial-only ceiling. Re-measured with six **distinct** counterfactuals, so none can be served

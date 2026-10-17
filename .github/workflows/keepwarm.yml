@@ -89,3 +89,19 @@ jobs:
           done
           echo "the Space did not wake within five minutes"
           exit 1
+
+      # The demo was killed by the platform for exceeding its memory limit on 17 Oct, and the
+      # first I knew of it was an email. Every memory figure in this repository had been measured
+      # on a laptop; none had ever been read off the instance. /api/health now reports its own
+      # RSS and its cgroup limit, so this reads them from the running demo every six hours.
+      #
+      # It REPORTS always and FAILS only above 90% of the limit, which is the point where a kill
+      # is imminent rather than merely worth knowing. A tighter gate would put a red cross on the
+      # repository during judging over a number that moves with traffic; a report with no gate at
+      # all is how the last one went unnoticed. Missing fields are a skip, not a failure: an
+      # instance deployed before this existed, or a host with no cgroup, is not a problem.
+      - name: Read the live instance's own memory envelope
+        if: steps.find.outputs.url != ''
+        run: |
+          curl -sf -m 60 "${{ steps.find.outputs.url }}/api/health" \
+          | python3 -c 'import json,sys; m=(json.load(sys.stdin) or {}).get("memory") or {}; u=m.get("container_mb"); l=m.get("limit_mb"); print(f"the instance reports: {m}"); sys.exit(0) if not (u and l) else None; p=u/l*100; print(f"{u:.0f} MiB of {l:.0f} MiB -- {p:.0f}% used, {l-u:.0f} MiB of headroom"); sys.exit(f"the live demo is at {p:.0f}% of its memory limit; a kill is imminent" if p >= 90 else 0)'

@@ -30,7 +30,8 @@ deploy. Both are needed for step 4.
 >   This is the one that is live, and on **17 Oct it was killed for exceeding 512 MB while
 >   serving** — four concurrent free-text asks did it, each concurrent embed taking its own
 >   ~119 MiB ONNX arena. Fixed and re-measured at the hosted size on the host's own architecture:
->   **144 MiB booted, 288 MiB under eight concurrent asks, flat**, where the same flood before the
+>   **the live instance reports 91.6 MiB idle and 263.7 MiB after sixteen concurrent asks, all
+>   sixteen answered**, where the same flood before the
 >   fix was OOM-killed on the first round. It still spins down after 15 minutes, so a judge's
 >   first click waits ~1 minute.
 > - **HF PRO**, $9/month, which is the only way to get the 16 GB CPU Basic box this image was

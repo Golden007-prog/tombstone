@@ -200,7 +200,10 @@ and not the problem. The multiplier was the **embedder**: ONNX Runtime takes its
 arena per concurrent run, so four people typing at once exceeded a 512 MB box while six
 counterfactuals fitted in 319 MiB. Embedding is now serialised process-wide, the allocator is
 bounded, and the check runs at the hosted size: **288 MiB under eight concurrent asks on
-linux/amd64**, where the same flood was previously OOM-killed on the first round. The degraded
+linux/amd64**, where the same flood was previously OOM-killed on the first round. The **live
+instance reports its own figures** through `/api/health` — 91.6 MiB idle, 263.7 MiB after sixteen
+concurrent asks, 248 MiB of headroom — so that claim is checkable against the URL rather than on
+my word, which is the whole reason the field exists. The degraded
 counterfactual is still the behaviour to point at: it returns `DEGRADED` with a reason rather than
 a wrong answer or a timeout.
 

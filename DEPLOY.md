@@ -19,7 +19,7 @@ read under deadline. In short, so you can choose in thirty seconds:
 | path | config | state |
 |---|---|---|
 | **Hugging Face Spaces** | `deploy/README-hf-space.md` | Front-matter valid against HF's field reference and gated in the push gate — but **refused on a free account: HTTP 402, tested 17 Oct.** Docker Spaces need PRO ($9/month), which buys the 16 GB CPU Basic box this image was sized for. See below for the prediction I got wrong. |
-| **Render (free)** | `deploy/render.yaml` | **Live, and the one that is actually serving.** Valid against the current blueprint spec, using `runtime:` rather than the deprecated `env:`. It was killed for exceeding 512 MB on 17 Oct and now fits **under concurrency** — 352 MiB under eight concurrent asks on the host's own architecture, verified at 512 MB in the deploy check. Spins down after 15 min. |
+| **Render (free)** | `deploy/render.yaml` | **Live, and the one that is actually serving.** Valid against the current blueprint spec, using `runtime:` rather than the deprecated `env:`. It was killed for exceeding 512 MB on 17 Oct and now fits **under concurrency** — the running instance reports 263.7 MiB of 512 after sixteen concurrent asks, and the deploy check reproduces the envelope at 512 MB locally. Spins down after 15 min. |
 | **Fly.io** | `deploy/fly.toml` | Valid, current `[[vm]]` syntax, `min_machines_running = 1` so it never cold-starts. No free allowance — a few dollars a month. |
 
 Rule 10 is satisfied with **no deployment at all** — complete local setup plus the committed
@@ -124,10 +124,12 @@ asks were enough, because each concurrent embed took its own ~119 MiB ONNX arena
 embedding is serialised process-wide in [`src/tombstone/embedding.py`](src/tombstone/embedding.py)
 and the allocator is bounded in the `Dockerfile` — and the fix is checked at the hosted size
 rather than argued about: `./scripts_verify_deploy.sh` now runs a second container at exactly
-512 MB with no swap and floods it with concurrent free text. Measured on **linux/amd64, the
-architecture Render runs**: 145 MiB booted, 352 MiB under eight concurrent asks, flat across
-rounds, where the same flood before the fix was OOM-killed on the first one. On a tenth of a CPU
-the first boot will also be slow, which the `healthCheckPath` needs to outlast.
+512 MB with no swap and floods it with concurrent free text. And then measured **on the live
+instance itself**, which is what actually settles it: idle after a wake **91.6 MiB of 512**, and
+after 16 distinct asks eight at a time — the shape that killed it — **263.7 MiB of 512, all 16
+answered, nothing dropped**. One question at a time returns in 0.4–1.7 s; sixteen at once took
+67 s for the last one out, which is a tenth of a CPU queueing rather than the lock. On a tenth of
+a CPU the first boot will also be slow, which the `healthCheckPath` needs to outlast.
 
 ## Fly.io
 
