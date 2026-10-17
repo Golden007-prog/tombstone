@@ -271,10 +271,35 @@ docker rm -f "$PROD" >/dev/null 2>&1 || true
 # the container, and watch what the product does. This runs LAST because it ends the instance.
 echo
 echo "killing FalkorDB inside the container, to see what the product does when it is gone"
-docker exec "$IMG" sh -c 'for p in /proc/[0-9]*; do
-    if grep -aq falkordb $p/cmdline 2>/dev/null || grep -aq redis-server $p/cmdline 2>/dev/null;
-    then kill -9 ${p##*/}; fi; done' >/dev/null 2>&1 || true
+# Two things wrong with the version this replaces, and they hid each other.
+#
+# It matched `falkordb` OR `redis-server` against every /proc/N/cmdline -- including its own,
+# because the pattern it is searching for is sitting in the shell's own command line. And
+# /proc/[0-9]* globs in STRING order, so whether the shell reached PID 7 before killing itself
+# depended on the digits it happened to be assigned: "105" sorts before "7". It worked when it was
+# written, and on this run it killed its own shell and nothing else -- then the stage below
+# reported the product's honest "up" as a product failure. A check that kills the wrong process
+# and blames the program is worse than no check.
+#
+# So: skip self, match only the process name, and -- the part that was missing -- VERIFY the
+# target is gone before drawing any conclusion from what the app says next.
+docker exec "$IMG" sh -c '
+  self=$$
+  for p in /proc/[0-9]*; do
+    pid=${p##*/}
+    [ "$pid" = "$self" ] && continue
+    grep -aq redis-server "$p/cmdline" 2>/dev/null || continue
+    kill -9 "$pid" 2>/dev/null
+  done' >/dev/null 2>&1 || true
 sleep 3
+
+if docker exec "$IMG" redis-cli -t 2 PING 2>/dev/null | grep -q PONG; then
+  echo "FAIL: FalkorDB is still answering, so nothing below tests what it claims to test."
+  echo "      The kill did not land -- fix the kill, do not reinterpret the result."
+  docker exec "$IMG" sh -c 'for p in /proc/[0-9]*; do tr "\0" " " < $p/cmdline 2>/dev/null; echo; done' | grep -v '^$'
+  exit 1
+fi
+echo "  FalkorDB is gone: redis-cli no longer answers inside the container"
 
 down_health="$(curl -s -m 5 "http://localhost:$PORT/api/health" || true)"
 echo "$down_health" | grep -q '"down"' \

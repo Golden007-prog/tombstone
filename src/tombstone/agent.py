@@ -23,7 +23,7 @@ import time
 
 from graphkit.ingest import connect
 from tombstone import counterfactual as _cf
-from tombstone.embedding import embed_one
+from tombstone.embedding import LOCK as _EMBED_LOCK, embed_one
 from tombstone.counterfactual import Counterfactual
 from tombstone.memory import Memory
 from tombstone.tools import CATALOGUE, Answer, Tools, searchable_names
@@ -139,22 +139,35 @@ class Agent:
 
     # ---- lazily loaded so the CLI starts fast and a keyless demo still works ----
     def embedder(self):
-        if self._embedder is None:
-            from fastembed import TextEmbedding
-            # threads=1 because the deploy target has 0.1 CPU. ONNX Runtime's default is one
-            # intra-op thread per core of the HOST, which on a shared instance means several
-            # threads competing for a tenth of one -- and an arena each. Single-threaded is not
-            # a sacrifice here: there is no second tenth of a CPU for the second thread to use.
-            #
-            # enable_cpu_mem_arena=False because the arena never gives anything back. Measured in
-            # this image: with it, 60 short embeds hold 177.9 MiB and ONE paragraph-long input
-            # takes that to 187.1 MiB and keeps it; without it, 175.7 MiB flat through the same
-            # sequence, at 12.4 vs 12.7 ms per embed -- no measurable cost. On a box that gets
-            # killed at 512 MB, a figure that only grows with the longest thing anyone has ever
-            # pasted is not a figure you can size against.
-            self._embedder = TextEmbedding(model_name="BAAI/bge-small-en-v1.5", threads=1,
-                                           enable_cpu_mem_arena=False)
+        if self._embedder is not None:      # the hot path, no lock
+            return self._embedder
+        # Constructed under the embed lock and checked twice, because the alternative is the exact
+        # failure the lock exists to prevent. Two threads both seeing None here both build a
+        # session, and a session is ~94 MiB -- on the first requests after a cold start, which on
+        # a free tier that sleeps after 15 minutes is when a burst is most likely, not least.
+        with _EMBED_LOCK:
+            if self._embedder is None:
+                self._embedder = self._load_embedder()
         return self._embedder
+
+    @staticmethod
+    def _load_embedder():
+        """The two constructor arguments are the deploy target's, and both were measured there.
+
+        threads=1 because the target has 0.1 CPU. ONNX Runtime's default is one intra-op thread
+        per core of the HOST, so on a shared instance that is several threads competing for a
+        tenth of one -- and an arena each. There is no second tenth of a CPU for the second
+        thread to use.
+
+        enable_cpu_mem_arena=False because the arena never gives anything back. Measured in this
+        image: with it, 60 short embeds hold 177.9 MiB and ONE paragraph-long input takes that to
+        187.1 MiB and keeps it; without it, 175.7 MiB flat through the same sequence, at 12.4 vs
+        12.7 ms per embed -- no measurable cost. On a box that gets killed at 512 MB, a figure
+        that grows with the longest thing anyone has ever pasted is not one you can size against.
+        """
+        from fastembed import TextEmbedding
+        return TextEmbedding(model_name="BAAI/bge-small-en-v1.5", threads=1,
+                             enable_cpu_mem_arena=False)
 
     def corpus(self):
         """The committed snapshot, loaded once. Only the drafting action needs it: a patch has to

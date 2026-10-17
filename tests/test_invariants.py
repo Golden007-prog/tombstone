@@ -2488,3 +2488,33 @@ def test_a_list_argument_is_part_of_the_remembered_question():
     assert _label(C("sole_approver_risk", {})) == "sole approver risk"
     # A dict argument has no place in a question label, and must not crash one either.
     assert _label(C("who_owns", {"path": "a/OWNERS", "opts": {"x": 1}})) == "who owns a/OWNERS"
+
+
+def test_the_model_is_constructed_once_even_under_a_cold_burst(monkeypatch):
+    """`if self._embedder is None: self._embedder = TextEmbedding(...)` is a race, and the thing
+    it races to duplicate is a ~94 MiB session -- the exact cost the lock exists to bound.
+
+    The window is the first requests after a cold start, which on a tier that sleeps after 15
+    minutes of quiet is when a burst is MOST likely, not least: the link gets shared, several
+    people click, and the instance wakes up into all of them at once.
+    """
+    import threading
+
+    built = []
+
+    def slow_load():
+        time.sleep(0.05)          # wide enough that an unguarded check would let others in
+        built.append(1)
+        return object()
+
+    monkeypatch.setattr(Agent, "_load_embedder", staticmethod(slow_load))
+    a = Agent(graph_name=GRAPH)
+    a._embedder = None
+    got = []
+    threads = [threading.Thread(target=lambda: got.append(a.embedder())) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(built) == 1, f"{len(built)} sessions were constructed, at ~94 MiB each"
+    assert len(set(map(id, got))) == 1, "callers got different models for the same agent"

@@ -158,6 +158,17 @@ curl -s -X POST https://<host>/api/tool \
   -d '{"tool":"ownership_dilution","args":{}}'                    # expect 7 rows
 ```
 
+`/api/health` also carries a `memory` object — `server_rss_mb`, `container_mb` and `limit_mb`,
+read from `/proc` and the cgroup **on the instance**. Every memory figure in this repository was
+measured on a laptop, and the one that mattered was measured on the wrong architecture with the
+wrong workload, which is how the hosted demo came to be killed. So the instance reports its own,
+and the claim is checkable against the live URL instead of on this file's word:
+
+```bash
+curl -s https://<host>/api/health | python3 -c \
+  'import json,sys; print(json.load(sys.stdin)["memory"])'        # on the box, not a laptop
+```
+
 Before submitting, open the live URL **from a different network, in a private window**, and confirm
 it works with no sign-in.
 

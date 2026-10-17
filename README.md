@@ -30,7 +30,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   depth 1 returns nothing, depth 4 explains why. There is also an
 >   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (704 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 155 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 156 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **36 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -811,8 +811,19 @@ non-root, no volumes — requires the graph to seed to 681 decisions inside the 
 real question through `/api/tool`, and then POSTs a filesystem argument at it and requires that no
 directory appears inside the container.** That last step is the only place the HTTP trust boundary
 is checked on the built artefact rather than on the source tree. The deeper container checks —
-the 512 MiB serial ceiling, the concurrency burst, killing FalkorDB inside the container — stay in
-`./scripts_verify_deploy.sh`, which is mine to run and needs no token.
+the concurrency burst, a second container at exactly the hosted 512 MB, killing FalkorDB inside
+the container — stay in `./scripts_verify_deploy.sh`, which is mine to run and needs no token.
+
+That last check was **a no-op, and it was a no-op by luck**. It walked `/proc/[0-9]*` killing
+anything whose cmdline matched `falkordb` or `redis-server` — including its own shell, because the
+pattern it searches for sits in that shell's command line, and the glob sorts as *strings*: PID
+`29` comes before PID `7`. Demonstrated rather than reasoned about: run the old loop verbatim in
+the built image and it prints `killing 29` — its own `sh` — and FalkorDB answers `PONG`
+afterwards. It passed when it was written, on a luckier PID, and the claim "this was finally
+checked by doing it" rested on that run. It now skips itself and, more to the point, **asserts the
+target is gone before drawing any conclusion from what the app says next**: when the kill does not
+land, the honest `"up"` is the product telling the truth, and reading it as a product failure is a
+harness that kills the wrong process and blames the program.
 That `image` job exists because an audit asked which path the words "best-tested" and "verified by
 CI on every push" were attached to, and the answer was: the wrong one. `docker build` appeared in
 no workflow at all. Neither path is verified on Windows, which is why this says use WSL rather
@@ -835,7 +846,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 155 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 156 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 

@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 155 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 156 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -70,7 +70,7 @@ means part of any graph-versus-text gap is a gap you authored.
 `Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
 PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
-tests to 155.** It is bigger and better-tested, it is honest about its own limits, and it is not
+tests to 156.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not — and there is now a number for that rather
 than a caution: **4 of the 20 largest Track 3 entries name a specific real public corpus** in
@@ -256,7 +256,7 @@ vendored from another repository and the exclusion lives in the Cypher; the one 
 refuse is refused because the person's handle is not in the file at all — an alias expands
 to them, so no edit to that file would remove them.
 
-Nothing here is asserted. **36 CI steps on every push** re-check it: 155 tests, 36 graph claims
+Nothing here is asserted. **36 CI steps on every push** re-check it: 156 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other five build a thousand graphs, millions of edges, a memory curve or a second vector index, so they are dated measurements with
