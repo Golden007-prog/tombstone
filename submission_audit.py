@@ -89,9 +89,24 @@ def main() -> int:
                   if has_silent else "no video at all")))
 
     # 5. a live deployment, or complete local setup instructions
+    #
+    # "A DEPLOYMENT", not "a Space". This asked `"hf.space" in home` and nothing else, so when
+    # Hugging Face refused a Docker Space on a free account (402, 17 Oct) and the deployment went
+    # to Render instead, the final pre-submit gate reported the live demo as absent, told me to
+    # run the deploy script that had just failed, and flagged the README's own live-demo line as
+    # contradicting a homepage it had simply not looked at properly. The same hardcoded-HF
+    # assumption was in `.github/workflows/keepwarm.yml`, where it would have left the keep-warm
+    # job silently probing nothing for the whole judging period; that one was found and fixed and
+    # THIS one was not, which is the two-copies-of-one-assumption defect in its purest form.
+    #
+    # Host-anchored, like keepwarm.yml's matcher, and the same four hosts: a URL that merely
+    # mentions one of these words is not a deployment.
     home = repo.get("homepage") or ""
-    is_space = "hf.space" in home or "huggingface.co/spaces" in home
-    live, why = reachable(f"{home.rstrip('/')}/api/health") if is_space else (False, "no Space URL")
+    host = re.sub(r"/.*$", "", re.sub(r"^[a-z]+://", "", home))
+    deployed = bool(re.fullmatch(r"(.+\.hf\.space|huggingface\.co|.+\.onrender\.com|.+\.fly\.dev)",
+                                 host))
+    live, why = (reachable(f"{home.rstrip('/')}/api/health") if deployed
+                 else (False, f"the repo homepage is {home!r}, which names no deploy target"))
     # Likewise: the rule is satisfied by EITHER a live deployment or complete local setup, and
     # the local path is two lines, verified from a clean clone on a hostile interpreter and run
     # by CI on every push. The FAQ says a deployment is "preferred", which is a reason to want
@@ -101,7 +116,7 @@ def main() -> int:
                  OK if (live or setup_ok) else NO,
                  f"live and answering at {home}" if live else
                  f"satisfied by local setup: two lines, verified from a clean clone and run by "
-                 f"CI. BETTER: a live Space, which the FAQ says is preferred — {why}"))
+                 f"CI. BETTER: a live deployment, which the FAQ says is preferred — {why}"))
 
     # 6. the track
     track = re.search(r"\*\*Track 3[^*]*\*\*", readme) or ("Track 03" in readme)
@@ -123,16 +138,17 @@ def main() -> int:
         extra.append(("The README's live-demo line", NO,
                      "the 60-second block has no **Live demo:** line; FINISH.md tells you to "
                      "replace one"))
-    elif is_space and placeholder:
+    elif deployed and placeholder:
         extra.append(("The README's live-demo line", NO,
                      f"the repo homepage is {home} but the README still says 'not deployed yet' — "
                      f"the first thing a judge reads contradicts the link beside it"))
-    elif not is_space and not placeholder:
+    elif not deployed and not placeholder:
         extra.append(("The README's live-demo line", NO,
-                     "the README advertises a live demo but the repo homepage names no Space"))
+                     f"the README advertises a live demo but the repo homepage ({home!r}) names "
+                     f"no deploy target this script recognises"))
     else:
         extra.append(("The README's live-demo line", OK,
-                     "says 'not deployed yet', and no Space is set — consistent"
+                     "says 'not deployed yet', and no deployment is set — consistent"
                      if placeholder else f"names the deployment, matching the repo homepage"))
 
     # CI state for THIS commit, not the last run that happened to be green. I reported green for
@@ -218,10 +234,19 @@ def main() -> int:
         return 1
 
     print("All six of Rule 10's required items are satisfied; this is submittable as it stands.")
+    # Derived from the rows, not hardcoded. This printed "Two would be materially stronger" and
+    # then listed both of them unconditionally -- including "a live Space: ./deploy_hf.sh" after
+    # the project was deployed to Render and that exact command had failed with a 402. A count in
+    # prose beside a condition in code is two copies of one claim, and this file exists to catch
+    # precisely that.
     better = [d for _n, _s, d in rows if "BETTER:" in d]
     if better:
-        print("\nTwo would be materially stronger, and both need a human:")
-        print("  - a live Space:      export HF_TOKEN=hf_... && ./deploy_hf.sh")
+        wants_deploy = any("a live deployment" in d for d in better)
+        print(f"\n{'Two' if wants_deploy else 'One'} would be materially stronger, and "
+              f"{'both need' if wants_deploy else 'it needs'} a human:")
+        if wants_deploy:
+            print("  - a deployment:      deploy/render.yaml via the Render dashboard (Blueprint "
+                  "Path deploy/render.yaml), or HF_TOKEN=hf_... ./deploy_hf.sh for a PRO Space")
         # This used to say "brew reinstall ffmpeg" first, which was wrong in a way that costs
         # time at the moment it is least available. Local ffmpeg IS broken here, but nothing on
         # the recording path needs it: the voiceover is laid over the capture in iMovie, and the

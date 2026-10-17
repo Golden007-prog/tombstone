@@ -6,7 +6,7 @@ answering it means mutating the whole graph, re-running a recursive traversal ov
 copy, and diffing the result against the original — without touching the original.
 
 FalkorDB does that with `GRAPH.COPY`. On a freshly seeded graph -- **3,087 nodes, 15,735 edges,
-7 indexes** -- a copy takes roughly **300-460 ms**, varying with machine load, and carries the
+8 indexes** -- a copy takes roughly **300-460 ms**, varying with machine load, and carries the
 indexes with it.
 
 (This previously read 3,088 nodes / 15,760 edges / 8 indexes / 495 ms. Every one of those was

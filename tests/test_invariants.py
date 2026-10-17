@@ -2647,3 +2647,59 @@ def test_the_public_read_path_is_wired_to_the_read_identity(agent):
     assert "a.g.ro_query(" not in src, (
         "server.py reads through the writer identity somewhere; public reads use a.gr")
     assert src.count("a.gr.ro_query(") >= 5
+
+
+def test_a_malformed_handles_list_is_a_bad_request_not_a_degradation(agent):
+    """`DEGRADED` is documented to mean the graph is unreachable. Overloading it for a bad
+    argument makes the one shape that must be trustworthy untrustworthy.
+
+    `test_malformed_arguments_never_leak_a_python_error` reads as though it covers this and does
+    not: its six cases are all scalar arguments, and the only tool here that takes a LIST was not
+    among them. So `handles: [[...]]` returned DEGRADED carrying "'list' object has no attribute
+    'strip'", and `handles: [1, 2]` the same for 'int' -- a raw Python message on the public demo,
+    under the shape that is supposed to mean the database is gone. A bare string was worse than
+    either: it was iterated character by character, reporting that 'd', 'e', 'a', 'd', 's' are not
+    people in this graph.
+    """
+    for args in ({"handles": [["deads2k"]]}, {"handles": [1, 2]}, {"handles": [None]},
+                 {"handles": [""]}, {"handles": 7}, {"handles": {"a": 1}}):
+        a = agent.dispatch("what_if_they_go", args)
+        assert a.shape == "UNKNOWN_ENTITY", f"{args} -> {a.shape}, which is not a bad request"
+        body = render(a) + " " + str(a.note)
+        for leak in ("has no attribute", "Traceback", "object is not", "NoneType"):
+            assert leak not in body, f"{args} leaked a Python message: {body[:140]}"
+    # A bare string is one handle, not a sequence of characters.
+    a = agent.dispatch("what_if_they_go", {"handles": "deads2k"})
+    assert a.shape == "ANSWERED_WITH_PATH", a.shape
+    assert "deads2k" in str(a.rows[0][0])
+
+
+def test_every_argument_the_catalogue_advertises_reaches_the_query(agent):
+    """`/api/tools` is what a sponsor engineer reads instead of clicking chips, and it said
+    "Args: min_stepped_back" for a tool whose dispatcher branch called with no arguments.
+
+    The ignored argument was not the whole defect. `Tools.stepped_back_but_still_listed` reports
+    its threshold in `answer.params`, so asking for 8 returned the threshold-3 rows AND a
+    provenance line reading `min_stepped_back: 3` -- which looks like confirmation the 8 was
+    honoured. In a product whose claim is that every answer shows what produced it, an argument
+    that is dropped while its default is echoed back is worse than one that is merely ignored.
+    """
+    import re
+
+    from tombstone.tools import CATALOGUE
+    advertised = {}
+    for name, blurb in CATALOGUE.items():
+        m = re.search(r"Args: (.+?)\.\s*$", blurb)
+        if m and m.group(1).strip() != "none":
+            advertised[name] = [a.strip().split(" ")[0] for a in m.group(1).split(",")]
+    assert "min_stepped_back" in advertised["stepped_back_but_still_listed"]
+
+    seen = {}
+    for n in (3, 8):
+        a = agent.dispatch("stepped_back_but_still_listed", {"min_stepped_back": n})
+        assert a.params.get("min_stepped_back") == n, (
+            f"asked for {n}, the answer's own provenance says {a.params.get('min_stepped_back')}")
+        seen[n] = len(a.rows)
+    assert seen[8] < seen[3], (
+        f"the threshold changed the provenance but not the rows ({seen}); it is still being "
+        f"dropped somewhere between dispatch and the query")

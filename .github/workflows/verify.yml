@@ -125,6 +125,13 @@ jobs:
       - name: Corpus counts quoted in any doc still match the graph
         run: python scripts_check_doc_counts.py
 
+      # Rule 10 asks for the graph data model. The README block that IS that deliverable was the
+      # one schema description in the repo nobody re-derived from the graph, and it had drifted to
+      # missing two labels, two relationship types and four indexes -- including INHERITS_FROM,
+      # the OWNERS tree that every ownership answer in the same README walks.
+      - name: The README's data model names everything the live graph has
+        run: python scripts_check_data_model.py
+
       - name: The README renders cleanly on GitHub (tables, images, anchors)
         env:
           GITHUB_TOKEN: ${{ github.token }}

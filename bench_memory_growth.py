@@ -35,16 +35,22 @@ ANSWERING = [
 BLOCKS = 2                # two blocks, because the point is the
 BLOCK = 200               # DIFFERENCE between the first and the last
 CEILING_MB = 512          # the serial ceiling the deploy check asserts
-# The container's serial peak, as ./scripts_verify_deploy.sh measures and asserts it on the
-# actual linux/amd64 image. It read 387 here, "about 400 MB" in the Space README and 450.1MiB
-# from the only script that measures it -- three figures for one quantity, none derived.
+# The container's floor, as ./scripts_verify_deploy.sh measures it on the actual linux/amd64
+# image: 288 MiB under eight concurrent asks at the hosted size. It has now read 387 here,
+# "about 400 MB" in the Space README, 450 MiB from the serial measurement, and this -- four
+# figures for one quantity, each left behind by the change that moved it. 450 survived here
+# longest because this file is a benchmark nobody re-reads, and a stale constant in a script that
+# PRINTS a projection is worse than one in prose: it manufactures new wrong numbers on every run.
+# The live instance's own figure is lower still, 263.7 MiB after sixteen concurrent asks, read off
+# /api/health rather than a laptop; the larger local number is used here so the projection errs
+# toward the ceiling rather than away from it.
 #
 # Note what is being added to what: the per-answer cost below is FalkorDB's own used_memory,
 # while this ceiling is whole-container RSS (the app, uvicorn, the embedding model and the
 # database). The projection assumes database growth shows up one-for-one in container RSS, which
 # is roughly true because the database is in the container, and is the reason these totals are
 # "about".
-BASELINE_MB = 450
+BASELINE_MB = 288
 
 
 def used_bytes() -> int:

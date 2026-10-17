@@ -65,7 +65,7 @@ to be the embedder rather than `GRAPH.COPY`), and — with FalkorDB killed insid
 `DEGRADED` for a question it had just answered, and kept serving the page.
 **That run is now 65 commits old**, and `server.py`, `agent.py` and `tools.py` have all changed
 since. Saying "already verified" without that caveat was the stale half of this file.
-What runs against the current tree: **145 tests and `./preflight.sh` 23/23 against a live graph**,
+What runs against the current tree: **161 tests and `./preflight.sh` 24/24 against a live graph**,
 and — added since — a CI **`image` job on every push that builds this Dockerfile, boots it as the
 Space does, requires the graph to seed to 681 decisions inside the container, answers a real
 question, and proves the HTTP trust boundary holds on the built image.** So the thing that used to

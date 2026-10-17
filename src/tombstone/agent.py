@@ -458,13 +458,40 @@ class Agent:
             if tool == "sole_approver_risk":
                 return self.tools.sole_approver_risk()
             if tool == "stepped_back_but_still_listed":
-                return self.tools.stepped_back_but_still_listed()
+                # The catalogue says "Args: min_stepped_back" and this branch used to call with
+                # none, so the argument was ignored -- and the answer's `params` still reported
+                # `min_stepped_back: 3`, which reads as confirmation that the 8 you asked for was
+                # honoured. An ignored argument is a bug; an ignored argument that echoes the
+                # default back as provenance is the worst version of it, in a product whose whole
+                # claim is that every answer shows what produced it. Same idiom as the sibling
+                # branch below, which always did this correctly.
+                return self.tools.stepped_back_but_still_listed(
+                    min_stepped_back=max(1, num(args.get("min_stepped_back", 3), 3)))
             if tool == "draft_owners_patch":
                 return self._draft_owners_patch(
                     min_stepped_back=max(1, num(args.get("min_stepped_back", 3), 3)),
                     write_to=args.get("write_to"))
             if tool == "what_if_they_go":
                 handles = args.get("handles") or ([args["handle"]] if args.get("handle") else [])
+                # Normalised here, because the shape this used to return for a malformed list was
+                # DEGRADED carrying a raw Python message -- `handles: [[...]]` gave "'list' object
+                # has no attribute 'strip'" and `handles: [1, 2]` gave the same for 'int'. DEGRADED
+                # is documented to mean the graph is unreachable, so overloading it for a bad
+                # argument makes the one shape that must be trustworthy untrustworthy. And a bare
+                # string was iterated character by character: `handles: "deads2k"` reported that
+                # 'd', 'e', 'a', 'd', 's' are not people in this graph.
+                if isinstance(handles, str):
+                    handles = [handles]
+                if not isinstance(handles, (list, tuple)):
+                    return Answer("UNKNOWN_ENTITY", "what_if_they_go",
+                                  note=f"handles must be a list of GitHub handles, not "
+                                       f"{type(handles).__name__}. Nothing was simulated.")
+                bad = [h for h in handles if not isinstance(h, str) or not h.strip()]
+                handles = [h.strip() for h in handles if isinstance(h, str) and h.strip()]
+                if bad and not handles:
+                    return Answer("UNKNOWN_ENTITY", "what_if_they_go",
+                                  note=f"handles must be GitHub handles as strings; got "
+                                       f"{len(bad)} that are not. Nothing was simulated.")
                 if not handles:
                     return Answer("UNKNOWN_ENTITY", "what_if_they_go",
                                   note="No handles supplied. Pass handles=[...].")

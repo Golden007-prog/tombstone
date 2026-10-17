@@ -431,8 +431,9 @@ commit I had just pushed. The information was one command away and I used a reme
 submission audit now reads the run for HEAD and says so, which turns "did I check?" into
 something the machine answers.
 
-**One sentence, wrong three times, each time in my favour.** The 60-second box said "every
-benchmark re-run by 36 CI steps on each push". Two run in CI; the tenancy benchmark builds a
+**One sentence, wrong three times, each time in my favour.** The 60-second box said "**every**
+benchmark re-run by CI on each push" — the step count it quoted has moved since and is not the
+error; the word "every" is. Two run in CI; the tenancy benchmark builds a
 thousand graphs and does not — and I had written that down one commit earlier while leaving the
 summary claiming otherwise. I corrected it to "two of the three", and the check I wrote in the
 same commit caught *that* as wrong: there were five benchmark scripts then, not three, counting the
@@ -513,7 +514,7 @@ engines cross-checked to agree on the answer before being timed:
   withdrawn.
 - networkx is faster at everything except PageRank, which **no tool in the catalogue calls**.
 - The build row is not a like-for-like comparison and is kept only for completeness: FalkorDB's
-  figure includes loading the snapshot, ingesting and building seven indexes; networkx is handed
+  figure includes loading the snapshot, ingesting and building eight indexes; networkx is handed
   an edge list already in memory.
 - What remains, and is not a speed claim: a vector index composed with traversal in one query;
   `GRAPH.COPY` for a counterfactual evaluated against a mutated whole-graph copy and discarded

@@ -215,7 +215,7 @@ docker run --platform linux/amd64 -p 8111:8099 tombstone:amd64
 | base image `falkordb/falkordb:v4.22.1` | publishes **linux/amd64 and linux/arm64** |
 | amd64 build | **succeeds**, including the baked-in embedding model |
 | amd64 cold start | **12s** under emulation (faster on a real amd64 host) |
-| seed | 2.25s — 679 decisions, 753 named options, 959 vectors |
+| seed | 1.77s emulated — 681 decisions, 752 named options, 958 vectors |
 | `has_this_been_tried` (exercises the embedding path) | `ANSWERED_WITH_PATH`, 62ms emulated |
 | `stale_knowledge` | `ANSWERED_WITH_PATH`, 28ms emulated |
 

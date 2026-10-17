@@ -20,8 +20,13 @@ import time
 SCHEMA = """
 (:Answer  {qid, question, tool, shape, query_sha, ts_ms:int, row_count:int, emb})
 (:Answer)-[:CITED {role}]->(:Kep | :Person | :OwnersFile | :NamedOption | :MissingRecord)
-(:Answer)-[:FOLLOWS]->(:Answer)      -- same session, ordered
 """
+# This used to declare `(:Answer)-[:FOLLOWS]->(:Answer)  -- same session, ordered` as well, and
+# nothing in this module or any other ever created one: `CALL db.relationshipTypes()` on a graph
+# that has answered questions returns fourteen types and FOLLOWS is not among them. A schema
+# comment that names an edge the code does not write is a false description of the data model in
+# the file a reader goes to for the data model. Removed rather than implemented, because session
+# ordering is already carried by `ts_ms` and nothing asks for the edge.
 
 
 def qid(question: str, tool: str) -> str:

@@ -122,6 +122,10 @@ run "what the agent's memory costs to keep" "$PY" bench_memory_growth.py
 run "why the search index excludes 206 nodes" "$PY" bench_index_scope.py
 run "the blog post's claims"               "$PY" verify_blog.py
 run "corpus counts across every doc"       "$PY" scripts_check_doc_counts.py
+# Rule 10 asks for the data model, and the README block that IS that deliverable was the
+# one schema description nobody re-derived -- it had drifted to missing INHERITS_FROM, the
+# edge every ownership answer walks. Checked the same way its sibling table already was.
+run "the data model matches the live graph" "$PY" scripts_check_data_model.py
 run "the README renders on GitHub"         "$PY" scripts_check_markdown_renders.py
 run "no universal claims about checking" "$PY" scripts_check_verification_claims.py
 run "artefacts match the code and corpus"  "$PY" scripts_check_shots_fresh.py

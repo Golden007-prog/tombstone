@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 159 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 161 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -70,7 +70,7 @@ means part of any graph-versus-text gap is a gap you authored.
 `Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
 PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
-tests to 159.** It is bigger and better-tested, it is honest about its own limits, and it is not
+tests to 161.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not — and there is now a number for that rather
 than a caution: **4 of the 20 largest Track 3 entries name a specific real public corpus** in
@@ -165,12 +165,12 @@ The count has two deliberate cautions, because getting it wrong once was enough.
 demo in the README as well as the `homepage` field — three of the fifteen largest link one only
 in their README, so counting `homepage` alone undercounts and reporting that as the deployment
 rate would be exactly the sort of flattering error this page keeps catching. And it reports a
-census of the twenty largest rather than a rate over all 99, because a rate over repositories you
-have actually opened is honest and one extrapolated from a sample is not. Two of the six also
+census of the twenty largest rather than a rate over all 113, because a rate over repositories you
+have actually opened is honest and one extrapolated from a sample is not. Two of those also
 time out under Python's default headers and answer 200 to `curl`; reporting a live competitor as
 dead would have been the convenient mistake.
 
-**A sharper reading of the same census.** Across all 99 the deployment rate is low, but that
+**A sharper reading of the same census.** Across all 113 the deployment rate is low, but that
 average flattens the part that matters. The three entries read closely here — `cairn`, `Faultline` (since 404),
 `keystone` — are **all three deployed**, all three enter more than one track, and one of them has
 its narrated video already published and a v1.0.0 release tagged. At the top of this field a live
@@ -179,19 +179,21 @@ instruction that follows from the census is not "relax, most of them have no dem
 ones you will actually be compared against all have one."
 
 **One conclusion from the old passage was backwards and is withdrawn.** It said a live demo "is
-now the one thing the rest of the field has and this does not". Fourteen of the twenty largest
+now the one thing the rest of the field has and this does not". Eleven of the twenty largest
 entries have no reachable demo either. Deploying is still clearly worth doing — the FAQ prefers a
 hosted demo, and at the serious end of the field roughly a third have one — but it moves this
 into a minority rather than up to par with everyone. The reason to do it is that judges click
 links, not that the field is ahead.
 
 Two things follow that are worth acting on. **Multi-track entry is normal here**, so entering one
-track is a choice and should be a reasoned one. And the live demo is still the clearest gap in
-this submission — not because the field is ahead, which the census above shows it is not, but
-because a judge with 99 entries to get through clicks links, and seven of the twenty largest give
-them one. Note what a deployment does *not* settle: orion's demo company is explicitly synthetic,
-dealership-brain's is a fictional dealership. Being deployed and being checkable are different
-claims, and this entry has the second without the first.*
+track is a choice and should be a reasoned one. And the live demo *was* the clearest gap in this
+submission — not because the field is ahead, which the census above shows it is not, but because a
+judge with 113 entries to get through clicks links, and nine of the twenty largest give them one.
+**That gap closed on 17 Oct**: <https://tombstone-vvn9.onrender.com>, and this document says so
+sixty lines above. It is left in rather than deleted because the reasoning is what decided the
+work, and because what a deployment does *not* settle still holds: orion's demo company is
+explicitly synthetic, dealership-brain's is a fictional dealership. Being deployed and being
+checkable are different claims, and this entry now has both rather than only the second.*
 
 *Reasoning.* **There are three tracks and this analysis only ever examined one of them**, which
 is a gap worth naming before the conclusions: Track 01 is *Agents That Act on Connected Data*,
@@ -256,7 +258,7 @@ vendored from another repository and the exclusion lives in the Cypher; the one 
 refuse is refused because the person's handle is not in the file at all — an alias expands
 to them, so no edit to that file would remove them.
 
-Nothing here is asserted. **36 CI steps on every push** re-check it: 159 tests, 36 graph claims
+Nothing here is asserted. **37 CI steps on every push** re-check it: 161 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other five build a thousand graphs, millions of edges, a memory curve or a second vector index, so they are dated measurements with
@@ -346,12 +348,15 @@ rather than improvised.*
 
 ## What I would do next
 
-> Three things, in the order they would matter. **Reach the 206 rejections the search cannot
-> see** — they are in the graph, the lineage queries find them, and they are all embedded; what
-> they are not is *indexed*, because the vector index is minted on the 752 named options, so an
-> unindexed node cannot be returned for any query. Widening the index is the obvious move and
-> `bench_index_scope.py` measures why it is not free: it costs about three points of named-option
-> retrieval at every k to buy that reachability. The fix worth doing is a better extractor. **Earn the tenancy claim**: the mechanism is measured to 1,000 graphs
+> Three things, in the order they would matter. **Reach the last 46 rejections that no index
+> can find by name.** On 17 Oct the 206 that the vector index excludes got a full-text index on `.body` under
+> their own label, which reaches **160 of them by name** — a word containing `-` `.` `_` or `/`,
+> the engine's own tokeniser rule rather than a list of interesting words. `bench_index_scope.py`
+> measures why *widening the vector index* was the wrong move instead: pooling them in costs about
+> three points of named-option retrieval at every k, and keeping the two scopes disjoint avoids
+> that while letting each answer say which index found each row. The residual 46 carry no
+> splittable name for a keyword index to match, so the fix for those is a better extractor that
+> gives them titles, not a third index. **Earn the tenancy claim**: the mechanism is measured to 1,000 graphs
 > but this app is single-tenant and never switches graphs, so what is demonstrated is that it
 > works, not that this uses it. **Ingest something that is not a document** — the rules rightly
 > forbid private tickets and chats, and a fabricated company proves nothing, so this is docs only
@@ -364,7 +369,7 @@ rather than improvised.*
 | Repository | https://github.com/aviralgarg05/tombstone |
 | Live demo | <https://tombstone-vvn9.onrender.com> — Render free: sleeps after 15 min idle, first click ~1 min. Hugging Face refused a Docker Space on a free account (HTTP 402; they require PRO). |
 | Demo video | *(fill in — narrated cut per `docs/DEMO-SCRIPT.md`)* |
-| Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 704 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
+| Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 703 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
 | Blog post | *(fill in if published — side prize is for the best post)* |
 
 ## How FalkorDB is used (Rule: it must support a central part of the product)
@@ -405,15 +410,16 @@ See the AI assistance disclosure section of the README.
 
 `docs/EXPLAIN-IT.md` — read this before any judging call. It is the questions most likely to be
 asked, with the answer short enough to hold in your head: why a graph at all, the data model and
-the one decision inside it worth defending (752 embedded options out of 958 extracted, and why the
-other 206 are not, and why only about 22 of those are actually artefacts), what each of the thirteen tools asks, which
+the one decision inside it worth defending (752 options in the vector index out of 958 extracted,
+why the other 206 are not, and how a second index over exactly those 206 now reaches 160 of
+them), what each of the thirteen tools asks, which
 FalkorDB feature earns its place in which tool, what the model is allowed to do, and the five
 weakest things — stated first, because every one of them is already written down in the repository.
 
 It also answers the three a FalkorDB engineer is likeliest to ask, which were missing until I went
 looking for them specifically: **why the vector index rather than their full-text index** (both
-were spiked; and the caveat that full-text would be the better tool for the 206 the ANN index
-excludes), **why a graph database for 3,087 nodes at all** — where the wrong answer is scale, and
+were spiked, and **both now ship**: the ANN index over the 752 named options, a full-text index
+over exactly the 206 it excludes, and each answer reports which one found each row), **why a graph database for 3,087 nodes at all** — where the wrong answer is scale, and
 this page's own withdrawn networkx benchmark is the evidence against it — and **what the write
 path does under concurrency**, which is the one hard edge here and is measured rather than
 argued: six simultaneous `GRAPH.COPY` requests give five answered and one degraded honestly.
@@ -455,7 +461,7 @@ argued: six simultaneous `GRAPH.COPY` requests give five answered and one degrad
 - [x] `git config core.hooksPath scripts` — done; `submission_audit.py` confirms it. The push
       gate now also refuses any commit carrying a credential-shaped string, which matters on the
       next line of this list.
-- [ ] `./preflight.sh` — one command, twenty-three checks: the graph counts against the live graph,
+- [ ] `./preflight.sh` — one command, twenty-four checks: the graph counts against the live graph,
       every rendered answer state, the README's printed output, the demo script's facts and
       timing, both benchmarks, and whether the page still renders on GitHub
 - [ ] `./scripts_verify_deploy.sh` — builds for linux/amd64 and runs it as a non-root user in a

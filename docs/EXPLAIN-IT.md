@@ -63,11 +63,21 @@ vector. They are **embedded and deliberately unindexed** — not, as this page u
 embedded". Re-embedding the body reproduces the stored vector at cosine 1.0000, which is also how
 we know the embedding is over the body and the title is display text only.
 
-So the gap is structural: the index is minted on `:NamedOption`, and an unindexed node has
-probability zero of being returned for any query. If asked what this product's biggest recall
-weakness is, that is the honest answer: **up to 206 rejections out of 958 cannot be reached by the
-tool whose whole job is finding them.** Ask about `kube-state-metrics` and the rejection naming it
-does not come back.
+So the gap is structural: the vector index is minted on `:NamedOption`, and a node outside an
+index scope has probability zero of being returned by it. For a day that was the whole answer, and
+the honest version of it was **"up to 206 rejections out of 958 cannot be reached by the tool whose
+whole job is finding them"**.
+
+**That is no longer the answer, and the number to give is 46.** On 17 Oct the 206 got a *full-text*
+index on `.body` under their own label, `:UnnamedOption` — in this engine an index scope IS a
+label, which is what makes two scopes over one set of nodes possible at all. The tool consults it
+only when the question contains a name the engine's own tokeniser would split: a word containing
+`-` `.` `_` or `/`. So **160 of the 206 are now reachable by name, and 46 carry no splittable name
+at all and are exactly as unreachable as before.** Ask about `kube-state-metrics` now and the two
+bodies that name it come back, tagged `found_by: name` and appended after the similarity rows, so
+`rows[0]` is still the nearest by distance. If asked for this product's biggest recall weakness,
+that residual 46 is the honest answer — and the reason the answer changed is worth saying out
+loud, because the measurement that made the old one feel permanent is in the next paragraph.
 
 **And be ready for the obvious follow-up — why not just widen the index?** Because it was measured
 rather than assumed. `bench_index_scope.py` pools all 958 into one index and scores both: named
@@ -158,11 +168,14 @@ shared terms; it cannot match "let the kubelet own this state" to a KEP that wro
 ownership of the resource". The eval shows the same thing from the other side: the TF-IDF
 baseline is a keyword retriever over these exact documents and it answers 9 of 25.
 
-**The honest caveat**, because it cuts the other way: a keyword index would be the better tool for
-the 206 options the vector index excludes. They are unindexed, not unembedded, and a full-text
-index over all 958 would reach them without the precision cost that pooling them into the ANN
-index was measured to carry. That is the shape of the fix `bench_index_scope.py` points at, and
-it is a re-ingest rather than an afternoon.
+**The honest caveat**, because it cuts the other way: a keyword index is the better tool for the
+206 options the vector index excludes — they are unindexed, not unembedded. That caveat used to
+end "a re-ingest rather than an afternoon", and that was wrong: it was an afternoon, and no
+re-ingest. The 206 now carry a full-text index on `.body` under their own label, reaching 160 of
+them by name, and the precision cost `bench_index_scope.py` measured for *pooling* them into the
+ANN index is avoided because the two indexes stay disjoint rather than merging — the answer reports
+which one found each row. The residual 46 have no splittable name for a keyword index to match,
+so for those the real fix is a better extractor that gives them titles, not a third index.
 
 ## "Three thousand nodes is tiny. Why a graph database at all?"
 
@@ -209,9 +222,9 @@ a wrong answer or a timeout.
 
 ## "How do you know any of this is true?"
 
-One command: `./preflight.sh` — twenty-three checks. The graph counts are re-derived against the
+One command: `./preflight.sh` — twenty-four checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-36 CI steps on every push, 38 runs because two repeat across Python 3.11 and 3.14. 159 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
+37 CI steps on every push, 39 runs because two repeat across Python 3.11 and 3.14. 161 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

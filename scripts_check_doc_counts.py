@@ -397,20 +397,35 @@ else:
 # lines above said thirteen. Found by sweeping sentences that assert something absolute, not by
 # any check -- the number-scanner looks for digits and this one was a word.
 _tools = len(re.findall(r'^\s{4}"(\w+)":', open("src/tombstone/tools.py").read(), re.M))
-_WORDS_T = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen"}
+# CHIPS ARE NOT TOOLS, and this check used to treat them as one population. It matched
+# "N tools|queries|chips" against the catalogue size, so with 13 tools it REQUIRED the docs to say
+# "thirteen chips" -- and the UI has fourteen, because `who_owns` appears twice (depth 1 and
+# depth 4, the contrast the whole README is built on) and `has_this_been_tried` twice (a hit and
+# the negative control). A checker measuring the wrong population does not merely miss an error;
+# it manufactures one and then defends it. The 17 Oct audit found "fourteen chips" in the README
+# and this check called it wrong.
+_chips = len(re.findall(r'\btool: "\w+"', re.search(
+    r"const CHIPS = \[(.*?)\n\];", open("web/app.js").read(), re.S).group(1)))
+_WORDS_T = {11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
+            16: "sixteen"}
+_POP = (("tools", _tools, "the catalogue"), ("queries", _tools, "the catalogue"),
+        ("chips", _chips, "web/app.js"))
 for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md"):
     _txt = _flat(open(_doc).read())
-    # re.I, because the instance this check was WRITTEN for was "Eleven tools." at the head of a
-    # sentence, and without it the guard swept right past the one error it existed to catch for
-    # five days. An exclusion keyed on casing rather than on meaning is this repo's oldest bug.
-    for _w in re.findall(r"\b(eleven|twelve|thirteen|fourteen|fifteen)\s+(?:tools|queries|chips)\b",
-                         _txt, re.I):
-        if _w.lower() != _WORDS_T.get(_tools):
-            problems.append(f"{_doc}: says '{_w} tools', the catalogue has {_tools} "
-                            f"({_WORDS_T.get(_tools)})")
-        else:
-            checked += 1
-print(f"  the catalogue has {_tools} tools and every document that spells it agrees")
+    for _noun, _n, _src in _POP:
+        # re.I, because the instance this check was WRITTEN for was "Eleven tools." at the head of
+        # a sentence, and without it the guard swept right past the one error it existed to catch
+        # for five days. An exclusion keyed on casing rather than on meaning is this repo's
+        # oldest bug.
+        for _w in re.findall(rf"\b(eleven|twelve|thirteen|fourteen|fifteen|sixteen)\s+{_noun}\b",
+                             _txt, re.I):
+            if _w.lower() != _WORDS_T.get(_n):
+                problems.append(f"{_doc}: says '{_w} {_noun}', {_src} has {_n} "
+                                f"({_WORDS_T.get(_n)})")
+            else:
+                checked += 1
+print(f"  the catalogue has {_tools} tools, the UI has {_chips} chips, and every document that "
+      f"spells either agrees")
 
 # Fractions where BOTH halves are graph facts. Every number-vs-graph check in this file had been
 # scanning for single figures, so "N of M" pairs were only ever half-checked -- the numerator got
@@ -694,22 +709,67 @@ else:
     # LIVE figure is written in MiB, and a figure quoted historically while explaining a
     # correction is written in MB. That is what lets the README keep "387 MB here and about
     # 400 MB in the Space README" in its own note about having been wrong, without this failing.
-    _LIVE = (r"(\d+) MiB serial peak",
-             r"peaks at about (\d+) MiB in serial use",
-             r"peaks at \*\*~(\d+) MiB",
-             r"serial use[^.]{0,40}?at ~(\d+)MiB")
+    # Rewritten after the 17 Oct audit, and the reason is the thing this comment already warned
+    # about one paragraph up. Every pattern below used to say "serial peak", because that is how
+    # the figure was phrased when they were written. The memory fix that morning replaced every
+    # one of those sentences with a CONCURRENCY figure -- "288 MiB under eight concurrent asks" --
+    # so all four patterns matched zero documents, every iteration hit `continue`, and the print
+    # below still announced that the figure "is stated the same way in both documents". A check
+    # keyed to phrasing, passing over an empty set, announcing agreement it never looked for: the
+    # three defect classes this file exists to catch, in the check that catches them.
+    _LIVE = (r"(\d+) MiB under eight concurrent asks",
+             r"holds \*\*(\d+) MiB\b",
+             r"the \*\*(\d+) MiB\*\* that \[`scripts_verify_deploy\.sh`\]",
+             r"(\d+) MiB serial peak",
+             r"peaks at about (\d+) MiB in serial use")
+    _stated = 0
     for _doc in _docs:
         _t = _flat(open(_doc).read())
         _found = [m for _pat in _LIVE for m in re.findall(_pat, _t)]
         if not _found:
             continue
+        _stated += len(_found)
         if any(int(x) != _want for x in _found):
-            problems.append(f"{_doc}: says a {_found[0]} MiB serial peak; "
+            problems.append(f"{_doc}: says a {_found[0]} MiB container floor; "
                             f"BASELINE_MB is {_want}")
         else:
             checked += 1
-    print(f"  the {_want} MiB serial peak is stated the same way in both documents and in the "
-          f"benchmark that projects from it")
+    # Anti-vacuity, which is the whole lesson: a figure no document states is a figure this check
+    # is no longer checking, and that must fail rather than print agreement.
+    if _stated == 0:
+        problems.append(f"no document states the {_want} MiB container floor in any phrasing this "
+                        f"check knows, so it was passing over an empty set -- re-aim the patterns "
+                        f"at how the docs phrase it now, do not delete the check")
+    elif not any("container floor" in p for p in problems):
+        print(f"  the {_want} MiB container floor is stated {_stated} times across the docs and "
+              f"agrees with the benchmark that projects from it")
+
+# The demo video's size, which three documents state and nothing checked. It has now been 697,
+# 704, 696 and 703 KB -- it moves every time the walkthrough is regenerated, which happens
+# whenever `agent.py` or the UI changes, which during this project was most days. An unchecked
+# figure attached to an artefact that is rebuilt on a schedule is not a claim, it is a countdown.
+# `submission_audit.py` already computes it live for its own output; the docs simply never read it.
+_video = pathlib.Path("docs/video/walkthrough-silent.mp4")
+if not _video.exists():
+    problems.append("docs/video/walkthrough-silent.mp4 is gone, and three documents link it as "
+                    "the Rule 10 demo video")
+else:
+    _kb = _video.stat().st_size // 1024
+    _vclaims = 0
+    for _doc in ("README.md", "SUBMISSION.md", "FINISH.md", "docs/EXPLAIN-IT.md",
+                 "deploy/README-hf-space.md"):
+        _t = _flat(open(_doc).read())
+        for _stated in re.findall(r"walkthrough-silent\.mp4\)[^.]{0,40}?(\d{3}) ?KB", _t) + \
+                       re.findall(r"in-repo, (\d{3}) ?KB", _t):
+            _vclaims += 1
+            if int(_stated) != _kb:
+                problems.append(f"{_doc}: says the walkthrough is {_stated} KB; it is {_kb} KB")
+    if _vclaims == 0:
+        problems.append("no document states the walkthrough's size any more, so this check is "
+                        "passing over an empty set -- re-aim it rather than deleting it")
+    else:
+        checked += 1
+        print(f"  the walkthrough is {_kb} KB and all {_vclaims} documents that state it agree")
 
 _longest = count("MATCH (n:Alternative) WHERE NOT n:NamedOption RETURN max(size(n.title))")
 if _longest > 161:

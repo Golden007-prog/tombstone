@@ -28,10 +28,10 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   [Honest limits](#honest-limits).
 > - **See it work without running anything:** the picture two screens down renders inline —
 >   depth 1 returns nothing, depth 4 explains why. There is also an
->   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (704 KB, downloads;
+>   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (703 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 159 tests, 36 graph claims, 18 rendered UI states, and **two of
->   the seven benchmarks** re-run by **36 CI steps on each push** — the other five build a thousand
+> - **Nothing here is asserted.** 161 tests, 36 graph claims, 18 rendered UI states, and **two of
+>   the seven benchmarks** re-run by **37 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
 >   gates, and the page says which is which where it prints them. Including the claims I had to
@@ -103,7 +103,7 @@ with the exact location of each item and an honest status.
 | A public source-code repository | this repo, Apache-2.0 | **done** |
 | A README with setup instructions and the graph data model | [Quickstart](#quickstart) and [The graph data model](#the-graph-data-model) | **done** |
 | The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — every query generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source** | **done** |
-| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 704 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
+| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 703 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
 | A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup **plus a video, which is how the FAQ words the fallback** — not "either/or" but *complete local setup instructions **and** a working demo video* if you cannot deploy; Rule 10 requires the video separately, so both halves are present. **Satisfied both ways as of 17 Oct: there is now a live deployment at <https://tombstone-vvn9.onrender.com>** — verified against the running instance, not asserted: `/api/health` reports FalkorDB up with 681 decisions, 752 named options, 794 people and 585 ownership files; all thirteen tools answer; free text routes with no key; and a `POST` of a filesystem argument is refused on the public instance. Built from this Dockerfile, which CI also builds and boots on every push. |
 | The track you are entering | **Track 3, Company Brain**, stated at the top of this README | **done** |
 
@@ -275,7 +275,7 @@ For a **cohort** it is not, because coverage **cascades**: an area survives beca
 still has an approver, and that parent may be emptied by the same cohort. Answering it means
 mutating the whole graph, re-running a recursive traversal over the mutated copy, and diffing —
 without touching the original. That is `GRAPH.COPY`: a copy of the freshly seeded graph —
-3,087 nodes, 15,735 edges, 7 indexes — takes **roughly 300–460 ms**, varying with machine load
+3,087 nodes, 15,735 edges, 8 indexes — takes **roughly 300–460 ms**, varying with machine load
 across repeated runs. A single figure here would be wrong on anyone else's machine and was
 already wrong on mine, so `PYTHONPATH=src ./.venv/bin/python bench_copy.py` re-measures it and asserts the
 part that *is* invariant: that the copy carries the whole graph and its indexes, and the original
@@ -828,8 +828,16 @@ git clone https://github.com/aviralgarg05/tombstone && cd tombstone
 ./run.sh
 ```
 
-**Python 3.11–3.14, and `run.sh` sorts it out.** If there is no `.venv` it builds one, choosing
-an interpreter in that range, and installs into it. That is deliberate and it was learned twice.
+**Python 3.11–3.14, and `run.sh` sorts it out.** If there is no `.venv` it builds one, choosing an
+interpreter in that range and installing into it — *unless* the interpreter it finds is already in
+range **and** can already import `falkordb`, `fastembed` and `fastapi`, in which case it uses that
+one and builds nothing, because creating a virtualenv to duplicate a working environment wastes a
+stranger's first two minutes. So a fresh clone on a bare machine gets a `.venv`; a fresh clone
+inside an environment that already has the dependencies does not, and every command in this README
+that spells `./.venv/bin/python` is then the one path that will not exist. Use `PY=$(which python3)
+./run.sh` there, or read `$PY` out of `run.sh`'s first lines. That asymmetry was found by the
+17 Oct audit cloning this repo and following these instructions literally. The rest is deliberate
+and was learned twice.
 The quickstart first read `python3.13`, which fails with `command not found` on a machine without
 exactly that version. Naming `python3` instead moved the failure to a `ResolutionImpossible` wall
 from pip on a machine whose `python3` is 3.15 — measured here, on a clean clone, which is how I
@@ -890,7 +898,7 @@ Then open <http://localhost:8099>. **No API key needed, and the ask box still wo
 `run.sh` starts FalkorDB, seeds it from the committed snapshot in **~1.1s**, and serves the app.
 
 **On a fresh clone, your first typed question pauses once while the embedding model downloads.**
-BGE-small is about 130 MB and `fastembed` fetches it on first use; the chips that run pure Cypher
+BGE-small is about 67 MB and `fastembed` fetches it on first use; the chips that run pure Cypher
 answer immediately, but free-text routing and the similarity tool need it. The container path does
 not have this pause — the `Dockerfile` deliberately warms the model into the image, with a comment
 saying why — and `run.sh` does not, so the documented local path is the one with the wait. Said
@@ -902,11 +910,11 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 159 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 161 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
-One of those 23 checks drives real headless Chrome to photograph every rendered answer state. If
+One of those 24 checks drives real headless Chrome to photograph every rendered answer state. If
 this machine has no Chrome it is now **skipped by name, with its reason, and the verdict says how
 many were skipped** — it used to print a red `FAIL` for an environmental reason named in no
 document, which on a page whose claim is "nothing here is asserted" is the most expensive possible
@@ -961,33 +969,58 @@ Required by Rule 10. The two **latent** labels are the whole idea: neither is a 
 or a file, so neither exists in any search index anywhere.
 
 ```
-NODES
-  (:Kep           {key, num, title, status, status_raw, sig, stage, created_ms:int, url})
-  (:Alternative   {key, title, body, kep, titled:bool})          ← LATENT: a rejected design option
-     :NamedOption                                                 ← titled subset; carries .emb
-  (:MissingRecord {key, cited_by:int})                            ← LATENT: a decision record that
-                                                                     others cite but which is GONE
-  (:Person        {key})                                          alias-expanded, bots removed
-  (:OwnersFile    {key, path, url})
-  (:Sig           {key})
+NODES                                                             counts from the live graph
+  (:Kep           {key, num, title, status, status_raw, sig, stage, created_ms:int, url})    681
+  (:Alternative   {key, title, body, kep, titled:bool})          ← LATENT: a rejected option   958
+     :NamedOption                                                 ← titled subset; carries .emb 752
+     :UnnamedOption                                               ← the complement; full-text    206
+  (:MissingRecord {key, cited_by:int})                            ← LATENT: a decision record     47
+                                                     others cite by name but which is GONE
+  (:Person        {key})                                          alias-expanded, bots removed  794
+  (:OwnersFile    {key, path, url})                                                             585
+  (:Sig           {key})                                                                         22
+  (:Answer        {qid, question, tool, shape, query_sha, ts_ms:int, row_count:int, emb})
+                                                   ← written BY the product as it answers; see
+                                                     "It remembers what it learns". Starts empty.
 
-RELATIONSHIPS
-  (:Kep)-[:CONSIDERED]->(:Alternative)        (:Kep)-[:OWNED_BY]->(:Sig)
-  (:Kep)-[:REPLACES|SUPERSEDED_BY|SEE_ALSO]->(:Kep)
-  (:Kep)-[:CITES_MISSING]->(:MissingRecord)
-  (:Person)-[:AUTHORED|APPROVED|REVIEWED]->(:Kep)
-  (:Person)-[:APPROVES]->(:OwnersFile)        ← a CURRENT owner
-  (:Person)-[:EMERITUS_OF]->(:OwnersFile)     ← a DEPARTED owner. The project writes its own
+RELATIONSHIPS                                                     counts from the live graph
+  (:Kep)-[:CONSIDERED]->(:Alternative)  958   (:Kep)-[:OWNED_BY]->(:Sig)              681
+  (:Kep)-[:REPLACES]->(:Kep)              8   (:Kep)-[:SUPERSEDED_BY]->(:Kep)           1
+  (:Kep)-[:SEE_ALSO]->(:Kep)            302   (:Kep)-[:CITES_MISSING]->(:MissingRecord) 55
+  (:Person)-[:AUTHORED]->(:Kep)        1147   (:Person)-[:APPROVED]->(:Kep)          1283
+  (:Person)-[:REVIEWED]->(:Kep)        1955
+  (:OwnersFile)-[:INHERITS_FROM]->(:OwnersFile) 584
+                                              ← the OWNERS tree. `who_owns` at depth 4,
+                                                `ownership_dilution` and every "who would
+                                                inherit this" answer walk THIS edge.
+  (:Person)-[:APPROVES]->(:OwnersFile)   2584 ← a CURRENT owner
+  (:Person)-[:EMERITUS_OF]->(:OwnersFile) 298 ← a DEPARTED owner. The project writes its own
                                                  knowledge loss into this field and nothing reads it.
-  (:Person)-[:CO_AUTHORED {w:int}]->(:Person) ← projection, computed in Cypher (see below)
+  (:Person)-[:CO_AUTHORED {w:int}]->(:Person) 5879 ← projection, computed in Cypher (see below)
+  (:Answer)-[:CITED {role}]->(:Kep | :Person | :OwnersFile | :NamedOption | :MissingRecord)
+                                              ← what a remembered answer was built from, so
+                                                recall is a traversal rather than a cache
 
-INDEXES
+INDEXES                                                 eight on a freshly seeded graph
   CREATE VECTOR INDEX FOR (a:NamedOption) ON (a.emb)
          OPTIONS {dimension: 384, similarityFunction: 'cosine'}
-  CREATE INDEX FOR (k:Kep)        ON (k.key)
-  CREATE INDEX FOR (p:Person)     ON (p.key)
-  CREATE INDEX FOR (o:OwnersFile) ON (o.key)
+  CREATE FULLTEXT INDEX FOR (a:UnnamedOption) ON (a.body)   ← the 206 the ANN index excludes
+  CREATE INDEX FOR (k:Kep)           ON (k.key)
+  CREATE INDEX FOR (p:Person)        ON (p.key)
+  CREATE INDEX FOR (o:OwnersFile)    ON (o.key)
+  CREATE INDEX FOR (a:Alternative)   ON (a.key)
+  CREATE INDEX FOR (m:MissingRecord) ON (m.key)
+  CREATE INDEX FOR (s:Sig)           ON (s.key)
+  -- and two more the first remembered answer creates: (:Answer) on .qid, and a second
+  -- VECTOR index on (:Answer).emb, which is what makes recall a nearest-neighbour query
 ```
+
+This block **used to omit** `:UnnamedOption`, `:Answer`, `INHERITS_FROM`, `CITED` and four of the
+eight indexes — including, worst of all, `INHERITS_FROM`, the edge every ownership answer in this
+README walks. It drifted because the sibling table in [`docs/EXPLAIN-IT.md`](docs/EXPLAIN-IT.md) is
+re-derived from the live graph by `./preflight.sh` and this one was prose. It is now checked the
+same way: `scripts_check_data_model.py` fails if the live graph has a label, relationship type or
+index this block does not list.
 
 **Why `:NamedOption` is a label and not a property.** FalkorDB vector indexes cannot filter by
 property — a shared index forces you to post-filter, so you ask for *k* and keep *k/N*. Minting a
@@ -1436,7 +1469,7 @@ inferred from missing or second-hand evidence.**
 | claim | what was wrong |
 |---|---|
 | "7 directories are orphaned" | ignored that Kubernetes OWNERS **inherit** — none is unowned |
-| "63 of 363 pointers broken" | some targets had **moved**, not vanished — it is 60 |
+| "63 of 363 pointers broken" | some targets had **moved**, not vanished — it is **55 of 366** |
 | "2 decisions have no living author" | 72% of KEP authors were **never** approvers; absence ≠ departure |
 | "organizer guidance, verbatim: 3 minutes" | **not on any official page** — a research agent misattributed it |
 
@@ -1677,15 +1710,20 @@ times. Each fix made the claim narrower and more defensible.
 - **Memory has no cap, no eviction and no TTL**, which is deliberate — an answer citing live
   nodes is evidence, not cache, and evicting it would make `ANSWERED_FROM_MEMORY` mean less.
   What bounds it is that a repeat merges onto the same node: measured, 30 identical questions
-  produce **one** `(:Answer)` with a counter at 30, and all thirteen chips clicked twenty times
-  each produce seven nodes. So growth is per **distinct** question, at **~48 KB** — dominated by
+  produce **one** `(:Answer)` with a counter at 30, and all fourteen chips clicked twenty times
+  each produce seven nodes. So growth is per **distinct** question, at **~3.7 KB** — dominated by
   the node and its 384-float embedding rather than by its citations, since a tool citing 42 nodes
-  and one citing few both cost about the same. Against the hosted demo's ~100 MB of headroom that
-  is roughly **two thousand** distinct questions. The stored question text is itself capped at 400
-  characters, so a padded one costs no more than a short one. There is a test on the merge,
+  and one citing few both cost about the same. Against the live instance's measured **248 MiB of
+  headroom** that is tens of thousands of distinct questions, not a bound normal use can reach.
+  The stored question text is itself capped at 400 characters, so a padded one costs no more than
+  a short one. *(This bullet said **~48 KB** and "roughly two thousand" until the end-to-end audit
+  on 17 Oct: thirteen times the figure the bullet four screens up already gave, with its own
+  projection built on it so both halves looked self-consistent. `bench_memory_growth.py` — the one
+  script that measures it — reports 3.7 KB marginal, and the ~100 MB of headroom it was divided
+  into was itself from before the memory fix.)* There is a test on the merge,
   because changing it to a create would remove the bound silently.
 - **The hosted demo is not rate-limited.** It needs no key by design, so there is nothing to meter
-  by. Normal use cannot approach the bound above — the thirteen chips contribute thirteen
+  by. Normal use cannot approach the bound above — the fourteen chips contribute fourteen
   questions however often they are pressed — but a determined crawler sending thousands of
   *distinct* free-text questions could. Said plainly rather than discovered.
 - **The hosted demo was killed for exceeding its memory limit, and the cause was not what this
