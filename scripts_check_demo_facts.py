@@ -22,6 +22,7 @@ SCRIPT = "docs/DEMO-SCRIPT.md"
 OWNERS = "staging/src/k8s.io/apiserver/pkg/endpoints/metrics/OWNERS"
 
 script = open(SCRIPT).read()
+README = open("README.md").read()
 # Flattened too, because the script is a 100-column markdown blockquote and a claim that wraps is
 # a claim no \b-anchored regex can see: "left far\n> fewer" defeated a check that was looking for
 # "left far fewer", and this repository has lost three regexes to wrapped prose already. Match
@@ -49,30 +50,24 @@ vec = list(agent.embedder().embed(["has anyone tried moving this into the kubele
 tried = agent.tools.has_this_been_tried(vec, max_dist=0.45)
 check("beat 4 narrates KEP-6061", "6061" in script and "6061" in render(tried))
 
-# Beat 5 — the point of the beat is that centrality is NOT file count. Matched on the CLAIM, not
-# on one phrasing of it, which is the same lesson as beat 6 below and was learned here one beat
-# late. These checks used to demand the literal strings "only third" and "left five". Both were
-# true of a ranking produced by sampling 32 of 727 source nodes -- and exact Brandes over all 727
-# swaps the top two, with 80% of random samples disagreeing with the published order. So the beat
-# was rewritten to claim only what holds under BOTH the sampled tool a judge clicks and an exact
-# computation, and these went red for the phrasing while the new claim was true. See the
-# betweenness entry in README's Honest limits for the measurement.
+# Beat 5 — what the beat now claims, after the ranking it used to narrate turned out to depend on
+# sampling. Exact Brandes over the tool's OWN population (21 people: emeritus >= 3, zero live
+# APPROVES) puts lavalamp first at 4238.6 with 31 areas and logicalhan second at 2315.5 with 5 --
+# so under exactness the most-departed person IS the most connective and the old contrast
+# evaporates. An earlier disclosure in README claimed the finding survived; it had ranked over
+# everyone emeritus anywhere, including dchen1107, who holds 42 live APPROVES edges and whom this
+# query never returns. The beat now claims the capability and the limitation, and these check both.
 bridges = agent.dispatch("stepped_back_bridges", {"min_areas": 3})
 rows = bridges.rows
-top_areas = int(rows[0][2])
-most_areas = max(int(r[2]) for r in rows)
-most_areas_rank = 1 + max(range(len(rows)), key=lambda i: int(rows[i][2]))
-check("beat 5: top of the ranking did NOT leave the most areas",
-      most_areas_rank != 1, f"top left {top_areas}, the most-areas person ranks {most_areas_rank}")
-check("beat 5 names the most-areas figure and the graph agrees",
-      bool(re.search(r"\bthirty-one\b", _flat)) and most_areas == 31,
-      f"the most areas anyone left is {most_areas}")
-check("beat 5 says that person is not at the top",
-      bool(re.search(r"\bnot at the top\b", _flat)) and most_areas_rank != 1,
-      f"most-areas person ranks {most_areas_rank}")
-check("beat 5 says whoever is at the top left far fewer",
-      bool(re.search(r"\bleft far fewer\b", _flat)) and top_areas < most_areas,
-      f"top left {top_areas}, against {most_areas}")
+check("beat 5: the ranking is real and non-empty", bool(rows), f"{len(rows)} rows")
+check("beat 5 says it is sampled, and the query actually samples",
+      bool(re.search(r"\bthis one is sampled\b", _flat))
+      and "samplingSeed" in bridges.cypher and "samplingSize" not in bridges.cypher,
+      "samplingSeed pinned, samplingSize left at FalkorDB's default of 32")
+check("beat 5 says exactness changes the order, and the page carries the measurement",
+      bool(re.search(r"exactly and the order changes", _flat))
+      and "4238.6" in README and "2315.5" in README,
+      "README's Honest limits states the exact figures a judge can re-derive")
 
 # Beat 6 — the drafting action: three candidates, two drafted, one refused.
 drafted = agent.dispatch("draft_owners_patch", {})

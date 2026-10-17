@@ -94,11 +94,10 @@ ownership files.*
 >
 > "This one no amount of search can produce.
 >
-> Not who owned the most files — betweenness centrality. Who bridged groups that otherwise didn't
-> talk. The person who left thirty-one areas behind is not at the top — and whoever is, left far
-> fewer.
+> Not who owned the most files — betweenness centrality, whole graph, inside the request.
 >
-> A whole-graph property, computed inside the request."
+> The honest part is on the page: this one is sampled. Compute it exactly and the order changes.
+> I'd rather show that than a ranking I can't defend."
 
 ### 1:43–2:17 — It drafts two fixes, and refuses the third · 100 words
 

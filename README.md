@@ -1361,11 +1361,15 @@ times. Each fix made the claim narrower and more defensible.
   **2315.5**. Across 200 random 32-source samples `lavalamp` leads **159 times, 80%**. The
   published 156.46 / 115.97 is one seed's draw and the 40-point gap it reports is smaller than the
   spread between samples.
-  **The finding survives and sharpens.** Exact, among departed contributors: `dchen1107` first at
-  7888.7, emeritus in **4** files; `lavalamp` second at 4238.6, emeritus in **31**; `logicalhan`
-  seventh. "The person who left the most areas behind is not the most connective" still holds —
-  with a 4-against-31 contrast instead of 5-against-31, from an exact computation rather than one
-  lucky seed.
+  **The finding does not survive, and an earlier version of this bullet said it did.** That version
+  ranked exactly over everyone recorded as emeritus anywhere and reported `dchen1107` first at
+  7888.7 with 4 files — but `DEPARTED_BRIDGES` requires `live_roles = 0`, and `dchen1107` holds
+  **42 live `APPROVES` edges**, so the tool never returns him. It was an exact number measured over
+  a population the query excludes, used to conclude in my own favour. Over the tool's real
+  population — 21 people with three or more emeritus files and no live approvals — exact Brandes
+  puts **`lavalamp` first at 4238.6 with 31 areas** and `logicalhan` second at 2315.5 with 5. So
+  under an exact computation the person who left the most areas behind *is* the most connective,
+  and the contrast the demo is built on disappears. **It exists because the computation samples.**
   **Not yet changed in the product, deliberately.** Exactness means `samplingSize: 727`, which
   moves the query off its 25 ms benchmark row, re-ranks a figure three documents quote, and
   regenerates four artefacts — a day before the deadline with the video unrecorded. What changed

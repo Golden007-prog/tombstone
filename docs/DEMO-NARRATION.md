@@ -94,13 +94,13 @@ The others inherit coverage upward.
 
 This one no amount of search can produce.
 
-Not who owned the most files — betweenness centrality.
+Not who owned the most files — betweenness centrality, whole graph, inside the request.
 
-Who bridged groups that otherwise didn't talk.
+The honest part is on the page: this one is sampled.
 
-The person who left thirty-one areas behind is not at the top — and whoever is, left far fewer.
+Compute it exactly and the order changes.
 
-A whole-graph property, computed inside the request.
+I'd rather show that than a ranking I can't defend.
 
 ---
 

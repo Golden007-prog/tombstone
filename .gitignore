@@ -16,3 +16,9 @@ data/cache/
 **/__pycache__/
 .private/
 build/
+
+# `script`/`col` droppings. One of these got committed on 17 Oct and grew the deploy by a file;
+# the push gate caught it only because it counts what the deploy uploads, not because anything
+# was looking for junk.
+typescript
+typescript.*
