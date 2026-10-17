@@ -89,6 +89,15 @@ def main() -> int:
             bad += 1
             continue
         recorded = json.load(open(fingerprint))
+        if not recorded:
+            # A fingerprint recording nothing makes the comparison below vacuous: there are no
+            # sources to compare, so `moved` comes out empty and this printed "matches the code
+            # and corpus it was made from" about a file it had not looked at. Same shape as the
+            # doc-counts guard that reported success over zero claims.
+            print(f"  FAIL  {fingerprint} records no sources, so nothing was compared"
+                  f" — regenerate it")
+            bad += 1
+            continue
         # Compare only the sources that artefact was fingerprinted against: the images do not
         # render a query hash, the video does.
         moved = [f for f in recorded if recorded.get(f) != now.get(f)]

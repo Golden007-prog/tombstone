@@ -30,7 +30,7 @@ fi
 # of it, and until now that was a convention: a future call site typing `query` instead would
 # work, and nothing would notice. This makes it the engine's rule instead. `tombstone-reader` is
 # granted `+graph.ro_query`, `+info` (the client issues INFO at construction, to detect Sentinel)
-# and `+ping`, over keys matching `tomb:*`, and nothing else -- so GRAPH.QUERY, GRAPH.COPY,
+# and `+ping`, over the configured graph key alone, and nothing else -- so GRAPH.QUERY, GRAPH.COPY,
 # GRAPH.DELETE, GRAPH.CONSTRAINT, GRAPH.PROFILE, FLUSHALL, CONFIG SET, SCRIPT LOAD and ACL
 # SETUSER are all refused to it by Redis before FalkorDB ever sees them.
 #

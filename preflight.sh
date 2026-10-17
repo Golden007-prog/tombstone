@@ -6,8 +6,14 @@
 # fine while building and bad at a deadline, which is exactly when you most want to know whether
 # anything has drifted. So: one command, one verdict.
 #
-# This is the same set CI runs on every push. Running it locally first means a red CI is a
-# surprise rather than the way you find out.
+# CI runs most of this set on every push, but the two lists differ in BOTH directions, and the
+# header used to claim they were the same. Four checks here run in no workflow at all --
+# bench_memory_growth.py, bench_index_scope.py, scripts_check_shots_fresh.py and
+# scripts_check_verification_claims.py -- and CI adds what is too slow or too stateful for a
+# laptop: bench_vs_networkx.py, eval_graph_vs_text.py --dense, a docker build, the quickstart
+# against a deliberately colliding container, and the install on 3.11 and 3.14. So a green run
+# here does not predict a green CI. It is the fastest way to catch local drift before pushing,
+# which is what it is actually for.
 #
 # Usage:  ./run.sh    (in another shell, so the app is serving)
 #         ./preflight.sh
@@ -111,8 +117,13 @@ if ! skip_if_missing "every rendered answer state" \
   run "every rendered answer state"        "$PY" scripts_check_ui.py
 fi
 run "the README's printed output"          "$PY" scripts_check_readme_examples.py
-run "the demo script's facts"              "$PY" scripts_check_demo_facts.py
-run "the demo script's timing"             python3 scripts_check_demo_timing.py
+# Not read-only, and the label says so because run() swallows a passing check's stdout. Beat 7
+# is the memory beat, and the only way to prove the recall comes from the demo's OWN beats is to
+# replay them against an empty memory -- so this clears every remembered answer first. Total
+# rather than scoped, because recall is a nearest-neighbour query and a row left by an earlier
+# session could satisfy the beat without the demo having recorded anything.
+run "the demo script's facts (clears remembered answers)" "$PY" scripts_check_demo_facts.py
+run "the demo script's timing"             "$PY" scripts_check_demo_timing.py
 run "the premise measurement"              "$PY" measure_repeat_rejections.py
 run "GRAPH.COPY carries the whole graph"   "$PY" bench_copy.py
 # The memory-growth figure the README states was measured by a script that ran in no gate
@@ -139,7 +150,7 @@ readme = open("README.md").read(); gen = open("/tmp/preflight-cypher.md").read()
 start = readme.index("## The Cypher this product depends on")
 m = re.search(r"^## ", readme[start + 10:], flags=re.M)
 end = start + 10 + m.start() if m else len(readme)
-sys.exit(0 if gen.strip() in readme[start:end].strip() else 1)
+sys.exit(0 if gen.strip() == readme[start:end].strip() else 1)
 PY
 then
   printf '  \033[32mok\033[0m    the README Cypher matches the source\n'; pass=$((pass + 1))

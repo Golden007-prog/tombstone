@@ -202,6 +202,16 @@ def test_malformed_arguments_never_leak_a_python_error(agent):
         ("who_owns", {"path": None, "depth": 4}),
         ("successor_for", {"handle": None}),
         ("successor_for", {}),
+        # Wrong TYPE, not just a wrong value. These six all answered DEGRADED carrying a raw
+        # Python message -- "'list' object has no attribute 'strip'" -- until the 17 Oct audit.
+        # DEGRADED means no answer was produced, which a judge poking the API reads as the
+        # database being down; a bad request is the product declining to guess.
+        ("who_owns", {"path": ["x"], "depth": 4}),
+        ("successor_for", {"handle": ["deads2k"]}),
+        ("has_this_been_tried", {"idea_text": {"a": 1}}),
+        ("recall", {"question": ["x"]}),
+        ("who_owns", {"path": 7}),
+        ("has_this_been_tried", {"idea_text": 3.5}),
     ]:
         a = agent.dispatch(tool, args)
         assert a.shape in {"ANSWERED_WITH_PATH", "NOT_IN_GRAPH", "UNKNOWN_ENTITY"}, (tool, args, a.shape)
@@ -2195,13 +2205,22 @@ def test_the_public_subgraph_endpoint_cannot_be_crashed_by_its_limit():
     the traceback came back as a crash on the one endpoint a judge can hit by accident while
     reading the API docs. `limit=-1` on its own did NOT crash, because with no path that query
     never runs -- the kind of near-miss that makes a real crash look absent.
+
+    The NUL rows are the same crash through a different character, found by the 17 Oct audit and
+    reproduced on the LIVE demo, not just locally: FalkorDB's parameter parser rejects a NUL byte
+    and that ResponseError came back as a bare 500 with no JSON body. Every other byte tried
+    survives as a parameter -- the other control characters, quotes, backslashes, a literal `$p`,
+    emoji -- so the guard rejects exactly the one that cannot, and rejects rather than strips: a
+    silently stripped NUL would answer about `pkgx` when `pkg\x00x` was asked.
     """
     from fastapi.testclient import TestClient
     from tombstone.server import app
     with TestClient(app) as client:
         for params in ({"path": "x", "limit": -5}, {"limit": -1}, {"limit": 0},
                        {"limit": 10 ** 9}, {"path": "pkg/scheduler/OWNERS", "limit": -5},
-                       {"handle": "lavalamp", "limit": -3}):
+                       {"handle": "lavalamp", "limit": -3},
+                       {"path": "pkg\x00x"}, {"handle": "a\x00b"}, {"handles": "x\x00y"},
+                       {"stranded": "\x00"}, {"path": "pkg/scheduler/OWNERS\x00", "depth": 4}):
             r = client.get("/api/subgraph", params=params)
             assert r.status_code == 200, f"{params} returned HTTP {r.status_code}"
             body = r.json()
@@ -2448,18 +2467,30 @@ def test_no_embed_call_site_bypasses_the_bound():
     through `/api/tool`.
 
     Scanning the source is the only check that holds for the *next* call site somebody adds.
+
+    Scope is the whole `src/` tree rather than `src/tombstone/` alone: `graphkit.ingest` is
+    imported by `server.py`, `build.py` and `agent.py`, so a call site added there runs inside the
+    serving process too and the old scan could not see it. The offline scripts at the repo root --
+    `bench_index_scope.py`, `eval_graph_vs_text.py`, `scripts_check_demo_facts.py` -- do call
+    `.embed(` directly and stay deliberately out of scope: they are single-process, never run
+    inside the 512 MB box, and for the text baseline calling the model directly is the point.
     """
     import pathlib
     from tombstone import agent as _probe
-    src = pathlib.Path(_probe.__file__).parent
-    offenders = []
-    for path in sorted(src.glob("*.py")):
-        if path.name == "embedding.py":
+    src = pathlib.Path(_probe.__file__).parent.parent        # src/, not src/tombstone/
+    scanned, offenders = [], []
+    for path in sorted(src.rglob("*.py")):
+        if path.name == "embedding.py" or "__pycache__" in path.parts:
             continue
+        scanned.append(path.relative_to(src).as_posix())
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             code = line.split("#", 1)[0]
             if ".embed(" in code:
-                offenders.append(f"{path.name}:{n}: {line.strip()}")
+                offenders.append(f"{path.relative_to(src).as_posix()}:{n}: {line.strip()}")
+    # Anti-vacuity: a scan that found no files would report success over nothing, and both
+    # packages must actually be in it -- the point of widening it was graphkit.
+    assert "tombstone/agent.py" in scanned and "graphkit/ingest.py" in scanned, (
+        f"the scan covered {len(scanned)} files and not both packages: {scanned}")
     assert not offenders, (
         "these call the model directly instead of tombstone.embedding, so they are not bounded "
         "and a concurrent request through them can exceed the deploy target:\n  "
@@ -2703,3 +2734,100 @@ def test_every_argument_the_catalogue_advertises_reaches_the_query(agent):
     assert seen[8] < seen[3], (
         f"the threshold changed the provenance but not the rows ({seen}); it is still being "
         f"dropped somewhere between dispatch and the query")
+
+
+def test_a_cold_burst_builds_one_agent_and_one_router_not_eight(monkeypatch):
+    """`tombstone.embedding` bounds the model. It did not bound the three lazy singletons that
+    each own one.
+
+    `Agent.embedder` double-checks `self._embedder` because a session is ~94 MiB -- but that guard
+    cannot see past its own instance, and `server.agent()` was `if _agent is None: _agent =
+    Agent(...)`. Eight concurrent first requests each saw None and each built an Agent, so eight
+    sessions, ~750 MiB of a 512 MB box: the bound defeated through a different door at exactly the
+    moment it was written for, a cold burst on a tier that sleeps after fifteen minutes. The same
+    shape sat in `Agent.router` and in `LocalRouter._ready`, where it cost a 91-phrase matrix each.
+    """
+    import threading
+
+    from tombstone import server as _srv
+
+    built = []
+
+    class FakeAgent:
+        def __init__(self, *a, **kw):
+            time.sleep(0.05)       # wide enough that an unguarded check lets the others in
+            built.append(1)
+
+    monkeypatch.setattr(_srv, "Agent", FakeAgent)
+    monkeypatch.setattr(_srv, "_agent", None)
+    got = []
+    threads = [threading.Thread(target=lambda: got.append(_srv.agent())) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(built) == 1, f"{len(built)} agents built, at ~94 MiB of embedding session each"
+    assert len(set(map(id, got))) == 1, "callers got different agents from one process"
+
+
+def test_the_router_matrix_is_built_once_under_a_cold_burst():
+    """A router carries its own 91-phrase matrix, so guarding only the model left a burst
+    embedding 736 rows where 91 are needed -- on a tenth of a CPU."""
+    import threading
+
+    from tombstone.route import LocalRouter
+
+    embeds = []
+    lock = threading.Lock()
+
+    class Counting:
+        def embed(self, texts):
+            texts = list(texts)
+            with lock:
+                embeds.append(len(texts))
+            time.sleep(0.03)
+            return [[0.1] * 384 for _ in texts]
+
+    model = Counting()
+    r = LocalRouter(lambda: model, set())
+    threads = [threading.Thread(target=r._ready) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(embeds) == 1, (
+        f"the phrase matrix was embedded {len(embeds)} times in one burst, {sum(embeds)} rows "
+        f"where {embeds[0] if embeds else 0} are needed")
+    assert r._matrix is not None and len(r._tools) == embeds[0]
+
+
+def test_a_refused_filesystem_argument_says_so_in_the_answer(agent):
+    """The strip was always correct; the DISCLOSURE was missing.
+
+    `dispatch` drops `write_to` unless a local caller opts in, and the `image` CI job proves no
+    directory appears inside the container. But the response was byte-identical to one that never
+    sent the argument, so "a POST of a filesystem argument is refused on the public instance" --
+    a claim the README makes in its Rule 10 table -- could be read off the README and not off the
+    product. Checking it otherwise needs a shell in the container, which nobody outside has, and
+    an invariant only its author can observe is an assertion however much this file knows.
+
+    The repeat matters as much as the first call: `_remember` REPLACES `note` when an answer is
+    upgraded to ANSWERED_FROM_MEMORY, and the second identical POST is exactly when somebody is
+    trying it twice to see whether it took.
+    """
+    import pathlib
+
+    target = "/tmp/tombstone-refusal-probe"
+    for _ in range(3):
+        a = agent._remember("draft the fix", "draft_owners_patch",
+                            agent.dispatch("draft_owners_patch", {"write_to": target}))
+        assert a.shape in ANSWERED, a.shape
+        assert "filesystem" in a.note and "write_to" in a.note, (
+            f"the answer does not say the argument was refused: {a.note!r}")
+    assert not pathlib.Path(target).exists(), "the refusal is cosmetic; something was written"
+
+    # And a clean call must not claim a refusal that did not happen.
+    clean = agent._remember("draft the fix", "draft_owners_patch",
+                            agent.dispatch("draft_owners_patch", {}))
+    assert "filesystem" not in clean.note, (
+        f"a call with no unsafe argument reports one anyway: {clean.note!r}")

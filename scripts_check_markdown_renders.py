@@ -7,9 +7,12 @@ times in a day. The count is derived below and printed, not stated here: this se
 "twelve" until the page rendered seventeen, which is a stale number inside the very script whose
 job is catching stale rendering -- a comment is not exempt from the thing the file is about.
 
-So this asks GitHub to render it and asserts that every table that should be a table is one, that
-every image resolves, and that each `#anchor` used in the page matches a heading GitHub actually
-produced -- using GitHub's renderer rather than a local approximation of it.
+So this asks GitHub to render it and asserts that every table that should be a table is one and
+that every image resolves -- using GitHub's renderer rather than a local approximation of it.
+Anchors are the exception and the docstring used to claim otherwise: api.github.com/markdown
+returns bare `<h2 dir="auto">` with no heading ids, so there is nothing to compare a link against.
+They are checked below against slugs computed locally from this page's own headings, by GitHub's
+documented rule. That is an approximation, named as one.
 """
 from __future__ import annotations
 
@@ -35,11 +38,17 @@ if token:
 try:
     html = urllib.request.urlopen(req, timeout=30).read().decode()
 except urllib.error.HTTPError as e:
-    # Rate limiting without a token is not a reason to fail a build.
+    # Rate limiting without a token is not a reason to fail a build. It is also not a reason to
+    # skip the checks below that never needed the network: this used to `sys.exit(0)` here, which
+    # took the anchor and image checks with it, so a rate limit turned the whole gate vacuous and
+    # printed nothing a reader would recognise as a gap. Only the assertions that read GitHub's
+    # own HTML go quiet now.
     if e.code in (403, 429) and not token:
-        print("  GitHub markdown API rate-limited and no token available; skipping")
-        sys.exit(0)
-    raise
+        print("  GitHub markdown API rate-limited and no token available; skipping the render "
+              "checks, still checking anchors locally")
+        html = None
+    else:
+        raise
 
 fails = []
 
@@ -58,16 +67,35 @@ print(f"  {'PASS' if ok else 'FAIL'}  images: {images_md} written, {images_html}
 if not ok:
     fails.append("an image did not render")
 
-# Every in-page link must point at a heading GitHub actually emitted.
-heading_ids = set(re.findall(r'id="user-content-([^"]+)"', html))
-if heading_ids:
-    for anchor in sorted(set(re.findall(r"\]\(#([a-z0-9-]+)\)", md))):
-        if anchor not in heading_ids:
-            print(f"  FAIL  anchor #{anchor} matches no heading GitHub produced")
-            fails.append(f"#{anchor}")
-    print(f"  PASS  {len(heading_ids)} heading anchors, every in-page link resolves")
+# Every in-page link must point at a heading this page actually has.
+#
+# This used to read `id="user-content-..."` out of GitHub's HTML, and api.github.com/markdown
+# emits bare `<h2 dir="auto">` with no ids at all -- token or no token -- so the check landed in
+# its own "not checkable here" branch on every run it ever made and the docstring advertised a
+# guarantee that never once held. The README's navigation is the thing at stake: it is 1,700 lines
+# and a judge moves through it by those links. So the slugs are computed locally, by GitHub's own
+# documented rule -- lowercase, drop everything that is not a word character, a space or a hyphen,
+# then spaces to hyphens -- which is an approximation of their renderer rather than a reading of
+# it, and says so instead of claiming otherwise.
+def _slug(heading: str) -> str:
+    text = re.sub(r"<[^>]+>", "", heading).strip()
+    text = re.sub(r"[^\w\- ]", "", text.lower())
+    return text.replace(" ", "-")
+
+
+_headings = [m.group(2) for m in re.finditer(r"^(#{1,6})\s+(.+?)\s*$", md, re.M)]
+slugs = {_slug(h) for h in _headings}
+_anchors = sorted(set(re.findall(r"\]\(#([a-z0-9_-]+)\)", md)))
+if not _headings or not _anchors:
+    print("  FAIL  no headings or no in-page links were found, so this check read nothing")
+    fails.append("anchor check read an empty set")
 else:
-    print("  note  this API response carries no heading ids; anchors not checkable here")
+    for anchor in _anchors:
+        if anchor not in slugs:
+            print(f"  FAIL  anchor #{anchor} matches none of the {len(slugs)} headings on the page")
+            fails.append(f"#{anchor}")
+    if not any(f.startswith("#") for f in fails):
+        print(f"  PASS  {len(_anchors)} in-page links all resolve against {len(slugs)} headings")
 
 print(f"\n{'FAILED' if fails else 'OK'}: the README renders "
       f"{'with problems' if fails else 'cleanly'} on GitHub")

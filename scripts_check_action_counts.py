@@ -122,9 +122,17 @@ def main() -> int:
         print("  skip  repo description (gh unavailable or unauthenticated)")
     else:
         before = len(problems)
-        scan(flat(desc), "GitHub repo description", want, problems)
-        if len(problems) == before:
-            print("  ok    repo description agrees with the verified run")
+        desc_hits = scan(flat(desc), "GitHub repo description", want, problems)
+        # Counted, because this printed "agrees with the verified run" whenever `problems` had not
+        # grown -- which is also what happens when the description states no count at all. The
+        # repo description is the first text a judge reads and the one place no file-reading check
+        # can see, so a line claiming it was checked when it was not is worse here than anywhere.
+        # Deliberately NOT folded into `hits`: that feeds "N claims across M files", and the
+        # description is not a file.
+        if desc_hits == 0:
+            print("  skip  repo description states no drafted/refused count -- nothing to check")
+        elif len(problems) == before:
+            print(f"  ok    repo description: {desc_hits} count claims agree with the verified run")
 
     if problems:
         for p in problems:

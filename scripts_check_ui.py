@@ -377,10 +377,6 @@ def main() -> int:
                 f"{label}: provenance line is {'shown' if prov else 'hidden'} but the answer "
                 f"{'did' if has_cypher else 'did NOT'} come from a query")
 
-        if visible(found.get("graphwrap")):
-            if "<svg" not in (found.get("graphwrap") or {}).get("text", "") + "<svg":
-                failures.append(f"{label}: graph panel visible with no graph in it")
-
     if failures:
         print("\n" + "\n".join("  FAIL  " + f for f in failures))
         return 1

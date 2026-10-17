@@ -11,7 +11,11 @@ FROM falkordb/falkordb:v4.22.1
 # platform may mount differently. Verified by running this image with `--user 1000:1000`.
 #
 # The four allocator variables are here because the hosted instance was killed for exceeding
-# 512 MB on 17 Oct, and they apply to redis as much as to python:
+# 512 MB on 17 Oct. Their scope first, because this comment overstated it: the two MALLOC_* names
+# are glibc tunables, and redis in this base image does not use glibc's allocator for its heap --
+# `INFO memory` on falkordb/falkordb:v4.22.1 reports `mem_allocator:jemalloc-5.3.0`, which reads
+# MALLOC_CONF and not these. So they bound the PYTHON process, which is where every figure below
+# was measured, plus whatever inside redis still reaches glibc malloc. Not the graph.
 #   MALLOC_ARENA_MAX=2       glibc opens an arena per thread, up to 8x the HOST's core count --
 #                            on a shared instance that is fragmentation bought with memory this
 #                            box does not have. Measured: 313 -> 290 MiB resident under eight

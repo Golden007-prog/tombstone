@@ -33,6 +33,30 @@ ORDER = [
      "Which cited decision records do not exist?",
      "Inbound edges to a node that stands for something MISSING. Finding it requires resolving "
      "references across 681 decisions and counting arrivals at the gap."),
+    # Added by the 17 Oct audit: the catalogue carried 9 of the 12 query constants in tools.py
+    # while the README promised the Cypher this product depends on, and Rule 10 asks for "the
+    # Cypher queries OR GRAPH ALGORITHMS" by name. The missing three included the only use of
+    # `algo.labelPropagation` in the product -- the one place a FalkorDB graph algorithm
+    # discovers something the corpus never declares -- so the omission was in the row most worth
+    # reading. The depth-contrast pair stays last, because it is the finale.
+    ("hollowing_communities", "HOLLOWING_COMMUNITIES",
+     "Which contributor COMMUNITY is losing its people fastest?",
+     "The groups are declared nowhere in this corpus -- no membership file produces them. "
+     "`algo.labelPropagation` discovers them from who has actually worked on decisions together, "
+     "over the CO_AUTHORED projection the database computed itself, and only then can the query "
+     "ask what fraction of each partition still holds authority. FalkorDB has no Louvain or "
+     "Leiden, so label propagation is the algorithm available: non-deterministic, with no "
+     "resolution parameter, which the answer states rather than hides."),
+    ("sole_approver_risk", "SOLE_APPROVER",
+     "Which areas have exactly ONE approver, and who is it?",
+     "The control arm of the counterfactual. For one person a bus factor is exact and needs no "
+     "simulation, which is why `GRAPH.COPY` is reserved for the cohort case, where coverage "
+     "cascades up the inheritance tree and cannot be read off a count."),
+    ("stale_knowledge", "STALE_KNOWLEDGE",
+     "What does this graph know that is going stale?",
+     "Three conditions that only meet in a traversal: still cited by other decisions, still "
+     "undecided years later, and authored by people who have since stepped back. Each is cheap "
+     "alone; the intersection is the finding."),
     ("who_owns", "WHO_OWNS_DEPTH1",
      "Who owns this area? (depth 1 — what any database serves)",
      "A single join. Included deliberately as the control arm of the depth contrast."),

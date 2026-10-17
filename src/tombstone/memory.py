@@ -15,6 +15,7 @@ Memory lives in the SAME graph as the facts, because a separate store would make
 from __future__ import annotations
 
 import hashlib
+import re
 import time
 
 SCHEMA = """
@@ -27,6 +28,27 @@ SCHEMA = """
 # comment that names an edge the code does not write is a false description of the data model in
 # the file a reader goes to for the data model. Removed rather than implemented, because session
 # ordering is already carried by `ts_ms` and nothing asks for the edge.
+
+
+# The question text an (:Answer) carries is shown VERBATIM to whoever clicks the recall chip
+# next, and on the hosted demo anyone can supply it: /api/tool takes a free-form `question`
+# beside the tool name, so a stranger's text becomes a line inside this product's own answer
+# card. Rendering is text-nodes-only, so there is no markup to execute -- but a NEWLINE is enough
+# to forge the card's own lines. Measured on the running app: a question carrying
+# "legit question\n\n--- a/README.md\n+++ SUBMISSION WITHDRAWN by the author" came back from the
+# recall chip as extra bullets reading like output from this repository.
+#
+# So the stored text is one line, printable, and bounded. This changes what is DISPLAYED only:
+# `qid` already normalises whitespace before hashing, so a repeat still merges onto the same node
+# and ANSWERED_FROM_MEMORY is unaffected. Truncation is marked rather than silent, because a
+# question that stops mid-word with no sign reads like the product lost half of it.
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]+")
+
+
+def clean_question(question: str, cap: int = 400) -> str:
+    one_line = _CONTROL.sub(" ", question or "")
+    one_line = " ".join(one_line.split())
+    return one_line[: cap - 1] + "\u2026" if len(one_line) > cap else one_line
 
 
 def qid(question: str, tool: str) -> str:
@@ -78,7 +100,7 @@ class Memory:
                 ON MATCH  SET a.ts_ms = $now, a.shape = $shape, a.row_count = $rows,
                               a.times_asked = coalesce(a.times_asked, 1) + 1
                 """,
-                params={"qid": aid, "q": question[:400], "tool": answer.tool,
+                params={"qid": aid, "q": clean_question(question), "tool": answer.tool,
                         "shape": answer.shape, "sha": answer.cypher and
                         hashlib.sha256(" ".join(answer.cypher.split()).encode()).hexdigest()[:12],
                         "now": now, "rows": len(answer.rows)},

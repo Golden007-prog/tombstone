@@ -82,6 +82,17 @@ check(f"the README places lavalamp {_ORDINAL.get(_lava_rank, _lava_rank)}",
       f"only **{_ORDINAL.get(_lava_rank)}**" in readme, f"rank {_lava_rank}")
 check(f"...at the measured {_lava[1]}", f"({_lava[1]}, sampled" in readme, str(_lava[1]))
 
+# The ORDERING those four checks pin is withdrawn under Honest limits: exact Brandes over this
+# tool's own 21-person population reverses the top two. All four still passed while the findings
+# list asserted the sampled contrast as the finding, because each one checks a number and none
+# checks whether the paragraph around them still claims something the page retracts. Anchored to
+# that one bullet, so a stray 4238.6 elsewhere in the README cannot satisfy it.
+_bullet = re.search(r"^- `lavalamp` is emeritus in.*?(?=\n\n)", readme, re.S | re.M)
+check("the findings list marks that ordering as a sampling artefact",
+      bool(_bullet) and "sampling artefact" in _bullet.group(0)
+      and "4238.6" in _bullet.group(0) and "#honest-limits" in _bullet.group(0),
+      "carries the withdrawal, the exact figure, and the link")
+
 print(f"\n{'FAILED' if fails else 'OK'}: the README's printed output "
       f"{'does not match' if fails else 'matches'} the app")
 sys.exit(1 if fails else 0)

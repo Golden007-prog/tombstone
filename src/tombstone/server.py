@@ -14,6 +14,7 @@ Two design choices worth stating:
 from __future__ import annotations
 
 import os
+import threading
 import time
 
 from fastapi import FastAPI
@@ -30,12 +31,25 @@ WEB = os.path.join(HERE, "..", "..", "web")
 app = FastAPI(title="Tombstone", docs_url="/api/docs")
 _agent: Agent | None = None
 _started = time.time()
+# One agent per process. See `agent()`: without this it was one per concurrent first request.
+_AGENT_LOCK = threading.Lock()
 
 
 def agent() -> Agent:
     global _agent
-    if _agent is None:
-        _agent = Agent(graph_name=os.environ.get("TOMBSTONE_GRAPH", "tomb:k8s"))
+    if _agent is not None:              # the hot path, no lock
+        return _agent
+    # Double-checked, like `Agent.embedder`. Eight concurrent first requests each saw `None` here
+    # and each built an Agent -- and each Agent loads its OWN ~94 MiB embedding session, because
+    # the guard in `Agent.embedder` tests `self._embedder` and cannot see past its own instance.
+    # Eight of those is ~750 MiB of a 512 MB box: the bound that all of `tombstone.embedding`
+    # exists to hold, defeated through a different door, at exactly the moment it was written for
+    # -- a cold burst on a free tier that sleeps after fifteen minutes. Its own lock rather than
+    # the embed lock, because this opens two FalkorDB connections rather than embedding, and the
+    # order is only ever agent-then-embed.
+    with _AGENT_LOCK:
+        if _agent is None:
+            _agent = Agent(graph_name=os.environ.get("TOMBSTONE_GRAPH", "tomb:k8s"))
     return _agent
 
 
@@ -224,6 +238,16 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
     # that query is never run -- which is exactly the kind of near-miss that makes a crash look
     # like it is not there.
     limit = max(1, min(int(limit), 400))
+    # Same crash as the negative limit, same public GET, a different character. A NUL byte in any
+    # string parameter is rejected by FalkorDB's own parameter parser -- "Failed to parse query
+    # parameter" -- and that ResponseError came back as a bare HTTP 500 with no JSON body, on the
+    # deployed demo as well as locally. Every other byte tried reaches Cypher intact as a
+    # parameter: the other control characters, quotes, backslashes, a literal `$p`, emoji. So this
+    # rejects exactly the one that cannot survive the round trip, and REJECTS rather than strips:
+    # `path=pkg%00x` with the NUL quietly removed would answer about `pkgx`, which is a different
+    # question from the one asked.
+    if "\x00" in path + handle + handles + stranded:
+        return {"nodes": [], "edges": [], "note": "a NUL byte is not a graph key"}
     a = agent()
     if a.g is None:
         return {"nodes": [], "edges": [], "error": "FalkorDB unreachable"}

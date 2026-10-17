@@ -67,7 +67,11 @@ HISTORY = re.compile(
 # A subset is not a total. "19 OWNERS files declare only reviewers" and "83 of 111 people" are
 # both true and neither is a claim about how many exist. Without this the check produced nine
 # false alarms against two real faults, and a check that cries wolf is one people learn to skip.
-SUBSET = re.compile(r"\b(?:of|in|among|and)\s+$|\bonly\s+$|\bjust\s+$")
+# "and" is deliberately NOT in this list. It joins two sibling TOTALS far more often than it
+# marks a subset -- "681 decisions and 585 ownership files" is two whole counts, not a part of
+# one -- and treating it as a subset marker hid the demo script's own on-screen figures from
+# every check in this file.
+SUBSET = re.compile(r"\b(?:of|in|among)\s+$|\bonly\s+$|\bjust\s+$")
 
 # The judge-facing documents. K8S-CORPUS-VERIFIED.md is excluded on purpose: it records what the
 # RAW corpus looked like while it was being understood -- 684 kep.yaml files parsed, 688 READMEs,
@@ -86,9 +90,17 @@ problems = []
 checked = 0
 
 for path in files:
-    for lineno, line in enumerate(path.read_text().splitlines(), 1):
+    # Each line is scanned JOINED TO THE NEXT. Prose here wraps at 100 columns, and a count whose
+    # number lands at the end of one line and its noun at the start of the next was invisible to
+    # this scan -- the fifth time wrapped prose has defeated a regex in this repository. `_flat`
+    # exists for exactly this and was used by the checks further down and not by the one that
+    # reads every tracked document.
+    _lines = path.read_text().splitlines()
+    for lineno, line in enumerate(_lines, 1):
         if HISTORY.search(line):
             continue
+        if lineno < len(_lines) and not HISTORY.search(_lines[lineno]):
+            line = line + " " + _lines[lineno]
         for label, (live, phrasings) in COUNTS.items():
             for phrasing in phrasings:
                 for m in re.finditer(rf"\b([\d,]{{2,}})\s+(?:\*\*)?{phrasing}", line):
@@ -251,7 +263,10 @@ if not _m:
     problems.append("could not read the collected test count from pytest")
 else:
     _tests = int(_m.group(1))
-    for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md"):
+    # deploy/README-hf-space.md states the test count too and was not in this list, so the one
+    # page a judge reads FIRST on a hosted Space was the one page nothing checked.
+    for _doc in ("README.md", "SUBMISSION.md", "docs/EXPLAIN-IT.md",
+                 "deploy/README-hf-space.md"):
         # A rival's test count is not a claim about this one. Flattening the prose made
         # "185\ntests to 128" -- lineage's figure beside ours in the competitor analysis --
         # match as though it described this repository. It also exposed that the "124" beside it
@@ -292,7 +307,16 @@ if not _beats or not _cards:
     problems.append("could not derive the walkthrough's duration from the build script")
 else:
     _dur = sum(int(b) for b in _beats) + int(_cards.group(1))
-    for _said, _unit in re.findall(r"walkthrough-silent\.mp4`?,\s*(\d+)(s)\b", open("SUBMISSION.md").read()):
+    # SUBMISSION.md writes it as a markdown LINK -- "...(docs/video/walkthrough-silent.mp4) --
+    # 86s, captioned..." -- so the old "backtick then comma" shape matched nothing, this arm
+    # checked an empty set, and the summary below reported both documents agreeing. The closing
+    # bracket, the em dash and the spacing are all allowed now, and a zero match is a failure.
+    _sub_said = re.findall(r"walkthrough-silent\.mp4[`)\]]*[\s,\u2014\u2013-]*(\d+)s\b",
+                           open("SUBMISSION.md").read())
+    if not _sub_said:
+        problems.append("SUBMISSION.md no longer states the fallback video's length in a form "
+                        "this check can read -- the duration gate was passing over an empty set")
+    for _said in _sub_said:
         if int(_said) != _dur:
             problems.append(f"SUBMISSION.md: says the fallback video is {_said}s, "
                             f"the build produces {_dur}s")

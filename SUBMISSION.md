@@ -35,7 +35,7 @@ The decisions your org already made and forgot. Asked as a graph.
 >
 > It runs on Kubernetes' real governance record — 681 decisions, 958 rejected alternatives, 794 people, 585 ownership files. Nothing synthetic. The headline finding is written down nowhere: it is only true as a consequence of the structure.
 >
-> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 161 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
+> It acts, then stops: it drafts two real OWNERS patches and refuses the third, because that approval arrives through an alias. Nothing here is asserted — 164 tests, 36 graph claims re-queried against the live database on every push. I measured the premise above and could not confirm it on this corpus, and say so rather than lead with it.
 
 ## Track
 
@@ -46,8 +46,9 @@ That line is the whole answer; everything below it is for your decision, not for
 ---
 
 *Second track, if entering more than one.* The field as of 16 Oct, from public repositories
-rather than from a gallery — there is none. **175 repositories created since 14 Oct mention
-FalkorDB and 113 are Track 3 entries**, counted by `scripts_survey_field.py` rather than by hand;
+rather than from a gallery — there is none. **253 repositories created since 14 Oct mention
+FalkorDB and 134 are Track 3 entries**, counted by `scripts_survey_field.py` rather than by hand
+and re-run on 17 Oct;
 the three below were read closely, and the census of the twenty largest is further down:
 
 | entry | what it is | tracks |
@@ -70,7 +71,7 @@ means part of any graph-versus-text gap is a gap you authored.
 `Vaibhaav-Tiwari/lineage` made the same choice this did, on Python instead of Kubernetes: 745
 PEPs, 310 discuss.python.org threads and 5,708 posts, the devguide Experts Index, cpython history
 since 2015. **27,959 nodes and 67,601 relationships to this graph's 3,087 and 15,735, and 185
-tests to 161.** It is bigger and better-tested, it is honest about its own limits, and it is not
+tests to 164.** It is bigger and better-tested, it is honest about its own limits, and it is not
 deployed either — its README says the demo and video come before submission. Do not tell anyone
 this is the only entry using real data. It is not — and there is now a number for that rather
 than a caution: **4 of the 20 largest Track 3 entries name a specific real public corpus** in
@@ -145,15 +146,16 @@ do — but the deployments I did check, by request rather than by reading.
 
 **That hand-made list of eight was wrong by an order of magnitude, and it is worth saying how.**
 Re-counted with [`scripts_survey_field.py`](scripts_survey_field.py), re-run on 16 Oct as this
-was being written: **175 repositories created since 14 Oct mention FalkorDB, and 113 of them are
-Track 3 / company-brain entries.** Successive runs of the same script gave 123/85, then 141/99,
-then this — twenty-eight Track 3 entries appeared in a day. That is the best argument there is for
+was being written, and again on the evening of 17 Oct: **253 repositories created since 14 Oct
+mention FalkorDB, and 134 of them are Track 3 / company-brain entries.** Successive runs of the
+same script gave 123/85, then 141/99, then 175/113, then this — the field grew by twenty-one
+Track 3 entries between two runs a day apart, and by twenty-eight in the day before that. That is the best argument there is for
 re-running the script rather than quoting it, and the reason every figure here carries its date. Not eight. `RISHIK92/company-brain`, which the earlier sweep called substantial, now
 returns 404 — gone or made private — so one of the eight cannot even be checked any more.
 
-Of the **20 largest, 9 serve a reachable demo**, and **this is one of them** — re-run on 17 Oct
-after deploying: `SynapseCorp`, `cairn`, `northwind-drift-agent`, `keystone`, **`tombstone`**,
-`provenance`, `threadline`, `lore` and `OpsRelay`. This repository is **8th of 113 by size**. An
+Of the **20 largest, 11 serve a reachable demo**, and **this is one of them** — re-run on the
+evening of 17 Oct, after deploying. This repository is **9th of 134 by size**. Both figures moved
+between two runs on the same day, which is the argument for the script over the quote. An
 earlier version of this line said it was *not* one of them, which was true when written and
 stopped being true the moment the Render deploy went up. An earlier version of this line listed `Faultline` among them — it was read when
 it was live, but `Prashant-thakur77/Faultline` now returns 404, and it never came out of the
@@ -165,12 +167,12 @@ The count has two deliberate cautions, because getting it wrong once was enough.
 demo in the README as well as the `homepage` field — three of the fifteen largest link one only
 in their README, so counting `homepage` alone undercounts and reporting that as the deployment
 rate would be exactly the sort of flattering error this page keeps catching. And it reports a
-census of the twenty largest rather than a rate over all 113, because a rate over repositories you
+census of the twenty largest rather than a rate over all 134, because a rate over repositories you
 have actually opened is honest and one extrapolated from a sample is not. Two of those also
 time out under Python's default headers and answer 200 to `curl`; reporting a live competitor as
 dead would have been the convenient mistake.
 
-**A sharper reading of the same census.** Across all 113 the deployment rate is low, but that
+**A sharper reading of the same census.** Across all 134 the deployment rate is low, but that
 average flattens the part that matters. The three entries read closely here — `cairn`, `Faultline` (since 404),
 `keystone` — are **all three deployed**, all three enter more than one track, and one of them has
 its narrated video already published and a v1.0.0 release tagged. At the top of this field a live
@@ -179,7 +181,7 @@ instruction that follows from the census is not "relax, most of them have no dem
 ones you will actually be compared against all have one."
 
 **One conclusion from the old passage was backwards and is withdrawn.** It said a live demo "is
-now the one thing the rest of the field has and this does not". Eleven of the twenty largest
+now the one thing the rest of the field has and this does not". Nine of the twenty largest
 entries have no reachable demo either. Deploying is still clearly worth doing — the FAQ prefers a
 hosted demo, and at the serious end of the field roughly a third have one — but it moves this
 into a minority rather than up to par with everyone. The reason to do it is that judges click
@@ -188,7 +190,7 @@ links, not that the field is ahead.
 Two things follow that are worth acting on. **Multi-track entry is normal here**, so entering one
 track is a choice and should be a reasoned one. And the live demo *was* the clearest gap in this
 submission — not because the field is ahead, which the census above shows it is not, but because a
-judge with 113 entries to get through clicks links, and nine of the twenty largest give them one.
+judge with 134 entries to get through clicks links, and eleven of the twenty largest give them one.
 **That gap closed on 17 Oct**: <https://tombstone-vvn9.onrender.com>, and this document says so
 sixty lines above. It is left in rather than deleted because the reasoning is what decided the
 work, and because what a deployment does *not* settle still holds: orion's demo company is
@@ -258,7 +260,7 @@ vendored from another repository and the exclusion lives in the Cypher; the one 
 refuse is refused because the person's handle is not in the file at all — an alias expands
 to them, so no edit to that file would remove them.
 
-Nothing here is asserted. **37 CI steps on every push** re-check it: 161 tests, 36 graph claims
+Nothing here is asserted. **37 CI steps on every push** re-check it: 164 tests, 36 graph claims
 re-queried against the live database, 18 rendered UI states checked for panels that render empty,
 the drafting action's own output, the memory claims, two of the seven benchmarks re-run — the
 other five build a thousand graphs, millions of edges, a memory curve or a second vector index, so they are dated measurements with
@@ -369,7 +371,7 @@ rather than improvised.*
 | Repository | https://github.com/aviralgarg05/tombstone |
 | Live demo | <https://tombstone-vvn9.onrender.com> — Render free: sleeps after 15 min idle, first click ~1 min. Hugging Face refused a Docker Space on a free account (HTTP 402; they require PRO). |
 | Demo video | *(fill in — narrated cut per `docs/DEMO-SCRIPT.md`)* |
-| Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 703 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
+| Fallback video | [docs/video/walkthrough-silent.mp4](docs/video/walkthrough-silent.mp4) — 86s, captioned, in-repo, 699 KB. It **downloads**; GitHub does not play repo-committed video in the browser. For a judge who runs nothing and clicks nothing, the depth-contrast GIF in the README renders inline and carries the core finding |
 | Blog post | *(fill in if published — side prize is for the best post)* |
 
 ## How FalkorDB is used (Rule: it must support a central part of the product)

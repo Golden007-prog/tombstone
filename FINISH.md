@@ -63,9 +63,9 @@ the 512 MiB ceiling** (a figure since re-measured at **288 MiB under eight concu
 after the hosted instance was killed for exceeding that ceiling on 17 Oct and the cause turned out
 to be the embedder rather than `GRAPH.COPY`), and — with FalkorDB killed inside the container — reported down, returned
 `DEGRADED` for a question it had just answered, and kept serving the page.
-**That run is now 65 commits old**, and `server.py`, `agent.py` and `tools.py` have all changed
+**That run dates from 16 Oct and is now ~90 commits old** — a date rather than a count, because a count re-rots on every push — and `server.py`, `agent.py` and `tools.py` have all changed
 since. Saying "already verified" without that caveat was the stale half of this file.
-What runs against the current tree: **161 tests and `./preflight.sh` 24/24 against a live graph**,
+What runs against the current tree: **164 tests and `./preflight.sh` 24/24 against a live graph**,
 and — added since — a CI **`image` job on every push that builds this Dockerfile, boots it as the
 Space does, requires the graph to seed to 681 decisions inside the container, answers a real
 question, and proves the HTTP trust boundary holds on the built image.** So the thing that used to
@@ -89,13 +89,17 @@ the Space README is not in it at all; the deploy swaps it in as the Space's own 
 front-matter is validated on every push now. If you want the full end-to-end run again anyway
 it is one command and needs Docker, which is currently stopped on this machine.
 
-**Then verify it the way a judge will** — different network, private window, no sign-in:
+**Then verify it the way a judge will** — different network, private window, no sign-in. The
+host below is Render's, because Render is the deployment that is live. This line named
+`aviralgarg05-tombstone.hf.space` until the 17 Oct audit — written on 15 Oct, before the 402 — and
+that host returns **404**, in the same file that records the 402:
 
 ```bash
-curl -s https://aviralgarg05-tombstone.hf.space/api/health | python3 -m json.tool
+curl -s https://tombstone-vvn9.onrender.com/api/health | python3 -m json.tool
 ```
 
-Expect `"falkordb": "up"` and 681 decisions. Then click the chips in the UI.
+Expect `"falkordb": "up"` and 681 decisions; the first call waits ~1 minute if the instance has
+spun down. Then click the chips in the UI.
 
 `deploy_hf.sh` sets the repo's homepage to the live app itself on its way out, so there is
 nothing to run here — and do **not** set it by hand to the `huggingface.co/spaces/...` page
@@ -193,7 +197,7 @@ the last thing in your calendar for this, and there is no reason to stay up past
 
 For what it is worth on the way in: Track 3's prize is an M6 Mac Mini, the best-blog-post side
 prize is one winner, and the top 50 submissions each get a t-shirt per member — which, in a field
-of 113 Track 3 entries alone, makes the blog post the cheapest additional shot at something.
+of 134 Track 3 entries alone, makes the blog post the cheapest additional shot at something.
 
 ---
 

@@ -89,6 +89,8 @@ ok = found.shape == "ANSWERED_WITH_PATH" and bool(found.rows)
 fails += not ok
 print(f"  {'PASS' if ok else 'FAIL'}  reworded recall   {found.shape}")
 
-total = 3 + len(CITATIONS)
+# 4, not 3: the routing assertion ca6e1db added is a printed check like the others, and this
+# denominator's unit is printed checks. It read 6 while seven PASS/FAIL lines went by.
+total = 4 + len(CITATIONS)
 print(f"\n{total - fails}/{total} memory claims verified")
 sys.exit(1 if fails else 0)

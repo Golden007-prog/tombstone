@@ -28,17 +28,26 @@ ripplekg (real disruptions + stock events), gaming-multiverse-reasoner (IGDB). s
 only entry in the field with verifiable numbers in its README.~~
 
 **Struck rather than deleted, because every clause of it is now contradicted by a better
-measurement in this same repository.** `scripts_survey_field.py`, re-run on 17 Oct, counts **175
-repositories created in the window and 113 Track 3 entries**, not ~110 overall. A census of the 20
-largest Track 3 entries finds **5 naming a real public corpus** — `cairn` (13 FalkorDB-org repos),
-`lineage` (CPython and discuss.python.org), this one (Kubernetes), `decision-brain` (Kubernetes)
-and `Onix` (arXiv) — and **not one of them is among the four named above**, so the original list
+measurement in this same repository.** `scripts_survey_field.py`, re-run on the evening of
+17 Oct, counts **253 repositories created in the window and 134 Track 3 entries**, not ~110
+overall. A census of the 20 largest Track 3 entries finds **4 naming a real public corpus** —
+`cairn` (Kafka and Kubernetes), `lineage` (CPython and discuss.python.org), this one (Kubernetes)
+and `decision-brain` (Kubernetes) — and **not one of them is among the four named above**, so the
+original list
 was not a census of anything; it was the four I happened to have seen on day one. "The only entry
 with verifiable numbers" does not survive either: `cairn` publishes a four-system eval graded
 twice, and `keystone` checks each quoted decision against its source text in code.
 
+**Why the script prints 5 where this page says 4.** Its corpus detector is keyed to words, and
+`chromium` matches `npx playwright install chromium` in `allevia-company-brain` — a browser its
+crawler needs, not a corpus it reads. That is the same word-keyed-to-a-word weakness the script's
+own comment already confesses for `apache` and `acme`, so the figure here is the script's output
+minus one read entry, and the difference is stated rather than quietly reconciled. An earlier
+version of this paragraph also listed `Onix` (arXiv), which has since dropped out of the twenty
+largest: another reason the number carries a date.
+
 What survives is the weaker claim, which is still the useful one: **real public data is the rarer
-choice** — a quarter of the serious end of the field, measured rather than estimated — and it is
+choice** — a fifth of the serious end of the field, measured rather than estimated — and it is
 not this entry's private territory. See SUBMISSION.md for the census and the caveat that it reads
 what a README *claims*, not what its code does.
 

@@ -14,7 +14,8 @@ elif [ -n "${VIRTUAL_ENV:-}" ];      then PY="$VIRTUAL_ENV/bin/python"
 elif command -v python3 >/dev/null;  then PY="$(command -v python3)"
 elif command -v python  >/dev/null;  then PY="$(command -v python)"
 else
-  echo "No Python found. Install Python 3.10+ and re-run." >&2
+  echo "No Python found. Install Python 3.11-3.14 and re-run." >&2
+  echo "  Not newer: fastembed needs onnxruntime, which ships no wheel outside that range." >&2
   exit 1
 fi
 # If there is no venv yet and the interpreter we found cannot run this, BUILD the venv rather

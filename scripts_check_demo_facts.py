@@ -93,7 +93,15 @@ check("beat 6 says 'emeritus in twenty files'", "twenty files" in script and em 
 # beat about remembering showed "nothing like this has been asked". Worse, chip clicks were not
 # recorded at all -- only typed questions were -- so even a matching question would have missed.
 # This replays the demo on a cleared memory and requires the recall beat to find something.
-agent.g.query("MATCH (a:Answer) DETACH DELETE a")
+# Total rather than scoped to the two questions below, and it has to be: recall is a
+# nearest-neighbour query, so an answer an earlier session left behind could satisfy the beat and
+# this check would pass without the demo's own beats having recorded anything. Total, therefore
+# announced -- bench_memory_growth.py sweeps only its own rows precisely because a check that
+# eats a developer's accumulated memory in silence is a bad neighbour. `./run.sh --forget` does
+# the same thing at a moment you choose.
+_wiped = int(agent.g.query("MATCH (a:Answer) DETACH DELETE a").nodes_deleted or 0)
+print(f"  cleared {_wiped} remembered answer{'' if _wiped == 1 else 's'}, so the recall beat "
+      f"can only find what the beats below record")
 OWNERS_PATH = OWNERS
 for tool, args, question in (
     ("who_owns", {"path": OWNERS_PATH, "depth": 4}, "who really owns the apiserver metrics endpoint"),

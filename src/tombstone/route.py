@@ -28,7 +28,7 @@ import re
 
 import numpy as np
 
-from tombstone.embedding import embed_rows
+from tombstone.embedding import LOCK as _EMBED_LOCK, embed_rows
 
 # Example phrasings per tool. These are routing data, and they double as documentation of what
 # each tool is actually for. A question is matched against the BEST single phrase of a tool, not
@@ -192,16 +192,28 @@ class LocalRouter:
         self._matrix: np.ndarray | None = None
 
     def _ready(self) -> None:
+        # Double-checked under the embed lock, the same way `Agent.embedder` is and for the same
+        # reason. That lock bounded the MODEL and not this: eight concurrent first asks all saw
+        # `None` here and all built the 91-phrase matrix, so a cold burst embedded 736 rows where
+        # 91 are needed -- on a target with a tenth of a CPU that sleeps after 15 minutes, which
+        # is to say on exactly the cold start a judge arrives into. RLock, so re-entering it
+        # inside `embed_rows` below is harmless.
         if self._matrix is not None:
             return
-        flat, owners = [], []
-        for tool, phrases in PHRASES.items():
-            for phrase in phrases:
-                flat.append(phrase)
-                owners.append(tool)
-        vecs = np.asarray(embed_rows(self._embed, flat), dtype=np.float32)
-        vecs /= np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-9
-        self._matrix, self._tools = vecs, owners
+        with _EMBED_LOCK:
+            if self._matrix is not None:
+                return
+            flat, owners = [], []
+            for tool, phrases in PHRASES.items():
+                for phrase in phrases:
+                    flat.append(phrase)
+                    owners.append(tool)
+            vecs = np.asarray(embed_rows(self._embed, flat), dtype=np.float32)
+            vecs /= np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-9
+            # `_tools` first, `_matrix` last: `_matrix` is the flag the fast path above tests, so
+            # publishing it last means no reader sees a matrix beside an empty `_tools`.
+            self._tools = owners
+            self._matrix = vecs
 
     def route(self, question: str) -> dict:
         """-> {"tool": name, "args": {...}, "score": float} or {"tool": None, "near": [...]}"""

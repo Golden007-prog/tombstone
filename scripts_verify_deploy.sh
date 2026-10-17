@@ -148,8 +148,15 @@ echo "  no browser storage   -> survives third-party cookie blocking"
 # `ro_query` calls proves a convention; this asks the server what it will let that identity do.
 # A hardening that is configured and not in force is the same defect as a measurement that was
 # true last week -- which is the one that cost this project a day.
-ident="$(curl -s -m 10 "http://localhost:$PORT/api/health" \
-         | python3 -c 'import json,sys; print(json.load(sys.stdin).get("read_identity"))')"
+# The assignment sits to the LEFT of `||` so `set -e` cannot kill the script here, and the
+# traceback is dropped: when /api/health returned anything that is not JSON -- nothing listening,
+# an HTML 502 from a proxy -- this aborted on a json.decoder stack trace BEFORE its own FAIL
+# message and its `docker logs | grep "read path"` diagnostic could run. The unparsed body is
+# carried into the message instead, so the operator reads the script's sentence, not Python's.
+health_json="$(curl -s -m 10 "http://localhost:$PORT/api/health" || true)"
+ident="$(printf '%s' "$health_json" \
+         | python3 -c 'import json,sys; print(json.load(sys.stdin).get("read_identity"))' 2>/dev/null)" \
+  || ident="<no JSON from /api/health: ${health_json:-empty response}>"
 echo "  read identity        -> $ident"
 [ "$ident" = "tombstone-reader" ] || {
   echo "FAIL: the container answers public requests as '$ident'. The reader ACL did not take, so"

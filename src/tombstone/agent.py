@@ -250,7 +250,15 @@ class Agent:
         if (remembered and remembered[5] > 0 and ans.shape == "ANSWERED_WITH_PATH"
                 and len(ans.rows) == remembered[4]):
             import datetime as _dt
-            when = _dt.datetime.fromtimestamp((remembered[3] or 0) / 1000).strftime("%d %b %H:%M")
+            # UTC, and labelled. `fromtimestamp` with no tz renders the PROCESS's zone, and the
+            # deploy image sets no TZ, so the container printed a bare UTC wall clock with nothing
+            # saying so: a question asked seconds earlier read 5h30m old to an IST judge and, since
+            # UTC runs ahead of the Americas, several hours in the FUTURE to a PDT one -- on the one
+            # beat that demonstrates that this thing remembers what it learns. Invisible in local
+            # dev, because a dev machine's zone IS the reader's; only the deploy is UTC, and the
+            # deploy is what gets judged.
+            when = _dt.datetime.fromtimestamp(
+                (remembered[3] or 0) / 1000, _dt.timezone.utc).strftime("%d %b %H:%M UTC")
             ans.shape = "ANSWERED_FROM_MEMORY"
             cited_n = int(remembered[5] or 0)
             held = (f"The {_n(cited_n, 'node')} that answer cited is" if cited_n == 1
@@ -258,6 +266,14 @@ class Agent:
             ans.note = (f"Asked before ({int(remembered[2] or 1)}x, last {when}). {held} still "
                         f"in the graph, and re-running it just now returned the same "
                         f"{_n(len(ans.rows), 'row')}.")
+            # Re-attached, because this branch REPLACES the note dispatch wrote -- and the second
+            # identical POST is exactly when somebody is trying `write_to` twice to see whether it
+            # took. Losing the refusal on the repeat would make it look like the first answer had
+            # been the unusual one.
+            if getattr(self, "_last_refused", None):
+                ans.note += (f" Refused {_n(len(self._last_refused), 'argument')} that would "
+                             f"touch the filesystem ({', '.join(self._last_refused)}); nothing "
+                             f"was written to disk.")
 
         # Additive and best-effort: a memory write must never break the answer that was asked for.
         #
@@ -279,14 +295,21 @@ class Agent:
 
     def router(self):
         """The keyless router. Built once, from people who actually exist in the graph."""
-        if getattr(self, "_router", None) is None:
-            from tombstone.route import LocalRouter
-            try:
-                people = {r[0] for r in
-                          self.gr.ro_query("MATCH (p:Person) RETURN p.key").result_set}
-            except Exception:
-                people = set()
-            self._router = LocalRouter(self.embedder, people)
+        if getattr(self, "_router", None) is not None:    # the hot path, no lock
+            return self._router
+        # Double-checked, like `embedder` above. "Built once" was not true under concurrency:
+        # eight first asks each saw `None` across the people query's round trip and each built a
+        # router, and a router carries its own phrase matrix -- so guarding `LocalRouter._ready`
+        # alone would still have left eight matrices built.
+        with _EMBED_LOCK:
+            if getattr(self, "_router", None) is None:
+                from tombstone.route import LocalRouter
+                try:
+                    people = {r[0] for r in
+                              self.gr.ro_query("MATCH (p:Person) RETURN p.key").result_set}
+                except Exception:
+                    people = set()
+                self._router = LocalRouter(self.embedder, people)
         return self._router
 
     def ask_locally(self, question: str, force: str | None = None) -> dict:
@@ -414,11 +437,36 @@ class Agent:
         The refusal is here rather than in server.py because this is the single chokepoint every
         route goes through, and a denylist kept in two files is a denylist that drifts.
         """
+        # Refused, and SAID so. The strip itself was always correct and the image job proves no
+        # directory appears inside the container -- but the response was byte-identical to one
+        # that never sent `write_to`, so "a POST of a filesystem argument is refused on the public
+        # instance" could be read off the README and not off the product. Proving it otherwise
+        # needs a shell in the container, which nobody outside has. An invariant that only its
+        # author can observe is an assertion, however much the test suite knows.
+        _refused = []
+        self._last_refused = []
         if not allow_local_writes and args:
+            _refused = sorted(k for k in args if k in UNSAFE_ARGS)
             args = {k: v for k, v in args.items() if k not in UNSAFE_ARGS}
+        if _refused:
+            # Stashed on self, because `_remember` REPLACES `note` when an answer is upgraded to
+            # ANSWERED_FROM_MEMORY -- and the second identical POST is exactly when somebody is
+            # trying this twice to see whether it took.
+            self._last_refused = _refused
         if tool not in CATALOGUE:
             return Answer("UNKNOWN_ENTITY", tool,
                           note=f"'{tool}' is not a tool in this catalogue. Nothing was run.")
+        if _refused:
+            _ans = self._dispatch_inner(tool, args, allow_local_writes=allow_local_writes)
+            _said = (f"Refused {_n(len(_refused), 'argument')} that would touch the filesystem "
+                     f"({', '.join(_refused)}); the tool answered without it and nothing was "
+                     f"written to disk.")
+            _ans.note = f"{_ans.note} {_said}".strip() if _ans.note else _said
+            return _ans
+        return self._dispatch_inner(tool, args, allow_local_writes=allow_local_writes)
+
+    def _dispatch_inner(self, tool: str, args: dict, *,
+                        allow_local_writes: bool = False) -> Answer:
         if self.tools is None and not self._reconnect():
             return Answer("DEGRADED", tool,
                           note="FalkorDB is unreachable, so there is nothing to reason over. "
@@ -431,7 +479,29 @@ class Agent:
             except (TypeError, ValueError):
                 return default
 
+        # The same principle as `num`, for the arguments that are STRINGS -- and it was missing,
+        # so every tool whose argument is a string answered a wrong TYPE with DEGRADED carrying a
+        # raw Python message: `path: ["x"]` came back "'list' object has no attribute 'strip'",
+        # and `idea_text: {}` the same for 'dict'. DEGRADED is documented to mean no answer was
+        # produced, and a judge poking the API reads it as the database being down. A bad request
+        # is UNKNOWN_ENTITY: the product declining to guess, which is the shape it already uses
+        # for a handle nobody has. Returning the Answer from here rather than raising keeps the
+        # twenty branches below unchanged.
+        def text_arg(v, field: str):
+            """-> (value, None) or (None, Answer). A list, dict, int or None is not a name."""
+            if v is None or isinstance(v, str):
+                return (v or ""), None
+            return None, Answer(
+                "UNKNOWN_ENTITY", tool,
+                note=f"`{field}` must be text, not {type(v).__name__}. Nothing was looked up.")
+
         try:
+            for _field in ("path", "handle", "idea_text", "text", "question"):
+                if _field in args:
+                    _v, _bad = text_arg(args[_field], _field)
+                    if _bad is not None:
+                        return _bad
+                    args = {**args, _field: _v}
             if tool == "has_this_been_tried":
                 text = args.get("idea_text") or args.get("text") or ""
                 if not text.strip():
@@ -973,7 +1043,8 @@ def render(a: Answer) -> str:
         import datetime as _dt
         lines = []
         for asked, tool_used, shape, times, ts, rows, cited, dist in a.rows:
-            when = _dt.datetime.fromtimestamp((ts or 0) / 1000).strftime("%d %b %H:%M")
+            when = _dt.datetime.fromtimestamp(
+                (ts or 0) / 1000, _dt.timezone.utc).strftime("%d %b %H:%M UTC")
             refs = ", ".join(str(c.get("key")) for c in (cited or []) if c.get("key"))[:120]
             lines.append(
                 f"• “{asked}” — asked {times}x, last {when}, answered with {tool_used} "

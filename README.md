@@ -28,9 +28,9 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   [Honest limits](#honest-limits).
 > - **See it work without running anything:** the picture two screens down renders inline —
 >   depth 1 returns nothing, depth 4 explains why. There is also an
->   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (703 KB, downloads;
+>   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (699 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 161 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 164 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **37 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -94,7 +94,7 @@ than trusting the note I made when I started**: still eighteen rules, still no r
 weights, and the track pages still publish "Key focus" bullets rather than scored dimensions. The
 two published standards that do
 exist are Rule 10's six-item submission checklist and the track's own
-["Key focus" bullets, mapped line by line above](#track-03s-own-key-focus-line-by-line) — including
+["Key focus" bullets, mapped line by line below](#track-03s-own-key-focus-line-by-line) — including
 the one of the five this does not do. Rather than guess at a rubric, here is Rule 10's checklist
 with the exact location of each item and an honest status.
 
@@ -102,9 +102,9 @@ with the exact location of each item and an honest status.
 |---|---|---|
 | A public source-code repository | this repo, Apache-2.0 | **done** |
 | A README with setup instructions and the graph data model | [Quickstart](#quickstart) and [The graph data model](#the-graph-data-model) | **done** |
-| The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — every query generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source** | **done** |
-| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 703 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
-| A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup **plus a video, which is how the FAQ words the fallback** — not "either/or" but *complete local setup instructions **and** a working demo video* if you cannot deploy; Rule 10 requires the video separately, so both halves are present. **Satisfied both ways as of 17 Oct: there is now a live deployment at <https://tombstone-vvn9.onrender.com>** — verified against the running instance, not asserted: `/api/health` reports FalkorDB up with 681 decisions, 752 named options, 794 people and 585 ownership files; all thirteen tools answer; free text routes with no key; and a `POST` of a filesystem argument is refused on the public instance. Built from this Dockerfile, which CI also builds and boots on every push. |
+| The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — **all twelve** query constants generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source**. It carried nine of the twelve until the 17 Oct audit, and the drift check was a *substring* test, so an addition to the section could not fail it; it is an equality test now, and the three that were missing included the product's only use of `algo.labelPropagation` — the graph algorithm this rule names | **done** |
+| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 699 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
+| A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup **plus a video, which is how the FAQ words the fallback** — not "either/or" but *complete local setup instructions **and** a working demo video* if you cannot deploy; Rule 10 requires the video separately, so both halves are present. **Satisfied both ways as of 17 Oct: there is now a live deployment at <https://tombstone-vvn9.onrender.com>** — verified against the running instance, not asserted: `/api/health` reports FalkorDB up with 681 decisions, 752 named options, 794 people and 585 ownership files; all thirteen tools answer; free text routes with no key; and a `POST` of a filesystem argument is refused on the public instance **and says so in the answer** — so that one is checkable by a stranger with curl rather than only by me with a shell in the container, which is what it was until the 17 Oct audit. Built from this Dockerfile, which CI also builds and boots on every push. |
 | The track you are entering | **Track 3, Company Brain**, stated at the top of this README | **done** |
 
 Two rules beyond the checklist:
@@ -232,7 +232,7 @@ is now checked character-for-character against the article text.
 | *"Return the path with the answer"*, not an explanation written afterwards | **In substance, yes; as a drawn path, partly.** Every answer carries the rows, the exact Cypher, its hash and a coverage statement, and the prose is formatted from those rows — no model writes it, which is the thing the article is actually guarding against. The *drawn* path appears on 4 of 14 questions: both depths of `who_owns`, `successor_for`, and `what_if_they_go` — the ones whose answer genuinely is a route between named things. The counterfactual's picture is drawn from the verdict in the answer beside it rather than recomputed, and it shows the area that loses its last approver next to two areas the same cohort empties that survive anyway, each with the ancestor it inherits coverage from and the people still approving there (up to two of them, and up to two such areas, so the picture stays readable). That contrast *is* the cascade `GRAPH.COPY` exists to compute. For "which areas have one approver" there is no path to draw, only a list, and inventing a picture for it would be decoration. |
 | *"a plausible service name is worse than no answer"* | The README has said *"a plausible wrong name here would be worse than no answer"* since before I read theirs. |
 | *"Write it as a node, connect it to what it is about, and read it before you reason"* | `(:Answer)` nodes that `CITED` the records they came from — [and memory only answers while those citations resolve](#it-remembers-what-it-learns). |
-| it is *"worth returning the date alongside the text rather than folding it into prose"* | Recall prints *"asked 1x, last 15 Oct 23:32"* beside every hit. |
+| it is *"worth returning the date alongside the text rather than folding it into prose"* | Recall prints *"asked 1x, last 15 Oct 18:02 UTC"* beside every hit — labelled, because the container keeps UTC and a judge does not. |
 | *"a tenant is a graph rather than a filter you have to remember to apply"* | **Partly.** The app is single-tenant — it selects one graph at startup and never switches, so there is nothing here to isolate. What I can show is that the mechanism works: [measured to 1000 graphs](#why-falkordb-measured-honestly--including-where-it-loses), isolation is physical, a second tenant running the identical Cypher gets `[]`, and `db.labels()` does not list the label. That is a property of FalkorDB I verified, not a feature this product uses. |
 | *"FalkorDB ships these as procedures you call with `CALL algo.<name>()`, which means your agent gets them as tools"* — rather than reimplementing | `algo.betweenness` (seeded), `algo.labelPropagation`, `GRAPH.COPY`, a vector index — all called, none reimplemented. |
 | *"Whether the graph is doing work the agent could not do without it"* | [Turn FalkorDB off](#turn-falkordb-off-and-here-is-exactly-what-stops-working) — and the one place I overclaimed that, I withdrew. |
@@ -910,7 +910,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 161 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 164 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1074,9 +1074,14 @@ Findings that fall straight out of it, each checkable:
 - **7 areas lost every *dedicated* approver** — see the correction below; they are not unowned.
 - `lavalamp` is emeritus in **31** ownership files — more than anyone else — and is only **third**
   by betweenness among departed contributors (115.97, sampled, seed pinned). `logicalhan` is first
-  at **156.46**, having left just five areas behind. That gap is the finding: counting the files
-  someone walked away from ranks them by volume, and the question worth asking is how much
-  *connective* authority left with them. This line previously said lavalamp had the highest
+  at **156.46**, having left just five areas behind. **That ordering is a sampling artefact and the
+  contrast it implies does not survive exactness** — `algo.betweenness` samples 32 source nodes by
+  default, and run exactly over the same 21 people Brandes puts `lavalamp` **first** at 4238.6 with
+  `logicalhan` second at 2315.5, so the person who left the most areas behind *is* the most
+  connective. What the tool demonstrates is composing centrality with an ownership traversal in one
+  query; what this particular ranking demonstrates is one seed's draw, measured in full under
+  [Honest limits](#honest-limits). It is stated here because a findings list that asserts what the
+  page withdraws four hundred lines later is worse than one that says less. This line previously said lavalamp had the highest
   betweenness, at 196.1 — wrong on both the ranking and the number, and contradicted by the demo
   script standing beside it, which has always narrated lavalamp as third.
 
@@ -1094,7 +1099,7 @@ Every answer is one of six shapes:
 | `ANSWERED_FROM_MEMORY` | asked before — and the nodes that answer cited **still resolve** |
 | `NOT_IN_GRAPH` | the traversal ran and returned nothing — **always** with a coverage statement |
 | `UNKNOWN_ENTITY` | the name didn't resolve, so nothing else ran |
-| `DEGRADED` | the graph is unreachable. No fallback. |
+| `DEGRADED` | no answer was produced — either the graph is unreachable, or it is reachable and the query (or the `GRAPH.COPY` behind a counterfactual) could not complete. No fallback and no cached answer, either way. |
 | `UNSURE_WHICH_TOOL` | the question was understood as *not one of these* — the router declined rather than guess |
 
 `ANSWERED_FROM_MEMORY` is **earned, not cached.** It is only returned when the prior answer's
@@ -1274,6 +1279,92 @@ ORDER BY cited_by DESC, m.key
 LIMIT $limit
 ```
 `query_sha` = `032f655b6aa7` — stamped on every answer this query produces.
+
+### `hollowing_communities` — Which contributor COMMUNITY is losing its people fastest?
+
+*Why a graph:* The groups are declared nowhere in this corpus -- no membership file produces them. `algo.labelPropagation` discovers them from who has actually worked on decisions together, over the CO_AUTHORED projection the database computed itself, and only then can the query ask what fraction of each partition still holds authority. FalkorDB has no Louvain or Leiden, so label propagation is the algorithm available: non-deterministic, with no resolution parameter, which the answer states rather than hides.
+
+```cypher
+CALL algo.labelPropagation({nodeLabels:['Person'], relationshipTypes:['CO_AUTHORED']})
+YIELD node, communityId
+WITH communityId, collect(node) AS members, count(node) AS size
+WHERE size >= $minSize
+UNWIND members AS m
+OPTIONAL MATCH (m)-[gone:EMERITUS_OF]->()
+OPTIONAL MATCH (m)-[live:APPROVES]->()
+WITH communityId, size, m, count(gone) AS g, count(live) AS l
+WITH communityId, size,
+     sum(CASE WHEN g > 0 AND l = 0 THEN 1 ELSE 0 END) AS stepped_back,
+     sum(CASE WHEN l > 0 THEN 1 ELSE 0 END)           AS still_approving,
+     collect(CASE WHEN g > 0 AND l = 0 THEN m.key ELSE null END) AS gone_names
+WHERE stepped_back > 0
+RETURN communityId                                        AS community,
+       size,
+       stepped_back,
+       still_approving,
+       round(100.0 * stepped_back / size)                 AS pct_stepped_back,
+       [x IN gone_names WHERE x IS NOT NULL][0..5]        AS who_stepped_back
+ORDER BY pct_stepped_back DESC, size DESC
+LIMIT $limit
+```
+`query_sha` = `dd55b3cc6486` — stamped on every answer this query produces.
+
+### `sole_approver_risk` — Which areas have exactly ONE approver, and who is it?
+
+*Why a graph:* The control arm of the counterfactual. For one person a bus factor is exact and needs no simulation, which is why `GRAPH.COPY` is reserved for the cohort case, where coverage cascades up the inheritance tree and cannot be read off a count.
+
+```cypher
+MATCH (p:Person)-[:APPROVES]->(o:OwnersFile)
+WITH o, collect(DISTINCT p.key) AS approvers
+WHERE size(approvers) = 1
+WITH approvers[0] AS sole, collect(o.path) AS areas
+RETURN sole                AS only_approver,
+       size(areas)         AS areas_held_alone,
+       areas[0..5]         AS sample_areas
+ORDER BY areas_held_alone DESC, only_approver
+LIMIT $limit
+```
+`query_sha` = `29d9833555a3` — stamped on every answer this query produces.
+
+### `stale_knowledge` — What does this graph know that is going stale?
+
+*Why a graph:* Three conditions that only meet in a traversal: still cited by other decisions, still undecided years later, and authored by people who have since stepped back. Each is cheap alone; the intersection is the finding.
+
+```cypher
+MATCH (other:Kep)-[:SEE_ALSO|REPLACES]->(k:Kep)
+WHERE k.status IN ['provisional', 'implementable']
+  AND k.created_ms > 0
+  AND ($now - k.created_ms) > $ageMs
+WITH k, count(DISTINCT other) AS still_cited_by
+
+MATCH (author:Person)-[:AUTHORED|APPROVED]->(k)
+OPTIONAL MATCH (author)-[liveRole:APPROVES]->()
+OPTIONAL MATCH (author)-[gone:EMERITUS_OF]->()
+WITH k, still_cited_by, author, count(liveRole) AS live, count(gone) AS emeritus
+WITH k, still_cited_by,
+     count(DISTINCT author)                                     AS authors,
+     sum(CASE WHEN live > 0 THEN 1 ELSE 0 END)                   AS with_current_role,
+     sum(CASE WHEN emeritus > 0 AND live = 0 THEN 1 ELSE 0 END)  AS verifiably_departed,
+     sum(CASE WHEN emeritus = 0 AND live = 0 THEN 1 ELSE 0 END)  AS status_unknown
+
+RETURN k.num                           AS kep,
+       k.title                         AS title,
+       k.status                        AS status,
+       k.sig                           AS sig,
+       ($now - k.created_ms) / $msYear AS years_undecided,
+       still_cited_by,
+       authors,
+       with_current_role,
+       verifiably_departed,
+       status_unknown,
+       CASE WHEN with_current_role = 0 AND verifiably_departed > 0 THEN 'AUTHOR_STEPPED_BACK'
+            WHEN with_current_role = 0 THEN 'NO_AUTHOR_HOLDS_A_ROLE'
+            ELSE 'AUTHOR_STILL_ACTIVE' END AS currency,
+       k.url                           AS source_url
+ORDER BY with_current_role ASC, verifiably_departed DESC, still_cited_by DESC
+LIMIT $limit
+```
+`query_sha` = `a8e6426a549b` — stamped on every answer this query produces.
 
 ### `who_owns` — Who owns this area? (depth 1 — what any database serves)
 
@@ -1506,11 +1597,15 @@ times. Each fix made the claim narrower and more defensible.
   under an exact computation the person who left the most areas behind *is* the most connective,
   and the contrast the demo is built on disappears. **It exists because the computation samples.**
   **Not yet changed in the product, deliberately.** Exactness means `samplingSize: 727`, which
-  moves the query off its 25 ms benchmark row, re-ranks a figure three documents quote, and
+  moves the query off its 16 ms benchmark row, re-ranks a figure three documents quote, and
   regenerates four artefacts — a day before the deadline with the video unrecorded. What changed
   instead: the demo script no longer narrates the unstable ordering, nor the "under twenty
-  milliseconds" line that this repository's own benchmark already contradicted at 25 ms and that
-  the deployed instance answers in ~83 ms. It now says only what holds either way. These numbers
+  milliseconds" line — which **holds** on the laptop in that table, where the FalkorDB column reads
+  **16 ms**, and fails on the deployed instance, which answers in **~83 ms**. This paragraph said
+  the repository's own benchmark "already contradicted it at 25 ms": 25 ms is *networkx's* column
+  in that row, not this product's, so the sentence withdrew a true claim for a false reason and
+  read the comparison it was built to make backwards. The line is still withdrawn, because a
+  figure a judge cannot reproduce by clicking is not one to narrate. These numbers
   are here so a judge can check the sampled ones instead of discovering this for themselves.
 
 - **Nine of the 794 `Person` nodes are not people, and they hold 84 edges.** Found by listing

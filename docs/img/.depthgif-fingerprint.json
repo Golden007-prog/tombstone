@@ -1,9 +1,9 @@
 {
   "data/corpus.json.gz": "acf66973b25948e1",
   "scripts_gen_depth_gif.py": "32a68277a74510bb",
-  "src/tombstone/agent.py": "e1448ca08ba9f065",
+  "src/tombstone/agent.py": "7edc79f80620963d",
   "src/tombstone/build.py": "858637df7edba710",
-  "src/tombstone/server.py": "29b29c4660259b98",
+  "src/tombstone/server.py": "b95bb360be16e260",
   "web/app.js": "c7ed82b731d1ca06",
   "web/index.html": "ddfad0f47d5786d9",
   "web/style.css": "6da37a2eeef8c71f"

@@ -224,7 +224,7 @@ a wrong answer or a timeout.
 
 One command: `./preflight.sh` — twenty-four checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-37 CI steps on every push, 39 runs because two repeat across Python 3.11 and 3.14. 161 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
+37 CI steps on every push, 39 runs because two repeat across Python 3.11 and 3.14. 164 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"
@@ -241,7 +241,7 @@ Say these before you are asked:
    through rather than deleted. PageRank held up, at 30–145x across machines — the low end
    is a loaded laptop, and the range is reported rather than gated because gating a ratio
    turned CI red for a claim that was never false.
-5. **Three of fourteen questions draw a reasoning path**, not all of them — there is no path to
+5. **Four of fourteen questions draw a reasoning path**, not all of them — there is no path to
    draw for "which areas have exactly one approver", and inventing a picture for a list would be
    decoration.
 
