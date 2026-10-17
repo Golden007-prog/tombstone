@@ -30,7 +30,7 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   depth 1 returns nothing, depth 4 explains why. There is also an
 >   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (704 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 156 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 159 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **36 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -501,6 +501,62 @@ FalkorDB inside the running container** and checks what is left:
 
 On a Space this is not hypothetical: a killed database is what an OOM looks like.
 
+## The read path cannot write, and the server is the one enforcing that
+
+Every HTTP request that answers a question goes through `ro_query`. There are **28 of those calls**
+across six modules, every one written by hand, and that is a *convention*: the next call site
+someone adds can type `query` instead, and nothing would notice. Cypher injection is already
+structurally impossible here — fixed query text, parameters only, with
+[a test that drives it](#the-cypher-this-product-depends-on) — so this is not patching a hole. It
+is turning the convention into something the engine owns, so the hole cannot be opened later.
+
+The container boots a Redis ACL identity and the public read path authenticates as it:
+
+```
+ACL SETUSER tombstone-reader on >… resetkeys resetchannels ~tomb:k8s -@all +graph.ro_query +info +ping
+```
+
+`-@all` first, then exactly three grants. `+graph.ro_query` is the read path. `+ping` is the probe.
+`+info` is there because **the FalkorDB client issues `INFO server` while constructing**, to detect
+Sentinel — without it the connection raises before a single query runs, which is the kind of thing
+only running it finds. The password is generated per boot, never written to a file, never in the
+image and never in this repository.
+
+What the server then refuses that identity, read off the built container rather than reasoned about:
+
+| probe | the server's answer |
+|---|---|
+| `GRAPH.QUERY tomb:k8s 'CREATE (:X)'` | `has no permissions to run the 'graph.QUERY' command` |
+| `GRAPH.COPY tomb:k8s tomb:stolen` | `has no permissions to run the 'graph.COPY' command` |
+| `GRAPH.DELETE tomb:k8s` | `has no permissions to run the 'graph.DELETE' command` |
+| `GRAPH.CONSTRAINT DROP …` | `has no permissions to run the 'graph.CONSTRAINT' command` |
+| `FLUSHALL`, `CONFIG SET`, `SCRIPT LOAD`, `ACL SETUSER` | each refused by name |
+| `GRAPH.RO_QUERY tomb:k8s:cf:probe` | `has no permissions to access the 'tomb:k8s:cf:probe' key` |
+
+That last row is the key pattern earning its keep: the grant names **one** graph rather than
+`tomb:*`, so the identity that serves the public cannot read a counterfactual's throwaway copy
+either. The writes the product genuinely does — recording an answer, `GRAPH.COPY` for a
+hypothetical, creating the eight constraints — run as the default identity on a second connection.
+`Tools` holds the reader; `Memory` and `Counterfactual` hold the writer; a test asserts that wiring,
+because a refactor that handed `Tools` the writer would pass every other test in this file.
+
+**A read-only key selector would be the honest way to write this, and it cannot work.** `%R~tomb:k8s`
+is Redis's "may read this key", and with it even a plain read is refused `No permissions to access
+a key`. The engine says why: `COMMAND INFO graph.RO_QUERY` reports the command flagged `readonly`
+but its **key spec** flagged `RW access update`, where native `GET` reports `RO access` — and ACL
+selectors test the key spec. So no FalkorDB graph command can be expressed with a read-only
+selector. A review had found this for `GRAPH.COPY` and read it as a quirk of that one command; it
+is the general case, and [a test pins it to `COMMAND INFO`](tests/test_invariants.py) so that if
+FalkorDB ever declares an `RO` key spec, the test says the grant can be tightened.
+
+Two honest limits. This closes "a future code change lets a mutation reach the engine through the
+read path"; it does **not** close "someone can execute commands inside the container", where the
+default identity still has everything. And if the ACL does not take — an older server whose module
+commands it cannot name — **the boot does not fail.** It drops to the default identity and
+`/api/health` reports `read_identity: default`, the deploy check fails on that artefact, and the
+keep-warm job fails on the live URL. A hardening that is configured but not in force is the same
+defect as a measurement that was true last week, and this project has already paid for one of those.
+
 ## How do I know the graph is a faithful reading of the corpus?
 
 Every other check here asks the graph a question and asserts something about the answer. That
@@ -846,7 +902,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 156 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 159 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 

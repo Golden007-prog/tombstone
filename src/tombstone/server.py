@@ -20,6 +20,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
+from graphkit.ingest import read_identity
 from tombstone.agent import Agent, headline, render
 from tombstone.tools import CATALOGUE
 
@@ -60,7 +61,7 @@ def health():
     h = a.health()
     if h.get("falkordb") == "up":
         try:
-            stats = a.g.ro_query(
+            stats = a.gr.ro_query(
                 """
                 MATCH (k:Kep) WITH count(k) AS keps
                 MATCH (n:NamedOption) WITH keps, count(n) AS options
@@ -82,6 +83,13 @@ def health():
     # fixed catalogue, which is why the ask box is never disabled.
     h["routing"] = "llm" if h["llm_configured"] else "local-embedding"
     h["memory"] = _memory()
+    # Which identity answered this request, named rather than assumed. `tombstone-reader` is a
+    # Redis ACL user granted `+graph.ro_query` and nothing else, so the server refuses it
+    # GRAPH.QUERY, GRAPH.COPY, GRAPH.DELETE, GRAPH.CONSTRAINT, FLUSHALL, CONFIG SET and ACL
+    # SETUSER -- checked, not assumed, in `test_the_read_identity_cannot_write`. `default` means
+    # no ACL is configured on this instance and the read path could write if a call site asked
+    # it to: true for a bare local clone, and a deploy-check failure for the hosted container.
+    h["read_identity"] = read_identity()
     return h
 
 
@@ -242,7 +250,7 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
         return key
 
     if path:
-        rows = a.g.ro_query(
+        rows = a.gr.ro_query(
             """
             MATCH (o:OwnersFile {path: $p})
             OPTIONAL MATCH (live:Person)-[:APPROVES]->(o)
@@ -303,7 +311,7 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
 
         drawn_strand = 0
         for apath in strand[:2]:
-            rows = a.g.ro_query(
+            rows = a.gr.ro_query(
                 "MATCH (p:Person)-[:APPROVES]->(o:OwnersFile {path: $p}) WHERE p.key IN $hs "
                 "RETURN collect(DISTINCT p.key)[0..4]",
                 params={"p": apath, "hs": hs},
@@ -317,7 +325,7 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
 
         # Two areas the same cohort empties that survive anyway, each with the ancestor that
         # carries them. This is the contrast that makes the struck-through one mean something.
-        fallbacks = a.g.ro_query(
+        fallbacks = a.gr.ro_query(
             """
             MATCH (p:Person)-[:APPROVES]->(o:OwnersFile)
             WHERE p.key IN $hs AND NOT o.path IN $strand
@@ -355,7 +363,7 @@ def subgraph(path: str = "", handle: str = "", handles: str = "", stranded: str 
         # drawing all of it produces exactly the hairball this panel exists to avoid. Show the
         # three strongest successors against the areas they actually share -- the ranked list in
         # the answer already carries the full result.
-        rows = a.g.ro_query(
+        rows = a.gr.ro_query(
             """
             MATCH (p:Person {key: $h})-[:EMERITUS_OF]->(o:OwnersFile)
             MATCH (cand:Person)-[:APPROVES]->(o)

@@ -100,6 +100,16 @@ jobs:
       # repository during judging over a number that moves with traffic; a report with no gate at
       # all is how the last one went unnoticed. Missing fields are a skip, not a failure: an
       # instance deployed before this existed, or a host with no cgroup, is not a problem.
+      # The read path authenticates as a Redis ACL identity the server refuses to let write. That
+      # is set up at container boot, so it can fail there -- and a hardening that is configured
+      # and not in force is the same defect as a measurement that was true last week. The deploy
+      # check asserts it on the artefact; this asserts it on the thing judges actually click.
+      - name: The live read path is the identity that cannot write
+        if: steps.find.outputs.url != ''
+        run: |
+          curl -sf -m 60 "${{ steps.find.outputs.url }}/api/health" \
+          | python3 -c 'import json,sys; i=(json.load(sys.stdin) or {}).get("read_identity"); print(f"read identity: {i}"); sys.exit(0 if i == "tombstone-reader" else f"the live demo answers as {i!r}; the reader ACL is not in force and the read path is a convention again")'
+
       - name: Read the live instance's own memory envelope
         if: steps.find.outputs.url != ''
         run: |

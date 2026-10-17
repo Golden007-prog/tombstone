@@ -26,17 +26,46 @@ BATCH = 1000          # measured optimum; do not raise, it gets slower
 READ_PAGE = 5000      # stay under RESULTSET_SIZE
 
 
-def connect(host: str | None = None, port: int | None = None) -> FalkorDB:
+READER_USER = "tombstone-reader"
+READER_PASSWORD_ENV = "TOMBSTONE_READER_PASSWORD"
+
+
+def connect(host: str | None = None, port: int | None = None, *,
+            read_only: bool = False) -> FalkorDB:
     """Connect to FalkorDB.
 
     Defaults to port 6380, not 6379: a local Homebrew `redis-server` commonly owns 6379 and
     silently shadows Docker's published port, which surfaces as
     `ResponseError: unknown command 'GRAPH.QUERY'`.
+
+    `read_only=True` authenticates as a Redis ACL identity that the SERVER refuses to let write.
+    Everything that answers a public HTTP request connects this way, so "the read path cannot
+    mutate the graph" stops being a convention held by 28 hand-written `ro_query` calls and
+    becomes something the engine enforces: a call site that used `query` instead would be refused
+    with `NoPermissionError` rather than quietly working.
+
+    When the password is not set -- a bare `docker compose up` for local work -- this falls back
+    to the default identity, which CAN write. That fallback is deliberate (the product must run
+    from a clone with no setup) and it is REPORTED rather than assumed: `read_identity()` feeds
+    `/api/health`, the deploy check asserts the hosted container says `tombstone-reader`, and the
+    keep-warm job reads it off the live URL. A hardening that is configured but not in force is
+    the same defect as a measurement that was true last week.
     """
+    kwargs: dict[str, Any] = {}
+    if read_only:
+        password = os.environ.get(READER_PASSWORD_ENV)
+        if password:
+            kwargs = {"username": READER_USER, "password": password}
     return FalkorDB(
         host=host or os.environ.get("FALKORDB_HOST", "localhost"),
         port=int(port or os.environ.get("FALKORDB_PORT", 6380)),
+        **kwargs,
     )
+
+
+def read_identity() -> str:
+    """Which identity the read path will actually use. Said out loud, never inferred."""
+    return READER_USER if os.environ.get(READER_PASSWORD_ENV) else "default"
 
 
 

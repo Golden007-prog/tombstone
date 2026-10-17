@@ -129,11 +129,19 @@ class Agent:
         try:
             self.db = connect()
             self.g = self.db.select_graph(graph_name)
-            self.tools = Tools(self.g, self.now_ms)
+            # TWO identities, on purpose. `self.g` can write -- memory records answers and the
+            # counterfactual deletes edges in a copy, and both are the product working. `self.gr`
+            # is the one that answers questions, and the server refuses to let it write at all.
+            # See graphkit.ingest.connect: with no ACL configured these are the same identity and
+            # health says so, because a boundary nobody checks is a boundary nobody has.
+            self.db_ro = connect(read_only=True)
+            self.gr = self.db_ro.select_graph(graph_name)
+            self.tools = Tools(self.gr, self.now_ms)
             self.memory = Memory(self.g)
             self.counterfactual = Counterfactual(self.db, graph_name)
         except Exception as e:
             self.db = self.g = self.tools = self.memory = None
+            self.db_ro = self.gr = None
             self.counterfactual = None
             self.connect_error = str(e)[:200]
 
@@ -275,7 +283,7 @@ class Agent:
             from tombstone.route import LocalRouter
             try:
                 people = {r[0] for r in
-                          self.g.ro_query("MATCH (p:Person) RETURN p.key").result_set}
+                          self.gr.ro_query("MATCH (p:Person) RETURN p.key").result_set}
             except Exception:
                 people = set()
             self._router = LocalRouter(self.embedder, people)
@@ -355,13 +363,18 @@ class Agent:
         try:
             self.db = connect()
             self.g = self.db.select_graph(self.graph_name)
-            self.tools = Tools(self.g, self.now_ms)
+            # Both identities, or the read path silently comes back as the writer -- which is how
+            # a boundary disappears: not by being removed, but by a recovery path forgetting it.
+            self.db_ro = connect(read_only=True)
+            self.gr = self.db_ro.select_graph(self.graph_name)
+            self.tools = Tools(self.gr, self.now_ms)
             self.memory = Memory(self.g)
             self.counterfactual = Counterfactual(self.db, self.graph_name)
             self.connect_error = None
             return True
         except Exception as e:
             self.db = self.g = self.tools = None
+            self.db_ro = self.gr = None
             self.connect_error = str(e)[:200]
             return False
 
@@ -371,7 +384,7 @@ class Agent:
             return {"falkordb": "down", "error": self.connect_error or "not connected"}
         try:
             t0 = time.perf_counter()
-            self.g.ro_query("RETURN 1")
+            self.gr.ro_query("RETURN 1")
             return {"falkordb": "up", "ms": round((time.perf_counter() - t0) * 1000, 2),
                     "graph": self.graph_name}
         except Exception as e:
@@ -379,7 +392,7 @@ class Agent:
             if self._reconnect():
                 try:
                     t0 = time.perf_counter()
-                    self.g.ro_query("RETURN 1")
+                    self.gr.ro_query("RETURN 1")
                     return {"falkordb": "up", "ms": round((time.perf_counter() - t0) * 1000, 2),
                             "graph": self.graph_name, "reconnected": True}
                 except Exception:
@@ -624,7 +637,7 @@ class Agent:
 
     def _inherited_by(self, path: str) -> str:
         """Who would approve `path` if it had no approvers of its own? Walks the OWNERS tree."""
-        rows = self.g.ro_query(
+        rows = self.gr.ro_query(
             """
 MATCH (o:OwnersFile {path: $p})-[:INHERITS_FROM*1..8]->(anc:OwnersFile)
 MATCH (anc)<-[:APPROVES]-(a:Person)

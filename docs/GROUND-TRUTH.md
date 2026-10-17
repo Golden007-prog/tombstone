@@ -337,6 +337,17 @@ this in one file, did not carry it across, and hit it again two files later.
 returning `ANSWERED_FROM_MEMORY` and the check reported "0 answered" out of six that had all
 succeeded — indistinguishable from a concurrency collapse, and an hour to tell apart.
 
+**A finding read as a quirk when it was the rule.** A review of the planned ACL hardening killed
+one of its two invariants with real evidence: FalkorDB's `GRAPH.COPY` declares a single key spec
+covering both keys, flagged `RW`, so a `%R~` read-only selector cannot express "may read the source
+and not the destination". Correct, and filed as a peculiarity of that one command. It is not.
+`COMMAND INFO graph.RO_QUERY` — the *read* command — reports key-spec flags `RW access update`
+where native `GET` reports `RO access`, and ACL selectors test the key spec rather than the command
+flags. So **no** FalkorDB graph command can be granted through a read-only selector, measured as
+`No permissions to access a key` on a plain read. The grant uses a plain `~<graph>` pattern because
+of it, and a test pins the limitation to `COMMAND INFO` so that it reports itself fixed if FalkorDB
+ever declares an `RO` key spec. Evidence that kills one claim is worth re-aiming at its neighbours.
+
 **A limit sized for one workload, imposed on another.** The deploy check ran everything in 512MB,
 right for serial use. Six concurrent `GRAPH.COPY` calls measured ~900MB, the container was
 OOM-killed, and it looked like the product dying. Measure the workload you are capping, not the

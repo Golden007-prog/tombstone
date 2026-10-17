@@ -144,6 +144,42 @@ if printf '%s' "$app_js" | grep -qE 'localStorage|sessionStorage|document\.cooki
 fi
 echo "  no browser storage   -> survives third-party cookie blocking"
 
+# The read path's identity, checked on the ARTEFACT rather than in the source tree. Reading 28
+# `ro_query` calls proves a convention; this asks the server what it will let that identity do.
+# A hardening that is configured and not in force is the same defect as a measurement that was
+# true last week -- which is the one that cost this project a day.
+ident="$(curl -s -m 10 "http://localhost:$PORT/api/health" \
+         | python3 -c 'import json,sys; print(json.load(sys.stdin).get("read_identity"))')"
+echo "  read identity        -> $ident"
+[ "$ident" = "tombstone-reader" ] || {
+  echo "FAIL: the container answers public requests as '$ident'. The reader ACL did not take, so"
+  echo "      the read path is a convention again. docker-entrypoint.sh says why on stdout:"
+  docker logs "$IMG" 2>&1 | grep -i "read path" >&2
+  exit 1; }
+# Each probe is spelled out with ITS OWN arguments. DRYRUN checks arity before permissions, so a
+# shared argument list would turn a refusal into "wrong number of arguments" for whichever command
+# it did not fit -- and this script has already shipped one check that passed on a coincidence.
+refuses() {  # refuses <label> <command and its real arguments...>
+  label="$1"; shift
+  verdict="$(docker exec "$IMG" redis-cli ACL DRYRUN tombstone-reader "$@" 2>&1)"
+  case "$verdict" in
+    *"no permissions"*) echo "  $label -> $verdict" ;;
+    *) echo "FAIL: the read identity was not refused $label: $verdict"; exit 1 ;;
+  esac
+}
+refuses "GRAPH.QUERY " GRAPH.QUERY tomb:k8s 'CREATE (:X)'
+refuses "GRAPH.COPY  " GRAPH.COPY tomb:k8s tomb:stolen
+refuses "GRAPH.DELETE" GRAPH.DELETE tomb:k8s
+refuses "FLUSHALL    " FLUSHALL
+# And the counterfactual copies it must not be able to read either, because the grant names one
+# key rather than a `tomb:*` pattern.
+verdict="$(docker exec "$IMG" redis-cli ACL DRYRUN tombstone-reader \
+             GRAPH.RO_QUERY "tomb:k8s:cf:probe" 'MATCH (n) RETURN n' 2>&1)"
+case "$verdict" in
+  *"no permissions to access"*) echo "  a counterfactual copy -> $verdict" ;;
+  *) echo "FAIL: the read identity can reach hypothetical graphs: $verdict"; exit 1 ;;
+esac
+
 serial_mb="$(docker stats --no-stream --format '{{.MemUsage}}' "$IMG" 2>/dev/null \
              | awk '{print $1}' | sed 's/MiB//')"
 serial_int="${serial_mb%%.*}"

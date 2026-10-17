@@ -2518,3 +2518,132 @@ def test_the_model_is_constructed_once_even_under_a_cold_burst(monkeypatch):
         t.join()
     assert len(built) == 1, f"{len(built)} sessions were constructed, at ~94 MiB each"
     assert len(set(map(id, got))) == 1, "callers got different models for the same agent"
+
+
+# ---------------- the read path, enforced by the server rather than by convention ----------------
+
+READER_PROBE = "tombstone-reader-probe"
+
+
+@pytest.fixture
+def reader_acl(g):
+    """A Redis ACL identity granted exactly what the read path needs, torn down after.
+
+    Built here rather than skipped when absent, because a hardening nobody exercises is a
+    hardening nobody has. CI runs the same FalkorDB image the container does, so these refusals
+    are checked on every push, against the engine, not against my recollection of it.
+    """
+    db = connect()
+    conn = db.connection
+    secret = "probe-" + "0123456789abcdef" * 2
+    try:
+        conn.execute_command(
+            "ACL", "SETUSER", READER_PROBE, "on", f">{secret}", "resetkeys", "resetchannels",
+            f"~{GRAPH}", "-@all", "+graph.ro_query", "+info", "+ping")
+    except Exception as e:                                        # pragma: no cover
+        pytest.skip(f"this server will not take an ACL for module commands: {e}")
+    try:
+        yield secret
+    finally:
+        try:
+            conn.execute_command("ACL", "DELUSER", READER_PROBE)
+        except Exception:
+            pass
+
+
+def test_the_read_identity_cannot_write(reader_acl, g):
+    """The read path is 28 hand-written `ro_query` calls. That is a convention, and a convention
+    is what a future call site breaks by typing `query` instead -- silently, and in the one place
+    where silence matters.
+
+    So the identity that answers public requests is granted `+graph.ro_query` and nothing else,
+    and this asserts what the SERVER does with it. `+info` is in the grant because the FalkorDB
+    client issues `INFO server` while constructing, to detect Sentinel: without it the connection
+    raises before a single query, which is the kind of thing only running it finds.
+    """
+    import os as _os
+
+    from falkordb import FalkorDB
+    secret = reader_acl
+    db = FalkorDB(host=_os.environ.get("FALKORDB_HOST", "localhost"),
+                  port=int(_os.environ.get("FALKORDB_PORT", 6380)),
+                  username=READER_PROBE, password=secret)
+    gr = db.select_graph(GRAPH)
+
+    # Reading works, including the node decoding that makes the client refresh the schema --
+    # which it does through `call_procedure(read_only=True)`, so RO_QUERY covers it.
+    assert gr.ro_query("MATCH (k:Kep) RETURN count(k)").result_set[0][0] > 600
+    node = gr.ro_query("MATCH (p:Person) RETURN p LIMIT 1").result_set[0][0]
+    assert node.labels == ["Person"], "the schema refresh needs a command the reader lacks"
+
+    refused = {
+        "GRAPH.QUERY": lambda: gr.query("CREATE (:AclProbeShouldNotExist)"),
+        "GRAPH.COPY": lambda: db.connection.execute_command("GRAPH.COPY", GRAPH, GRAPH + ":stolen"),
+        "GRAPH.DELETE": lambda: db.connection.execute_command("GRAPH.DELETE", GRAPH),
+        "GRAPH.CONSTRAINT": lambda: db.connection.execute_command(
+            "GRAPH.CONSTRAINT", "DROP", GRAPH, "UNIQUE", "NODE", "Kep", "PROPERTIES", "1", "key"),
+        "GRAPH.PROFILE": lambda: db.connection.execute_command(
+            "GRAPH.PROFILE", GRAPH, "MATCH (n) RETURN n"),
+        "FLUSHALL": lambda: db.connection.execute_command("FLUSHALL"),
+        "CONFIG SET": lambda: db.connection.execute_command("CONFIG", "SET", "maxmemory", "1"),
+        "SCRIPT LOAD": lambda: db.connection.execute_command("SCRIPT", "LOAD", "return 1"),
+        "ACL SETUSER": lambda: db.connection.execute_command(
+            "ACL", "SETUSER", "escalated", "on", "~*", "+@all"),
+    }
+    allowed = []
+    for name, call in refused.items():
+        try:
+            call()
+            allowed.append(name)
+        except Exception:
+            pass
+    assert not allowed, f"the read identity was allowed to run {allowed}"
+
+    # It also cannot reach a graph it was not granted -- so a second tenant, or a counterfactual
+    # copy, is not readable through the public path by naming it.
+    with pytest.raises(Exception):
+        db.select_graph(GRAPH + ":someone-elses").ro_query("MATCH (n) RETURN count(n)")
+
+    # And nothing it tried landed.
+    assert g.ro_query("MATCH (n:AclProbeShouldNotExist) RETURN count(n)").result_set[0][0] == 0
+
+
+def test_a_read_only_key_selector_cannot_express_this_and_the_engine_says_why():
+    """`%R~<graph>` is how Redis is supposed to say "may read this key", and it does not work for
+    any FalkorDB graph command. Worth pinning to the engine's own metadata rather than to a
+    sentence in a commit message, because it is the reason the grant uses a plain `~` pattern.
+
+    `GRAPH.RO_QUERY` is flagged `readonly` as a COMMAND, but its KEY SPEC is flagged
+    `RW access update`, and ACL key selectors test the key spec. So `%R~` refuses even a plain
+    read -- measured as "No permissions to access a key" -- and the reviewer's earlier finding
+    about `GRAPH.COPY` having a single RW key spec turns out to be the general case, not a
+    peculiarity of one command.
+    """
+    info = connect().connection.execute_command("COMMAND", "INFO", "graph.RO_QUERY")
+    spec = info["graph.RO_QUERY"]
+    assert "readonly" in spec["flags"], (
+        "graph.RO_QUERY is no longer flagged readonly as a command; re-read this test")
+    key_flags = spec["key_specifications"][0][1]
+    assert "RW" in key_flags, (
+        f"graph.RO_QUERY now declares its key {key_flags} rather than RW. If that is a read-only "
+        f"flag, %R~ may work and the grant in docker-entrypoint.sh can be tightened to it.")
+    assert "RO" not in key_flags, "an RO key spec would make the %R~ selector usable"
+
+
+def test_the_public_read_path_is_wired_to_the_read_identity(agent):
+    """Two identities only help if the right objects got the right one. `Tools` answers every
+    question, so it holds the reader; `Memory` records answers and `Counterfactual` deletes edges
+    in a copy, so they hold the writer. Asserted structurally, because a refactor that hands
+    `Tools` the writer would pass every other test in this file.
+    """
+    import pathlib
+    from tombstone import server as _srv
+    assert agent.tools.g is agent.gr
+    assert agent.memory.g is agent.g
+    assert agent.gr is not agent.g, "the two handles are the same object; there is one identity"
+
+    # And the HTTP surface reads through it too.
+    src = pathlib.Path(_srv.__file__).read_text(encoding="utf-8")
+    assert "a.g.ro_query(" not in src, (
+        "server.py reads through the writer identity somewhere; public reads use a.gr")
+    assert src.count("a.gr.ro_query(") >= 5
