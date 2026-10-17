@@ -18,8 +18,11 @@ import datetime as _dt
 import re
 import sys
 
+import time as _time
+
 from graphkit.ingest import Ingestor, chunked, connect
 from tombstone.corpus import Corpus, expand, is_bot, normalise_status, rejected_alternatives
+from tombstone.tools import NAME_HIT_BOUND, fulltext_query, searchable_names
 
 EPOCH = _dt.date(1970, 1, 1)
 
@@ -316,6 +319,70 @@ def build(corpus: Corpus, graph_name: str = "tomb:k8s", drop: bool = True) -> di
     ing.edges("Kep", "OWNED_BY", "Sig",
               [(rel, str(d["owning-sig"])) for rel, d in corpus.keps.items() if d.get("owning-sig")])
     stats["Sig"] = len(sigs)
+
+    # ---------------- full-text index over the options the vector index cannot see -------------
+    # The complement of :NamedOption, minted for the identical reason the sibling section below
+    # mints that one: in this engine an index SCOPE is a label, because a vector index cannot
+    # filter by property. :NamedOption carries the ANN index over 752 options. :UnnamedOption
+    # carries a full-text index over the other 206 -- the set docs/EXPLAIN-IT.md has called this
+    # product's biggest recall weakness since the day it was measured.
+    #
+    # This is NOT the thing bench_index_scope.py refused. That measured POOLING the 206 into the
+    # ANN index and found it cost about three points of top-k precision, because an ANN top-k is
+    # a fixed budget and 206 more documents compete for the same k slots. A text conjunction has
+    # no budget to dilute: a body either contains every term or it does not.
+    #
+    # It is also why the index goes here and not on :Alternative. bench_index_scope.py builds a
+    # temporary vector index on :Alternative and polls `info.numDocuments` to know when it is
+    # built; db.indexes() yields one row PER LABEL, so a second index on that label would land in
+    # the bucket that gate reads and could satisfy it from the wrong index. Disjoint scopes also
+    # mean no option can be returned twice by one answer, which is what lets a row say which
+    # index found it.
+    g.query("MATCH (a:Alternative) WHERE a.titled = false SET a:UnnamedOption")
+    stats["UnnamedOption"] = g.ro_query(
+        "MATCH (a:UnnamedOption) RETURN count(a)"
+    ).result_set[0][0]
+
+    # Syntax: docs.falkordb.com/cypher/indexing/fulltext-index, "Using DDL syntax" --
+    # `CREATE FULLTEXT INDEX FOR (n:Movie) ON (n.title)`.
+    #
+    # `.body` only, deliberately not `.title` as well: for these 206 the title IS the first
+    # sentence of the body -- derive_label above is what produces it -- so indexing both counts
+    # every term of that sentence twice and hands the opening line of an 1,800-character argument
+    # a TF-IDF score it did not earn.
+    #
+    # No `OPTIONS { language: ... }`: the page shows only 'German' as a value and never states
+    # the default, so passing a guess risks failing the build on a string.
+    g.query("CREATE FULLTEXT INDEX FOR (a:UnnamedOption) ON (a.body)")
+
+    # Index builds are ASYNCHRONOUS here -- bench_index_scope.py measured that for the vector
+    # index and gates on it, and nothing on the full-text page says this one differs. The poll is
+    # FUNCTIONAL rather than a status-field read, because db.indexes() yields a `status` whose
+    # vocabulary no page defines, and gating on a string nobody documented is how this project
+    # got burned by algo.betweenness sampling 32 nodes by default. Asking the index for a
+    # document it is known to contain cannot be wrong about what it means -- and it exercises the
+    # exact tokeniser the tool queries with, so a disagreement between the index and
+    # `searchable_names` fails the build here rather than returning nothing in the UI.
+    _probe_key, _probe_body = g.ro_query(
+        "MATCH (a:UnnamedOption) RETURN a.key, a.body ORDER BY a.key LIMIT 1"
+    ).result_set[0]
+    _probe = fulltext_query(searchable_names(_probe_body)[:1])
+    _t_ft = _time.perf_counter()
+    _seen: list = []
+    while _probe and _time.perf_counter() - _t_ft < 60:
+        _seen = [r[0] for r in g.ro_query(
+            "CALL db.idx.fulltext.queryNodes('UnnamedOption', $q) YIELD node AS a RETURN a.key",
+            params={"q": _probe},
+        ).result_set]
+        if _probe_key in _seen:
+            break
+        _time.sleep(0.25)
+    stats["fulltext_ready_ms"] = round((_time.perf_counter() - _t_ft) * 1000, 1)
+    stats["fulltext_queryable"] = bool(_probe) and _probe_key in _seen
+    if not stats["fulltext_queryable"]:
+        stats["fulltext_warning"] = (
+            "the full-text index did not return a document it contains within 60s -- "
+            "has_this_been_tried will answer by similarity only, over 752 of 958 options")
 
     # ---------------- vector index over the rejected alternatives ----------------
     # Embeddings come from the committed float16 snapshot when present. Embedding these 960 real

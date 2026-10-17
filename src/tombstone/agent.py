@@ -25,7 +25,7 @@ from graphkit.ingest import connect
 from tombstone import counterfactual as _cf
 from tombstone.counterfactual import Counterfactual
 from tombstone.memory import Memory
-from tombstone.tools import CATALOGUE, Answer, Tools
+from tombstone.tools import CATALOGUE, Answer, Tools, searchable_names
 
 def _route_required() -> dict:
     """Which tools cannot run without an argument, read from the router so it cannot drift."""
@@ -397,8 +397,13 @@ class Agent:
                 if not text.strip():
                     return Answer("UNKNOWN_ENTITY", tool, note="No idea text supplied.")
                 qvec = list(self.embedder().embed([text]))[0].tolist()
+                # The names in the question, found by rule and never by a word list. Computed
+                # here rather than in the tool because this is the only place the raw question
+                # exists -- the tool receives a vector, which is the whole reason it could not
+                # find `kube-state-metrics` in the first place.
                 return self.tools.has_this_been_tried(
-                    qvec, max_dist=num(args.get("max_dist", 0.45), 0.45, float))
+                    qvec, max_dist=num(args.get("max_dist", 0.45), 0.45, float),
+                    names=searchable_names(text))
             if tool == "ownership_dilution":
                 return self.tools.ownership_dilution()
             if tool == "stepped_back_bridges":
@@ -639,15 +644,24 @@ def headline(a: Answer) -> dict | None:
         if t == "stepped_back_bridges":
             return {"stat": a.rows[0][0], "label": "held the most connective authority before stepping back"}
         if t == "has_this_been_tried":
-            best = min((r[11] for r in a.rows if r[11] is not None), default=None)
+            from tombstone.tools import DIST_COL
+            _byname = sum(1 for r in a.rows if r[-1] == "name")
+            _sim = n - _byname
+            best = min((r[DIST_COL] for r in a.rows if r[DIST_COL] is not None), default=None)
             near = f", closest {best:.2f}" if best is not None else ""
+            # The two retrievers are counted separately. A text hit is not "near" anything -- it
+            # has no distance at all -- so folding it into "5 nearest, closest 0.19" would
+            # describe rows found by a different method under a number that cannot apply to them.
+            # Same defect as the sole-approver chip reporting a LIMIT-ed page as the population.
+            _also = (f" + {_n(_byname, 'rejection')} the text index found by name"
+                     if _byname else "")
             if a.params.get("max_dist", DEFAULT_MAX_DIST) < DEFAULT_MAX_DIST:
                 return {"stat": "yes",
-                        "label": f"{n} recorded rejections within the "
-                                 f"{a.params['max_dist']} bound{near}"}
-            return {"stat": "nearest",
-                    "label": f"{n} nearest recorded rejections{near} — no closeness bound was "
-                             f"set, so read the distances"}
+                        "label": f"{_sim} recorded rejections within the "
+                                 f"{a.params['max_dist']} bound{near}{_also}"}
+            return {"stat": "nearest" if _sim else "named",
+                    "label": f"{_sim} nearest recorded rejections{near}{_also} — no closeness "
+                             f"bound was set, so read the distances"}
         if t == "broken_lineage":
             # Same defect as sole_approver_risk: n was the page size and `cited` summed the page,
             # so "15 ... cited 22 times" described fifteen rows, not the 47 records cited 55 times
@@ -729,7 +743,8 @@ def render(a: Answer) -> str:
     if t == "has_this_been_tried":
         lines = []
         for r in a.rows:
-            idea, rationale, kep, title, status, sig, url, years, deciders, live, own, dist = r
+            (idea, rationale, kep, title, status, sig, url, years, deciders, live, own,
+             dist, found_by) = r
             # "0y ago" is true for anything decided this year and reads like an unfilled field,
             # which is the same failure as "1 areas" and "0ms": correct, and looks like a bug, on
             # a line whose whole job is to tell you how old a rejection is.
@@ -742,9 +757,19 @@ def render(a: Answer) -> str:
                 f"  decided by: {', '.join(deciders) if deciders else 'unrecorded'} "
                 f"[{'no one who made this call still holds approval authority' if own == 'NO_LIVING_OWNER' else 'at least one decider still holds approval authority'}]\n"
                 f"  source: {url}\n"
-                f"  similarity: cosine distance {dist:.3f}"
+                # Two retrievers, two different last lines, and never one label over both. `dist`
+                # is NULL on a text row by construction, and {dist:.3f} on None is a TypeError in
+                # the renderer of this product's headline tool -- so this branches on the column
+                # that says which index produced the row, not on whether a number is present.
+                + (f"  similarity: cosine distance {dist:.3f}" if found_by == "similarity" else
+                   f"  found by name: this body contains every term of "
+                   f"{a.params.get('name_query', 'the name in the question')} — no similarity "
+                   f"score applies, because the vector index does not hold this option")
             )
-        _best = min((r[11] for r in a.rows if r[11] is not None), default=None)
+        from tombstone.tools import DIST_COL, NAME_HIT_BOUND
+        _sim = [r for r in a.rows if r[-1] == "similarity"]
+        _byname = [r for r in a.rows if r[-1] == "name"]
+        _best = min((r[DIST_COL] for r in a.rows if r[DIST_COL] is not None), default=None)
         _near = f" The closest sits at cosine distance {_best:.2f}." if _best is not None else ""
         if a.params.get("max_dist", DEFAULT_MAX_DIST) < DEFAULT_MAX_DIST:
             _head = (f"Yes — {_n(n, 'recorded rejection')} within the "
@@ -756,6 +781,18 @@ def render(a: Answer) -> str:
                      f"one — a typed question about the kubelet scores 0.313 while one about "
                      f"carrier pigeons scores 0.297 — so every distance is printed and the "
                      f"reasons are there to read:")
+        if _byname:
+            _head += (f"\n\nThe question also named something the vector index cannot hold as a "
+                      f"symbol, so the text index over the other 206 options was asked for it "
+                      f"too, and matched {_n(len(_byname), 'body')} exactly. Those rows carry no "
+                      f"distance. They are listed after the ones above and never ahead of them, "
+                      f"and a name matching more than {NAME_HIT_BOUND} bodies is reported as no "
+                      f"answer rather than as {NAME_HIT_BOUND + 1} weak ones.")
+        elif a.params.get("name_hits") == f">{NAME_HIT_BOUND}":
+            _head += (f"\n\nThe question named {a.params.get('name_query')}, which the text "
+                      f"index over the other 206 options matches in more than {NAME_HIT_BOUND} "
+                      f"of them — too much of that set to be a name, so nothing from it is "
+                      f"reported here.")
         return _head + "\n\n" + "\n\n".join(lines)
     if t == "ownership_dilution":
         lines = []

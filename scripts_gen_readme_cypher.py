@@ -9,6 +9,13 @@ ORDER = [
      "Vector KNN seeds the search, then the graph supplies what no embedding holds: which decision "
      "recorded it, who decided, and whether any of them still approve anything. A vector store alone "
      "returns the k nearest rows and can never return *nothing*."),
+    ("has_this_been_tried", "HAS_THIS_BEEN_TRIED_BY_NAME",
+     "\u2026and when the question names something a 384-dimension vector cannot keep whole",
+     "The other index, over the 206 options the ANN index deliberately excludes. It runs only when "
+     "the question contains a name this engine's tokeniser would split, and it is bounded the way "
+     "the vector path is bounded by distance: a name matching more than three of those 206 bodies "
+     "is not a name, so nothing is reported. The two scopes are disjoint labels, which is what "
+     "lets one answer say which index found each row."),
     ("ownership_dilution", "OWNERSHIP_DILUTION",
      "Which areas lost every DEDICATED approver, and which broader group inherits them now?",
      "Kubernetes OWNERS inherit, so finding who actually covers a directory means walking UP the "

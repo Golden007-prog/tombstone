@@ -28,9 +28,9 @@ Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
 >   [Honest limits](#honest-limits).
 > - **See it work without running anything:** the picture two screens down renders inline —
 >   depth 1 returns nothing, depth 4 explains why. There is also an
->   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (697 KB, downloads;
+>   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (704 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 147 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 152 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **36 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -103,7 +103,7 @@ with the exact location of each item and an honest status.
 | A public source-code repository | this repo, Apache-2.0 | **done** |
 | A README with setup instructions and the graph data model | [Quickstart](#quickstart) and [The graph data model](#the-graph-data-model) | **done** |
 | The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — every query generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source** | **done** |
-| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 697 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
+| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 704 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
 | A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup **plus a video, which is how the FAQ words the fallback** — not "either/or" but *complete local setup instructions **and** a working demo video* if you cannot deploy; Rule 10 requires the video separately, so both halves are present. **Satisfied both ways as of 17 Oct: there is now a live deployment at <https://tombstone-vvn9.onrender.com>** — verified against the running instance, not asserted: `/api/health` reports FalkorDB up with 681 decisions, 752 named options, 794 people and 585 ownership files; all thirteen tools answer; free text routes with no key; and a `POST` of a filesystem argument is refused on the public instance. Built from this Dockerfile, which CI also builds and boots on every push. |
 | The track you are entering | **Track 3, Company Brain**, stated at the top of this README | **done** |
 
@@ -835,7 +835,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 147 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 152 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1049,11 +1049,46 @@ RETURN alt.title                             AS rejected_idea,
        decider_live_roles,
        CASE WHEN decider_live_roles = 0 THEN 'NO_LIVING_OWNER' ELSE 'HAS_LIVING_OWNER' END
                                              AS rationale_ownership,
-       round(score * 1000) / 1000            AS distance
+       round(score * 1000) / 1000            AS distance,
+       'similarity'                          AS found_by
 ORDER BY score ASC
 LIMIT $limit
 ```
-`query_sha` = `3fbc6d5ae250` — stamped on every answer this query produces.
+`query_sha` = `bf8be7041ce3` — stamped on every answer this query produces.
+
+### `has_this_been_tried` — …and when the question names something a 384-dimension vector cannot keep whole
+
+*Why a graph:* The other index, over the 206 options the ANN index deliberately excludes. It runs only when the question contains a name this engine's tokeniser would split, and it is bounded the way the vector path is bounded by distance: a name matching more than three of those 206 bodies is not a name, so nothing is reported. The two scopes are disjoint labels, which is what lets one answer say which index found each row.
+
+```cypher
+CALL db.idx.fulltext.queryNodes('UnnamedOption', $q) YIELD node AS alt, score
+WITH alt, score
+MATCH (kep:Kep)-[:CONSIDERED]->(alt)
+OPTIONAL MATCH (kep)-[:OWNED_BY]->(sig:Sig)
+OPTIONAL MATCH (author:Person)-[:AUTHORED|APPROVED]->(kep)
+OPTIONAL MATCH (author)-[liveRole:APPROVES]->()
+WITH kep, sig, alt, score,
+     collect(DISTINCT author.key) AS deciders,
+     count(DISTINCT liveRole)     AS decider_live_roles
+RETURN alt.title                             AS rejected_idea,
+       alt.body                              AS rationale,
+       kep.num                               AS kep,
+       kep.title                             AS kep_title,
+       kep.status                            AS status,
+       sig.key                               AS sig,
+       kep.url                               AS source_url,
+       CASE WHEN kep.created_ms = 0 THEN -1
+            ELSE ($now - kep.created_ms) / $msYear END AS years_ago,
+       deciders,
+       decider_live_roles,
+       CASE WHEN decider_live_roles = 0 THEN 'NO_LIVING_OWNER' ELSE 'HAS_LIVING_OWNER' END
+                                             AS rationale_ownership,
+       null                                  AS distance,
+       'name'                                AS found_by
+ORDER BY score DESC
+LIMIT $cap
+```
+`query_sha` = `1d9d2eb79a50` — stamped on every answer this query produces.
 
 ### `ownership_dilution` — Which areas lost every DEDICATED approver, and which broader group inherits them now?
 
@@ -1511,8 +1546,21 @@ times. Each fix made the claim narrower and more defensible.
   *"We considered extending `kube-state-metrics` to represent all of the data necessary…"*.
   What excludes them is the **index**, which is minted on `:NamedOption` (752 documents), and an
   unindexed node has probability zero of being returned for any query — so this is a structural
-  gap, not a scoring miss. Ask about `kube-state-metrics` and the rejection that names it does not
-  come back; it returns five unrelated options instead. Verified, not assumed.
+  gap, not a scoring miss. Ask about `kube-state-metrics` and the rejection that names it did not
+  come back; it returned five unrelated options instead. Verified, not assumed.
+  **That is now fixed for 160 of the 206, and the other 46 are still out.** The 206 carry a
+  *full-text* index on `.body` under a second label, `:UnnamedOption`, and the tool consults it
+  only when the question contains a name this engine's tokeniser would split — a word containing
+  `-` `.` `_` or `/`, which is the engine's own rule rather than a list of interesting words. The
+  documented failure now answers: `kube-state-metrics` returns the two bodies that name it,
+  identically across four phrasings, appended *after* the similarity rows so `rows[0]` is still
+  the nearest by distance and the twelve paraphrases in `eval_retrieval.py` still score 12/12.
+  **The honest residual: 46 of the 206 carry no splittable name at all and remain exactly as
+  unreachable as before — this narrows the gap from 206 to 46, it does not close it.** And a name
+  matching more than three of those 206 bodies is reported as no answer rather than as four weak
+  ones, counted by the engine rather than in Python: `control-plane` matches five, so
+  *"rewrite the control-plane in COBOL on a mainframe"* — the negative control with one hyphen
+  added — still comes back `NOT_IN_GRAPH`, which there is a test for.
   The old line went on to predict that a wider index "would degrade every similarity query".
   `bench_index_scope.py` now measures that instead of asserting it, and the prediction holds in
   direction: pooling all 958 into one index moves named-option retrieval from **48.2 / 64.8 /

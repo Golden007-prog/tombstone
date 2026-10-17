@@ -2268,3 +2268,126 @@ def test_a_unique_constraint_actually_rejects_a_duplicate():
             scratch.delete()
         except Exception:
             pass
+
+
+def test_the_text_index_is_on_the_206_and_only_the_206(g):
+    """The two retrievers must not share a label, or neither answer can say which found a row.
+
+    Also the concrete reason the scopes are disjoint: bench_index_scope.py builds a temporary
+    vector index on :Alternative and polls `info.numDocuments` until it reaches 958, and
+    db.indexes() yields one row per LABEL. A second index on :Alternative would land in the same
+    bucket that gate reads and could satisfy it before the HNSW build finished.
+    """
+    total, named, unnamed = g.ro_query(
+        "MATCH (a:Alternative) WITH count(a) AS t "
+        "MATCH (n:NamedOption) WITH t, count(n) AS n "
+        "MATCH (u:UnnamedOption) RETURN t, n, count(u)").result_set[0]
+    assert named + unnamed == total, (
+        f"{named} named + {unnamed} unnamed != {total} alternatives; the two index scopes "
+        f"overlap or leave a gap, so an option can be returned twice or never")
+    assert g.ro_query(
+        "MATCH (a:UnnamedOption) WHERE a:NamedOption RETURN count(a)").result_set[0][0] == 0
+
+    # Read per field. Matching 'FULLTEXT' against the whole printed row would say a label has a
+    # text index when all it has is the Ingestor's range index on .key.
+    ft, vec = {}, {}
+    for row in g.ro_query("CALL db.indexes()").result_set:
+        for prop, kinds in dict(row[2]).items():
+            if "FULLTEXT" in kinds:
+                ft[row[0]] = prop
+            if "VECTOR" in kinds:
+                vec[row[0]] = prop
+    assert ft == {"UnnamedOption": "body"}, f"full-text indexes are {ft}"
+    # The OPTION scopes, not every vector index in the graph. memory.py mints one on :Answer the
+    # first time a question is remembered, so asserting the whole map equals {NamedOption: emb}
+    # passes alone and fails in suite order -- which is how this assertion was first written and
+    # how the suite caught it. What must hold is that the two retrievers do not share a scope and
+    # that :Alternative carries neither, or bench_index_scope.py's doc-count gate reads the wrong
+    # index and an option could be returned by both retrievers in one answer.
+    assert vec.get("NamedOption") == "emb", f"vector indexes are {vec}"
+    assert "Alternative" not in vec and "Alternative" not in ft, (
+        f"an index landed on :Alternative itself: vector={vec}, fulltext={ft}")
+    assert "UnnamedOption" not in vec, f"the 206 gained a vector index: {vec}"
+
+
+def test_a_name_query_is_rebuilt_from_alphanumerics_and_never_escaped():
+    """`-` is NOT in RediSearch's query language, and no FalkorDB page states the dialect.
+
+    `kube-state-metrics` handed to the index raw is a negation of the words being searched for,
+    and it would fail as an EMPTY RESULT -- this product's honest negative, the worst available
+    failure mode because it is the sentence a judge is told to trust. The query is rebuilt from
+    [a-z0-9] tokens rather than escaped, so the dialect question cannot arise.
+    """
+    from tombstone.tools import fulltext_query, searchable_names
+    for hostile in ("kube-state-metrics", "-kubelet -api", "*", "a-*", "node | *",
+                    "%fuzzy%1-thing", "x-(y)-z", "foo-bar~`'\"\\"):
+        q = fulltext_query(searchable_names(hostile))
+        assert set(q) <= set("abcdefghijklmnopqrstuvwxyz0123456789 ()|"), (
+            f"{hostile!r} produced {q!r}, which carries query-language characters")
+        assert "*" not in q, f"{hostile!r} produced a wildcard: a bare `*` returns the whole index"
+        assert "-" not in q, f"{hostile!r} produced a `-`, which this engine reads as NOT"
+    assert fulltext_query(searchable_names("extending kube-state-metrics to expose requests")) \
+        == "(kube state metrics)"
+
+
+def test_the_name_path_closes_the_documented_gap_without_opening_the_control(agent):
+    """README's Honest limits names this exact failure, and the control beside it must survive.
+
+    `rewrite the control plane in COBOL` has no splittable token, so a rule keyed on punctuation
+    alone leaves it NOT_IN_GRAPH and looks safe. `control-plane` matches five of the 206, and
+    without the hit bound that control comes back with five unrelated rejections -- one keystroke
+    from the string the fixture happens to use.
+    """
+    from tombstone.tools import NAME_HIT_BOUND
+    found = agent.dispatch("has_this_been_tried", {
+        "idea_text": "extending kube-state-metrics to expose pod resource requests"})
+    assert found.shape == "ANSWERED_WITH_PATH"
+    by_name = [r for r in found.rows if r[-1] == "name"]
+    assert by_name, "the rejection README documents as unreachable is still unreachable"
+    assert len(by_name) <= NAME_HIT_BOUND
+    assert all("kube" in str(r[1]).lower() and "state" in str(r[1]).lower() for r in by_name)
+    assert all(r[11] is None for r in by_name), (
+        "a text row carries a distance; a TF-IDF score and a cosine distance point in opposite "
+        "directions and must never share a column")
+    assert found.rows[0][-1] == "similarity"
+    assert found.rows[0][11] is not None
+
+    for control in ("rewrite the control plane in COBOL on a mainframe",
+                    "rewrite the control-plane in COBOL on a mainframe",
+                    "replace the scheduler with a reinforcement-learning agent trained on chess",
+                    "migrate all state to a block-chain"):
+        a = agent.dispatch("has_this_been_tried", {"idea_text": control, "max_dist": 0.15})
+        assert a.shape == "NOT_IN_GRAPH", (
+            f"{control!r} came back as {a.shape} with {len(a.rows)} rows; the honest negative "
+            f"is the claim this product is judged on")
+
+
+def test_a_name_that_matches_too_much_is_reported_as_no_answer(agent):
+    """The hit bound is the name path's `max_dist`, and it has to be visible.
+
+    The bound is counted by the ENGINE: the query asks for one more row than may be reported, so
+    the tokeniser that decides is the one that built the index, not a Python approximation.
+    """
+    from tombstone.tools import NAME_HIT_BOUND
+    a = agent.dispatch("has_this_been_tried",
+                       {"idea_text": "is there anything on pod-level resources"})
+    assert a.params.get("name_query") == "(pod level)"
+    assert a.params.get("name_hits") == f">{NAME_HIT_BOUND}"
+    assert not [r for r in a.rows if r[-1] == "name"], (
+        "a name matching more than the bound still contributed rows")
+    assert str(NAME_HIT_BOUND) in render(a), (
+        "the answer suppressed a retriever and did not say so")
+
+
+def test_every_consumer_reads_this_tool_by_a_derived_column_index(agent):
+    """eval_retrieval.py read the distance as rows[0][-1], right for twelve columns and silently
+    wrong for thirteen -- in the script gating preflight AND CI."""
+    from tombstone.tools import DIST_COL, HAS_THIS_BEEN_TRIED_COLUMNS as COLS
+    a = agent.dispatch("has_this_been_tried", {"idea_text": "store this in etcd directly"})
+    assert a.shape == "ANSWERED_WITH_PATH"
+    for r in a.rows:
+        assert len(r) == len(COLS), (
+            f"a row has {len(r)} columns and {len(COLS)} are named; every positional read in "
+            f"memory.py, agent.py and eval_retrieval.py derives from that tuple")
+    assert COLS[DIST_COL] == "distance" and COLS[-1] == "found_by"
+    assert all(r[DIST_COL] is None or isinstance(r[DIST_COL], (int, float)) for r in a.rows)

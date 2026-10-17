@@ -45,6 +45,7 @@ memory adds `(:Answer)` nodes and `CITED` edges as it is used.)
 | `OwnersFile` | 585 | an ownership file |
 | `Alternative` | 958 | a rejected option, lifted out of the prose it was buried in |
 | `NamedOption` | 752 | **a second label on the 958**, not a separate node |
+| `UnnamedOption` | 206 | the complement, and the other index scope. In this engine an index scope IS a label, so the 206 the vector index cannot hold carry a full-text index on `.body` instead. Disjoint from `NamedOption` by construction, which is what lets one answer say which index found each row |
 | `MissingRecord` | 47 | a record cited by name that does not exist |
 | `Sig` | 22 | a special-interest group |
 
@@ -202,7 +203,7 @@ wrong answer or a timeout.
 
 One command: `./preflight.sh` — twenty-three checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-36 CI steps on every push, 38 runs because two repeat across Python 3.11 and 3.14. 147 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
+36 CI steps on every push, 38 runs because two repeat across Python 3.11 and 3.14. 152 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

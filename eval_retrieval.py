@@ -10,6 +10,7 @@ import sys
 
 sys.path.insert(0, "src")
 from tombstone.agent import Agent
+from tombstone.tools import DIST_COL
 
 # Written as a contributor would phrase them, not reverse-engineered from the data.
 QUERIES = [
@@ -50,7 +51,15 @@ def main() -> int:
             print(f"  {q[:52]:<52}{'--':>7}   (nothing returned)")
             continue
         idea, rationale, kep, *_rest = ans.rows[0]
-        dist = ans.rows[0][-1]
+        # NOT rows[0][-1]. This tool gained a `found_by` column when the text index over the
+        # 206 unnamed options landed, so [-1] is the string 'similarity' and `dist < MAX_DIST`
+        # raises TypeError -- in the one script that gates ./preflight.sh AND CI. Had the new
+        # column gone in AHEAD of `distance`, this would have compared a TF-IDF score against
+        # 0.33 and passed quietly, which is worse. Asked for by name so it cannot happen again.
+        dist = ans.rows[0][DIST_COL]
+        # rows[0] must be a similarity row. The name path appends and never promotes, which is
+        # the single assumption that keeps this script's 12/12 meaning what it meant before.
+        assert ans.rows[0][-1] == "similarity", "the name path promoted a row ahead of the nearest"
         ok = dist < MAX_DIST and len(str(rationale)) > MIN_RATIONALE
         hits += ok
         print(f"{'  ' if ok else '?!'}{q[:52]:<52}{dist:>7}   KEP-{kep:<6}{str(idea)[:52]}")

@@ -512,6 +512,7 @@ _LABELS = {"Person": "MATCH (n:Person) RETURN count(n)",
            "OwnersFile": "MATCH (n:OwnersFile) RETURN count(n)",
            "Alternative": "MATCH (n:Alternative) RETURN count(n)",
            "NamedOption": "MATCH (n:NamedOption) RETURN count(n)",
+           "UnnamedOption": "MATCH (n:UnnamedOption) RETURN count(n)",
            "MissingRecord": "MATCH (n:MissingRecord) RETURN count(n)",
            "Sig": "MATCH (n:Sig) RETURN count(n)"}
 for _lab, _q in _LABELS.items():

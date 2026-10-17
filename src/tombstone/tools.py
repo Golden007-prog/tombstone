@@ -21,6 +21,7 @@ empty traversal only means the graph does not know -- it is not proof that nothi
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -48,6 +49,108 @@ class Answer:
     totals: dict = field(default_factory=dict)
 
 
+# ---------------------------------------------------------------------------
+# The name path: finding a rejection by a symbol nobody can embed.
+#
+# README's Honest limits has carried this failure since it was measured: ask about
+# `kube-state-metrics` and the rejection that names it does not come back, because the ANN index
+# is minted on :NamedOption and the two copies of that rejection are among the 206 that are not.
+# Re-checked against the deployed instance on 17 Oct: ANSWERED_WITH_PATH, five rows, closest
+# cosine distance 0.194, not one of them the answer.
+#
+# It is not a scoring miss a better model would fix. A 384-dimension vector of a sentence cannot
+# preserve `kube-state-metrics` as a distinct symbol, and this file's own renderer already ships
+# the sentence saying the distance is not discriminative on this corpus -- 0.313 for a typed
+# kubelet question against 0.297 for one about carrier pigeons.
+#
+# WHAT THIS IS NOT. Not a fallback for an empty similarity result: `rows` is almost never empty,
+# because an ANN top-k always returns k and the 0.45 bound is loose. A fallback keyed on
+# emptiness would never fire. These hits are APPENDED instead, so rows[0] stays the
+# nearest-by-distance row and nothing that reads rows[0] moves.
+#
+# Nor is the question's text passed to the index. `-` is NOT in RediSearch's query language, so
+# `kube-state-metrics` passed through raw is a NEGATION of the words being searched for -- and it
+# would fail as an empty result, which is this product's honest negative, the worst available
+# failure mode. The query is REBUILT from alphanumeric subterms, so no user byte reaches the
+# query language and no escaping is needed.
+_NAME_SPLIT = re.compile(r"[-._/]")
+_NAME_TOKEN = re.compile(r"[a-z0-9]+")
+
+# RediSearch's documented default English stop words. Listed rather than inferred because a term
+# the index silently dropped must not count toward the two-term floor below, or the floor
+# measures something the engine did not do.
+_NAME_STOP = frozenset((
+    "a", "is", "the", "an", "and", "are", "as", "at", "be", "but", "by", "for", "if", "in",
+    "into", "it", "no", "not", "of", "on", "or", "such", "that", "their", "then", "there",
+    "these", "they", "this", "to", "was", "will", "with",
+))
+
+# The column order HAS_THIS_BEEN_TRIED returns, named rather than counted. This tuple exists
+# because eval_retrieval.py read the distance as `rows[0][-1]`, which is right for twelve columns
+# and silently wrong for thirteen -- and it gates preflight AND CI.
+HAS_THIS_BEEN_TRIED_COLUMNS = (
+    "rejected_idea", "rationale", "kep", "kep_title", "status", "sig", "source_url",
+    "years_ago", "deciders", "decider_live_roles", "rationale_ownership", "distance",
+    "found_by",
+)
+DIST_COL = HAS_THIS_BEEN_TRIED_COLUMNS.index("distance")
+
+# How many bodies a name may match before this path refuses to report it. This is the name path's
+# `max_dist`, and it is the whole reason the path is safe: a two-term conjunction over an
+# 1,800-character argument is not a name match, it is two words that both occur somewhere.
+# Measured document frequencies over the 206: (kube state metrics) 2, (cgroup v1) 2,
+# (client go) 3, (out tree) 4, (kube proxy) 5, (control plane) 5, (pod level) 10.
+# The sixth line is the one that matters: `rewrite the control-plane in COBOL on a mainframe` is
+# eval_retrieval.py's first negative control with one hyphen added, and without this bound it
+# returns unrelated rejections -- turning the claim that this product says NOTHING when it knows
+# nothing into a false positive. The count is taken by the ENGINE: the query asks for
+# NAME_HIT_BOUND + 1 rows and the lot is discarded if it comes back full.
+NAME_HIT_BOUND = 3
+
+
+def searchable_names(text: str) -> list[list[str]]:
+    """The names in `text` that this engine's tokeniser would split, as term lists.
+
+    The rule is lexical and has one justification, from docs.falkordb.com's full-text page:
+    indexed text "is split on whitespace and punctuation". So a whitespace-delimited word
+    containing `-` `.` `_` or `/` is exactly a word the index stores as several terms and a
+    sentence embedding cannot keep whole. There is no list of interesting words anywhere here.
+
+    ALL-CAPS and camelCase are deliberately NOT in the rule -- not as tuning, but because the
+    tokeniser does not split them, so they are out by the same sentence. That exclusion is
+    load-bearing: `API` alone appears in 65 of the 206 bodies.
+
+    Subterms shorter than two characters are dropped, which is also the tokeniser's doing: `e.g.`
+    splits to `e` and `g`, which co-occur in 19 of the 206. `v1.28` survives as (v1 28) and finds
+    nothing, which is the right outcome rather than a special case.
+    """
+    out: list[list[str]] = []
+    seen: set[tuple[str, ...]] = set()
+    for word in (text or "").split():
+        if not _NAME_SPLIT.search(word):
+            continue
+        parts = [p for p in _NAME_TOKEN.findall(word.lower())
+                 if len(p) >= 2 and p not in _NAME_STOP]
+        if len(parts) < 2:
+            continue
+        key = tuple(parts)
+        if key not in seen:
+            seen.add(key)
+            out.append(parts)
+    return out
+
+
+def fulltext_query(names: list[list[str]]) -> str:
+    """Term lists -> one RediSearch query string, built from alphanumerics only.
+
+    `(kube state metrics)|(cgroup v1)`: a space is AND, `|` is OR, parentheses disambiguate.
+    Nothing from the user's text survives into this string except [a-z0-9] tokens, which is why
+    there is no escaping: the dialect-dependent meaning of `-` cannot arise from characters that
+    cannot get here.
+    """
+    return "|".join("(" + " ".join(p) + ")" for p in names)
+
+
 class Tools:
     """Fixed Cypher catalogue. One method per agent tool."""
 
@@ -62,7 +165,7 @@ class Tools:
         res = self.g.ro_query(cypher, params=params)
         return res.result_set, (time.perf_counter() - t0) * 1000
 
-    def _coverage(self, similarity: bool = False) -> dict:
+    def _coverage(self, similarity: bool = False, by_name: bool = False) -> dict:
         """What the graph actually contains, so a negative can be read honestly.
 
         `similarity` is set by the one tool that answers through the vector index. It matters
@@ -94,7 +197,15 @@ class Tools:
             # What this tool actually compared the question against, and then the whole set, so
             # the gap is visible rather than averaged into one flattering number.
             out["rejected alternatives searched by similarity"] = sch
-            out["more rejected alternatives in the graph but outside that index"] = a - sch
+            if by_name:
+                # The 206 now carry a full-text index, but it is only consulted when the question
+                # contains a name the tokeniser would split. Claiming they were searched on a
+                # question that named nothing would be the identical overclaim one index to the
+                # right -- the wording changes, the number does not.
+                out["more searched by name in the text index"] = a - sch
+            else:
+                out["more rejected alternatives in the graph, searchable only by a name this "
+                    "question did not contain"] = a - sch
         else:
             out["rejected_alternatives_in_graph"] = a
         out.update({
@@ -154,24 +265,108 @@ RETURN alt.title                             AS rejected_idea,
        decider_live_roles,
        CASE WHEN decider_live_roles = 0 THEN 'NO_LIVING_OWNER' ELSE 'HAS_LIVING_OWNER' END
                                              AS rationale_ownership,
-       round(score * 1000) / 1000            AS distance
+       round(score * 1000) / 1000            AS distance,
+       'similarity'                          AS found_by
 ORDER BY score ASC
 LIMIT $limit
 """
 
-    def has_this_been_tried(self, qvec: list, k: int = 8, max_dist: float = 0.45, limit: int = 5) -> Answer:
-        """Has this idea been proposed and rejected before, and is anyone left who knows why?"""
+    # ---------- TOOL 1, second query ----------
+    # The same twelve columns as HAS_THIS_BEEN_TRIED plus `found_by`, so one answer can carry rows
+    # from both retrievers and every consumer reading a column by position keeps working:
+    # memory.py's _link reads r[2] and r[8], the age test reads r[7], headline() reads r[11].
+    #
+    # `distance` is NULL on these rows, and that is not laziness. The vector index returns a
+    # cosine DISTANCE where lower is better; this index returns a TF-IDF score where HIGHER is
+    # better. Putting two numbers that point in opposite directions in one column would let any
+    # ORDER BY, any min(), and any renderer printing "closest" produce a confident wrong answer.
+    #
+    # LIMIT is $cap, not $limit, and the caller passes NAME_HIT_BOUND + 1. Asking for one more
+    # row than may be reported is what lets the ENGINE do the counting: if the query comes back
+    # full, the name matched too much of the corpus to be a name, and the result is dropped.
+    HAS_THIS_BEEN_TRIED_BY_NAME = """
+CALL db.idx.fulltext.queryNodes('UnnamedOption', $q) YIELD node AS alt, score
+WITH alt, score
+MATCH (kep:Kep)-[:CONSIDERED]->(alt)
+OPTIONAL MATCH (kep)-[:OWNED_BY]->(sig:Sig)
+OPTIONAL MATCH (author:Person)-[:AUTHORED|APPROVED]->(kep)
+OPTIONAL MATCH (author)-[liveRole:APPROVES]->()
+WITH kep, sig, alt, score,
+     collect(DISTINCT author.key) AS deciders,
+     count(DISTINCT liveRole)     AS decider_live_roles
+RETURN alt.title                             AS rejected_idea,
+       alt.body                              AS rationale,
+       kep.num                               AS kep,
+       kep.title                             AS kep_title,
+       kep.status                            AS status,
+       sig.key                               AS sig,
+       kep.url                               AS source_url,
+       CASE WHEN kep.created_ms = 0 THEN -1
+            ELSE ($now - kep.created_ms) / $msYear END AS years_ago,
+       deciders,
+       decider_live_roles,
+       CASE WHEN decider_live_roles = 0 THEN 'NO_LIVING_OWNER' ELSE 'HAS_LIVING_OWNER' END
+                                             AS rationale_ownership,
+       null                                  AS distance,
+       'name'                                AS found_by
+ORDER BY score DESC
+LIMIT $cap
+"""
+
+    def has_this_been_tried(self, qvec: list, k: int = 8, max_dist: float = 0.45,
+                            limit: int = 5, names: list | None = None) -> Answer:
+        """Has this idea been proposed and rejected before, and is anyone left who knows why?
+
+        Two retrievers over two disjoint sets of options, and the answer says which found each row.
+
+        `names` is appended to this signature rather than inserted into it, on purpose: three
+        callers pass `qvec` positionally, and inserting a parameter ahead of `k` would silently
+        rebind it for anyone who ever passes k positionally.
+        """
         params = {"qvec": qvec, "k": k, "maxDist": max_dist, "limit": limit,
                   "now": self.now_ms, "msYear": MS_PER_YEAR}
         rows, ms = self._run("has_this_been_tried", self.HAS_THIS_BEEN_TRIED, params)
+        cypher = self.HAS_THIS_BEEN_TRIED
+        shown = {"k": k, "max_dist": max_dist, "limit": limit}
+
+        # The name path runs second and its rows go underneath, so rows[0] is still the
+        # nearest-by-distance row for every caller that reads it. A retriever that can only answer
+        # when it has literal evidence may add to an answer; it may not decide what it leads with.
+        nq = fulltext_query(names or [])
+        if nq:
+            shown["name_query"] = nq
+            shown["name_bound"] = NAME_HIT_BOUND
+            try:
+                nrows, nms = self._run(
+                    "has_this_been_tried_by_name", self.HAS_THIS_BEEN_TRIED_BY_NAME,
+                    {"q": nq, "cap": NAME_HIT_BOUND + 1,
+                     "now": self.now_ms, "msYear": MS_PER_YEAR},
+                )
+            except Exception:
+                # A missing index is a missing capability, not a failed answer. Reported in the
+                # arguments rather than swallowed, because an answer that quietly stopped
+                # consulting one of its two indexes is the kind of thing nobody notices.
+                nrows, nms = [], 0.0
+                shown["name_index"] = "unavailable"
+            ms += nms
+            shown["name_hits"] = len(nrows)
+            if 0 < len(nrows) <= NAME_HIT_BOUND:
+                rows = list(rows) + list(nrows)
+                cypher = (self.HAS_THIS_BEEN_TRIED.rstrip() + "\n\n// --- and, for the names in "
+                          "the question, the text index over the options the vector index cannot "
+                          "see ---\n" + self.HAS_THIS_BEEN_TRIED_BY_NAME.lstrip())
+            elif len(nrows) > NAME_HIT_BOUND:
+                # Said out loud in the arguments the UI prints. "Your name matched too much of
+                # this corpus to be a name" is a real answer about a real limit.
+                shown["name_hits"] = f">{NAME_HIT_BOUND}"
+
         if not rows:
             return Answer("NOT_IN_GRAPH", "has_this_been_tried",
-                          coverage=self._coverage(similarity=True), ms=ms,
-                          cypher=self.HAS_THIS_BEEN_TRIED,
+                          coverage=self._coverage(similarity=True, by_name=bool(nq)), ms=ms,
+                          cypher=cypher, params=shown,
                           note="No recorded rejected alternative within the distance threshold.")
         return Answer("ANSWERED_WITH_PATH", "has_this_been_tried", rows=rows, ms=ms,
-                      cypher=self.HAS_THIS_BEEN_TRIED,
-                      params={"k": k, "max_dist": max_dist, "limit": limit})
+                      cypher=cypher, params=shown)
 
     # ---------- TOOL 2 ----------
     # NOTE: this query replaced an earlier, WRONG one.
