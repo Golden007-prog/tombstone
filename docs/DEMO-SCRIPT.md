@@ -35,10 +35,12 @@ matching the three figures in this very paragraph — which had already drifted 
 
 ### 0:00–0:16 — The problem, over a real screen · 47 words
 
-> *[Screen: the Kubernetes enhancements repo on GitHub, scrolling a long KEP README, landing on an
-> Alternatives section.]*
+> *[Screen: KEP-6061 on GitHub — <https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/6061-oci-artifact-security-profiles>
+> — scrolling the README, landing on `## Alternatives`. Deliberately THIS proposal: it is the one
+> the 0:56 beat retrieves, so the opening shot pays off twice. Measured 18,241 words, with six
+> named rejected options under that heading, all six of them nodes in the graph.]*
 >
-> "A Kubernetes design proposal. Four thousand words. Buried inside: the options they rejected,
+> "A Kubernetes design proposal. Eighteen thousand words. Buried inside: the options they rejected,
 > and why.
 >
 > There are seven hundred of these. A rejected option isn't a document, so no search index holds

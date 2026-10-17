@@ -14,7 +14,7 @@ Every stage direction, screen note and word budget lives in the script. What is 
 
 A Kubernetes design proposal.
 
-Four thousand words.
+Eighteen thousand words.
 
 Buried inside: the options they rejected, and why.
 
