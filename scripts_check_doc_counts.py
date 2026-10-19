@@ -167,16 +167,48 @@ for _t, _tw in _TENS.items():
 import subprocess as _subp
 _docs = [d for d in _subp.run(["git", "ls-files", "*.md"], capture_output=True,
                               text=True).stdout.split() if pathlib.Path(d).exists()]
+# THREE different things in this repo are counted in checks, and this used to read every
+# "N checks" anywhere as a claim about preflight's total. CONTRIBUTING.md then failed three ways
+# at once for three true sentences -- "a push gate with ten checks", "--quick runs the eight
+# checks", and "this repository has shipped three checks that silently verified nothing", the
+# last of which is a count of past defects and not the size of anything. A checker measuring the
+# wrong population does not miss an error, it manufactures one: the same defect as the tool/chip
+# count above, found the same week.
+#
+# So each population is anchored to its own phrasing and checked against its own source.
+_quick_n = len(re.findall(r'^\s*run "', _quick.group(0), re.M)) if _quick else 0
+_gate_n = len(re.findall(r'^\s*run "', open("scripts/pre-push").read(), re.M))
+# MOST SPECIFIC FIRST, and a span one population claims is not offered to the next. Without
+# that ordering, "`./preflight.sh --quick` ... --quick runs the eight checks" matches BOTH the
+# --quick pattern and the broader preflight one, and the broader one reports a true sentence as
+# a drift.
+_POPULATIONS = (
+    ("the push gate", _gate_n, r"push gate[^.!?]{0,60}?([\w-]+) checks\b"),
+    ("preflight --quick", _quick_n, r"--quick`?[^.!?]{0,60}?([\w-]+) checks\b"),
+    # `(?:\.sh)?` is load-bearing: the documents write "`./preflight.sh` — twenty-four checks",
+    # and a `[^.]` bound cannot cross the dot in `preflight.sh`, so this matched nothing for two
+    # of the three documents while the summary line still counted three claims. Found by the
+    # probe, not by reading it.
+    ("preflight", _total,
+     r"preflight(?:\.sh)?[^.!?]{0,60}?([\w-]+) checks\b|one of those ([\w-]+) checks\b"),
+)
 _claims = 0
 for _doc in _docs:
-    for _tok in re.findall(r"([\w-]+) checks\b", _flat(open(_doc).read())):
-        _n = int(_tok) if _tok.isdigit() else _SPELLED.get(_tok)
-        if _n is None:          # "the checks that need no database" -- not a count at all
-            continue
-        _claims += 1
-        if _n != _total:
-            problems.append(f"{_doc}: says preflight runs '{_tok}' checks, it runs {_total} "
-                            f"({_WORDS.get(_total, _total)})")
+    _text = _flat(open(_doc).read())
+    _taken: list = []
+    for _what, _want, _pat in _POPULATIONS:
+        for _m in re.finditer(_pat, _text, re.I):
+            if any(a <= _m.start() < b or a < _m.end() <= b for a, b in _taken):
+                continue
+            _taken.append((_m.start(), _m.end()))
+            _tok = next((g for g in _m.groups() if g), None)
+            _n = int(_tok) if _tok and _tok.isdigit() else _SPELLED.get((_tok or "").lower())
+            if _n is None:      # "the checks that need no database" -- not a count at all
+                continue
+            _claims += 1
+            if _n != _want:
+                problems.append(f"{_doc}: says {_what} runs '{_tok}' checks, it runs {_want} "
+                                f"({_WORDS.get(_want, _want)})")
 if not _claims:
     problems.append("no document states how many checks preflight runs; one is expected")
 else:
