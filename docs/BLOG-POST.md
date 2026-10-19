@@ -1,6 +1,6 @@
 # Kubernetes writes down who left. Nothing reads it.
 
-*Building a company brain on a graph, and nine things FalkorDB taught me the hard way.*
+*Building a company brain on a graph, and eleven things FalkorDB taught me the hard way.*
 
 ---
 
@@ -77,7 +77,7 @@ You cannot find that by searching. You find it by counting inbound edges to a ga
 
 ---
 
-## Ten things FalkorDB taught me the hard way
+## Eleven things FalkorDB taught me the hard way
 
 I measured rather than trusted, and most of what follows cost me time.
 
@@ -278,6 +278,77 @@ check: the first thing I did was go looking for a leak that did not exist.
 One more trap in reading that index list. I filtered it by matching `"VECTOR"` against the whole
 printed row, which reports a label as still having a vector index when all it has is a `RANGE`
 index on some other property. Read the per-field types, not the row.
+
+### 11. No graph command can be granted through a read-only ACL selector
+
+I wanted the public read path to authenticate as a Redis identity that the server would refuse to
+let write — so that "this endpoint cannot mutate the graph" stops being a convention held by
+twenty-eight hand-written `ro_query` calls and becomes something the engine enforces.
+
+Redis has exactly the right tool for this. `%R~<key>` grants read-only access to a key pattern.
+It does not work, for any FalkorDB graph command, including the read one:
+
+```
+> ACL SETUSER reader on >… %R~tomb:k8s -@all +graph.ro_query
+> GRAPH.RO_QUERY tomb:k8s "RETURN 1"
+(error) NOPERM No permissions to access a key
+```
+
+The engine explains itself if you ask it the right question:
+
+```
+> COMMAND INFO graph.RO_QUERY
+  flags:              readonly module noscript blocking
+  key_specifications: flags: RW access update      <- not RO
+```
+
+The **command** is flagged `readonly`. Its **key spec** is flagged `RW access update`, where
+native `GET` reports `RO access`. ACL selectors test the key spec, not the command flags, so
+`%R~` can never grant a FalkorDB graph command.
+
+A review had found this for `GRAPH.COPY` and filed it as a quirk of that one command. It is the
+general case. The working form is a plain `~<key>` pattern plus a command allowlist — the key
+pattern bounds *which* graph, the grant bounds *what* may be done to it:
+
+```
+ACL SETUSER tombstone-reader on >… resetkeys ~tomb:k8s -@all +graph.ro_query +info +ping
+```
+
+`+info` is in there because the client issues `INFO server` while constructing, to detect
+Sentinel. Without it the connection raises before a single query runs, which is the kind of thing
+you only find by running it.
+
+---
+
+## The demo got killed in production, and the cause was not what my own documentation said
+
+Two days before the deadline the hosting platform restarted my live instance for exceeding its
+512 MB memory limit. I had a documented answer ready, because I had measured this: *six concurrent
+`GRAPH.COPY` calls peak around 900 MB.* It was in the README. It was wrong.
+
+Reproduced in the shipped image at exactly the hosted size, with six **distinct** counterfactuals
+so none could be served from memory: **319 MiB. No kill.** `GRAPH.COPY` was never the multiplier.
+
+The multiplier was the embedding model. ONNX Runtime takes its own arena per concurrent `Run`, and
+the marginal cost of the *second* concurrent one is **119 MiB** — far more than BGE-small's 67 MB
+of weights. One visitor is 292 MiB. Two are 415. Eight are OOM-killed on the first round. On a
+link shared with judges, that is the expected case, not a tail risk.
+
+The 900 MB figure had been true when I took it, and I never retook it after the change that
+falsified it. It then justified giving my deploy check 2 GB of headroom — so **the check never ran
+at the size the demo actually has**, and the burst it did run went through the one code path that
+was already serialised. A stale measurement is worse than no measurement: it ends the argument.
+
+The fix is one lock over all five embed call sites. A lock over one of five bounds nothing, which
+is exactly what I had. And three days later an audit found the same bound defeated through a
+different door — `server.agent()` was a lazy singleton with no guard, so eight concurrent first
+requests each built an agent, and each agent loads its own ~94 MiB session. Reproduced against the
+unguarded code: eight agents, ~750 MiB on a 512 MB box.
+
+If you take one thing from this post, take that shape. Not "serialise your embeddings" — **put a
+date on every measurement, and re-take it when you change the thing it measured.**
+
+---
 
 ## "Why not just use networkx?" — I had this wrong
 
@@ -497,7 +568,53 @@ community detection available; it is non-deterministic and has no resolution par
 
 ---
 
-*Built for Graph Hacks 2026 (WeMakeDevs × FalkorDB). Every figure in this post has something
+## Does any of this work outside Kubernetes?
+
+That is the only question that decides whether this is a demo or a product, and until this week I
+had not answered it.
+
+The whole "has anyone tried this before?" half rests on one line:
+
+```python
+re.match(r"^(#{1,4})\s*alternatives\s*$", line.strip(), re.I)
+```
+
+That heading exists in Kubernetes because the KEP **template** mandates it. So I pointed the same
+extractor at two corpora that are real, large, public, and not Kubernetes:
+
+| corpus | documents | has the section | real rejected options |
+|---|---|---|---|
+| Kubernetes KEPs | 681 | *(baseline)* | 752 |
+| rust-lang/rfcs — markdown, `# Rationale and alternatives` | 643 | 93% | **708** |
+| python/peps — reStructuredText, `Rejected Ideas` | 744 | 65% | **626** |
+
+**0.84 to 1.10 real rejected options per decision document, in all three.** Three organisations,
+two markup languages, three different heading names. The mechanism — *a sub-heading inside the
+alternatives section is one rejected option* — transfers intact. Real things it pulled out:
+`Phabricator`, which is what PEP 481 rejected before choosing GitHub. `Multidispatch through
+tuple types`. `Keep things as they are`.
+
+What it cost: widening that regex, an rST heading parser, and one cleanup pass — Rust's template
+leaks its own prompt text as headings, so *"What other designs have been considered…"* arrived as
+155 fake rejected options, the same defect Kubernetes has with HTML comments.
+
+And here is the honest ceiling. **All three corpora have a mandated template.** A design doc in
+Notion has no such heading — it has four paragraphs that begin "we also looked at X, but" in the
+middle of a section about something else. That is untested and it is the real risk. Whether a
+rejected option can be pulled out of prose with no structure, at precision worth having, is
+[the open question](https://github.com/aviralgarg05/tombstone/issues/10).
+
+Which is a reasonable place to say: **the repository is open, and the interesting work is the part
+I have not done.** There are thirteen issues, graded by difficulty, each naming the files involved
+and the gate that has to pass. There is a `./preflight.sh --quick` that needs no Docker and no
+graph, because the first thing an honest audit told me was that this repo is hostile to newcomers.
+
+<https://github.com/aviralgarg05/tombstone>
+
+---
+
+*Built in four days for Graph Hacks 2026 (WeMakeDevs × FalkorDB), and open to contributors since.
+Every figure in this post has something
 behind it in the repository, and they are not all the same thing: the graph counts are re-queried
 against the live database on every push, this post's own numbers are re-checked by `verify_blog.py`,
 and the ingest and benchmark timings come from committed scripts you can re-run — reported with

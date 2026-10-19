@@ -109,6 +109,15 @@ _n_lessons = len(_re.findall(r"^### \d+\.", blog, _re.M))
 _said = _re.search(r"^## (\w+(?:-\w+)?) things FalkorDB taught me", blog, _re.M)
 fails += _states("FalkorDB lessons", _said.group(1) if _said else None, _n_lessons)
 
+# The SUBTITLE states the same count, in line 3, and nothing read it -- so it still said "nine"
+# while the heading said "Ten" and ten sections sat underneath. The first three lines of the post
+# are the worst place in the document to carry a stale number, and they were the only place the
+# count was not checked.
+_said_sub = _re.search(r"^\*Building a company brain on a graph, and (\w+(?:-\w+)?) things",
+                       blog, _re.M)
+fails += _states("FalkorDB lessons in the subtitle",
+                 _said_sub.group(1) if _said_sub else None, _n_lessons)
+
 _steps = sum(1 for _l in open(".github/workflows/verify.yml") if _re.match(r"^\s*- name:", _l))
 _said_ci = _re.search(r"(\w+(?:-\w+)?) CI steps\.", blog)
 fails += _states("CI steps", _said_ci.group(1) if _said_ci else None, _steps)
