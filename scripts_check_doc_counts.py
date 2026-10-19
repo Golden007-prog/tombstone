@@ -130,16 +130,24 @@ pf = open("preflight.sh").read()
 # sits inside an `if` that skips it loudly on a machine without Chrome, so it is indented -- and
 # this count silently dropped to 22 while the documents still said twenty-three. A checker keyed
 # to where a line starts rather than to what it does.
-_labels = re.findall(r'^\s*run "([^"]+)"', pf, re.M)
-_body = re.search(r"^run\(\) \{.*?^\}", pf, re.M | re.S)
-_outside = pf[:_body.start()] + pf[_body.end():] if _body else pf
+# The --quick block is EXCLUDED, because its eight checks are a subset that runs instead of the
+# full set, never alongside it. Counting them took the total to 32 the moment --quick landed,
+# while `./preflight.sh` still ran 24 -- a checker measuring the file rather than the run. The
+# marker is the block's own opening line, so moving the block does not break this.
+_quick = re.search(r'^if \[ "\$QUICK" -eq 1 \]; then.*?^fi$', pf, re.M | re.S)
+pf_full = pf[:_quick.start()] + pf[_quick.end():] if _quick else pf
+_labels = re.findall(r'^\s*run "([^"]+)"', pf_full, re.M)
+_body = re.search(r"^run\(\) \{.*?^\}", pf_full, re.M | re.S)
+_outside = pf_full[:_body.start()] + pf_full[_body.end():] if _body else pf_full
 _inline = _outside.count("[32mok")   # literal, not a regex: r"\033\[32mok" compiles
 # \033 to an ESC byte, which never appears in the file -- the file holds those four
 # characters as text. That form matched nothing, made the total 16, and passed while
 # measuring the wrong thing, which is the exact failure this check exists to catch.
 _total = len(_labels) + _inline
 _WORDS = {14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen",
-          19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two"}
+          19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two",
+          23: "twenty-three", 24: "twenty-four", 25: "twenty-five",
+          26: "twenty-six"}
 # Every tracked document, not just the submission checklist. This check was written against
 # SUBMISSION.md alone, so docs/EXPLAIN-IT.md -- the file whose entire job is being right when a
 # judge asks, under Rule 12 -- could claim any number of checks and nothing noticed. Scanning

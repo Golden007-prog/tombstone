@@ -1,0 +1,31 @@
+name: Bug
+description: Something answers wrongly, crashes, or claims something untrue
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A wrong *answer* is the most serious kind of bug here. If a tool returned a number you
+        can show is wrong, lead with that.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command or the click, and what came back. Paste the output.
+      placeholder: |
+        curl -s -X POST localhost:8099/api/tool -d '{"tool":"who_owns","args":{...}}'
+        -> shape DEGRADED, note "'list' object has no attribute 'strip'"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and why
+      description: If a document in this repo says otherwise, link the line.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Local, or the hosted demo?
+      placeholder: "localhost:8099 on macOS / tombstone-vvn9.onrender.com"

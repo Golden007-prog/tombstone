@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How this project is built, and what it got wrong
+    url: https://github.com/aviralgarg05/tombstone/blob/main/docs/GROUND-TRUTH.md
+    about: The catalogue of defects this codebase has shipped. Most gates exist because of one.
+  - name: Contributing guide
+    url: https://github.com/aviralgarg05/tombstone/blob/main/CONTRIBUTING.md
+    about: The gates explained, and a --quick path that needs no Docker.

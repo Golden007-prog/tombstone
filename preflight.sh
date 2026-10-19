@@ -17,6 +17,14 @@
 #
 # Usage:  ./run.sh    (in another shell, so the app is serving)
 #         ./preflight.sh
+#         ./preflight.sh --quick     (no app, no Docker, no Chrome, no graph)
+#
+# --quick exists for a contributor's first hour. The full run needs FalkorDB serving, the app on
+# 8099, headless Chrome and a seeded graph, and someone who has just cloned this has none of
+# those -- so their first experience of the project was a red wall that said nothing about their
+# change. --quick runs the checks that need nothing but this repository, which is the same set
+# the push gate runs, and it NAMES what it skipped rather than printing a green verdict over a
+# third of the suite. It is not a substitute: a green --quick does not mean a green preflight.
 set -uo pipefail
 cd "$(dirname "$0")"
 
@@ -63,6 +71,15 @@ if ! "$PY" -c "import falkordb, fastembed, fastapi, pytest" 2>/dev/null; then
   exit 1
 fi
 
+QUICK=0
+for arg in "$@"; do
+  case "$arg" in
+    --quick) QUICK=1 ;;
+    -h|--help) sed -n '1,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown argument: $arg (try --quick, or --help)" >&2; exit 2 ;;
+  esac
+done
+
 pass=0; fail=0; skip=0; failed=()
 
 # A check that cannot run here must say so -- never pass, and never read as a product failure.
@@ -95,9 +112,36 @@ run() {   # run <label> <command...>
 echo "checking everything this submission claims"
 echo
 
+if [ "$QUICK" -eq 1 ]; then
+  echo "  --quick: the checks that need nothing but this repository."
+  echo
+  run "the demo script is speakable"          python3 scripts_check_demo_timing.py
+  run "the narration cut matches the script"  python3 scripts_build_narration.py --check
+  run "SUBMISSION.md's stated lengths"        python3 scripts_check_submission_lengths.py
+  run "committed artefacts match the code"    python3 scripts_check_shots_fresh.py --hashes-only
+  run "drafted/refused counts match the verified run" python3 scripts_check_action_counts.py
+  run "that count checker can still fail"     python3 scripts_check_action_counts.py --self-test
+  run "FINISH.md matches what the deploy will upload" python3 scripts_check_deploy_size.py
+  run "no universal claims about checking"    "$PY" scripts_check_verification_claims.py
+  echo
+  echo "  NOT run, because they need a live graph, the app on 8099, or Chrome:"
+  echo "    the invariants (164 tests) · every README number against the graph · the drafting"
+  echo "    action's claims · the memory claims · retrieval · the keyless router · the text"
+  echo "    baseline · every rendered UI state · the data model · both benchmarks · the Cypher"
+  echo "    catalogue. That is most of the suite, and a green run here does not predict them."
+  echo
+  if [ "$fail" -eq 0 ]; then
+    printf '  \033[32m%d quick checks passed.\033[0m Run ./run.sh then ./preflight.sh for the rest.\n' "$pass"
+    exit 0
+  fi
+  printf '  \033[31m%d of %d quick checks failed:\033[0m %s\n' "$fail" "$((pass + fail))" "${failed[*]}"
+  exit 1
+fi
+
 if ! curl -sf -m 5 http://localhost:8099/api/health >/dev/null 2>&1; then
   echo "  the app is not serving on 8099. Start it with ./run.sh in another shell."
   echo "  (the UI, demo-script and README-output checks all drive the live app)"
+  echo "  No graph yet? ./preflight.sh --quick runs what needs nothing but this repository."
   exit 1
 fi
 

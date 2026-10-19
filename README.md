@@ -1868,6 +1868,23 @@ times. Each fix made the claim narrower and more defensible.
   free-text asks eight at a time, and fails if the kernel kills it or if any request comes back
   without an answer. No stats reading and no ceiling to argue with — the kernel is the judge.
 
+## Contributing
+
+This started as a four-day hackathon entry and is now open to contributors. The gates are real —
+a push gate, twenty-four preflight checks, 164 tests — and they are all explained in
+[CONTRIBUTING.md](CONTRIBUTING.md), along with a `./preflight.sh --quick` path that needs no
+Docker, no Chrome and no seeded graph, so a first change does not require the full environment.
+
+Issues are scoped, name the files involved, and say which gate has to pass:
+[good first issue](https://github.com/aviralgarg05/tombstone/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+· [difficulty:medium](https://github.com/aviralgarg05/tombstone/issues?q=is%3Aissue+is%3Aopen+label%3A%22difficulty%3Amedium%22)
+· [difficulty:hard](https://github.com/aviralgarg05/tombstone/issues?q=is%3Aissue+is%3Aopen+label%3A%22difficulty%3Ahard%22)
+
+The most interesting open thread is whether the rejected-option extractor works beyond corpora
+with a mandated template. It has been measured on three — Kubernetes KEPs, Rust RFCs and Python
+PEPs — at **0.84 to 1.10 real rejected options per decision document** in all three, across two
+markup languages. Free-form prose is untested and is the real ceiling (#10).
+
 ## AI assistance disclosure
 
 Built with AI coding assistance, as the rules permit and require disclosing.

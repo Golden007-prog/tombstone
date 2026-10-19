@@ -1,0 +1,25 @@
+name: A claim in the docs looks wrong
+description: A number, a figure, or a statement you cannot reproduce
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most valuable issue type in the project. Every number here is supposed to
+        have something checking it; where that broke, the doc drifted and nothing noticed.
+  - type: input
+    id: where
+    attributes:
+      label: Which file and line
+      placeholder: README.md:1587
+    validations:
+      required: true
+  - type: textarea
+    id: claim
+    attributes:
+      label: What it says, and what you measured
+      placeholder: |
+        Says: "288 MiB under eight concurrent asks"
+        I measured: ... with ...
+    validations:
+      required: true
