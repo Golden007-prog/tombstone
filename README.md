@@ -4,9 +4,21 @@
 
 *A tombstone is what a database writes to record that something is gone.*
 
-Graph Hacks 2026 (WeMakeDevs × FalkorDB) — **Track 3, Company Brain**.
-
 [![verify](https://github.com/aviralgarg05/tombstone/actions/workflows/verify.yml/badge.svg)](https://github.com/aviralgarg05/tombstone/actions/workflows/verify.yml)
+[![good first issues](https://img.shields.io/github/issues/aviralgarg05/tombstone/good%20first%20issue?label=good%20first%20issues&color=7057ff)](https://github.com/aviralgarg05/tombstone/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
+Built in four days for Graph Hacks 2026 (WeMakeDevs × FalkorDB), Track 3 — 358 commits, all of
+them inside the window. **It is now open to contributors**, and the interesting work is no longer
+the Kubernetes demo: it is whether the thing generalises. It does, further than expected —
+measured on Rust RFCs and Python PEPs at **0.84 to 1.10 real rejected options per decision
+document**, the same as Kubernetes, across two markup languages. Where it stops is
+[#10](https://github.com/aviralgarg05/tombstone/issues/10).
+
+**→ [CONTRIBUTING.md](CONTRIBUTING.md)** explains the gates and gives you a
+`./preflight.sh --quick` path that needs no Docker, no Chrome and no graph.
+**→ [Issues](https://github.com/aviralgarg05/tombstone/issues)** are scoped, name the files, and
+say which gate has to pass.
 
 > **If you have 60 seconds**
 > - **One finding:** one person is the entire review capacity for the Kubernetes apiserver's
