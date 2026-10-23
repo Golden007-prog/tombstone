@@ -749,7 +749,7 @@ def test_drafted_patch_parses_as_yaml_and_actually_retires_the_handle():
     after = act.retire(before, "carol")
     parsed = yaml.safe_load(act.canonical(after))
     assert parsed["approvers"] == ["alice", "bob"]
-    assert "carol" not in (parsed.get("reviewers") or [])
+    assert parsed["reviewers"] == ["carol"]
     assert parsed["emeritus_approvers"] == ["carol"]
     assert parsed["options"] == {"no_parent_owners": True}, "unrelated keys must survive"
 
@@ -2089,21 +2089,17 @@ def test_the_honest_negative_does_not_overstate_what_was_searched(agent, g):
     assert total in {v for v in (other.coverage or {}).values() if isinstance(v, int)}
 
 
-# `retire` moves a handle out of BOTH approvers and reviewers. That is a defensible reading of
-# going emeritus in an area, but it is a wider change than the finding that produced it, and for
-# a long time nothing said it out loud: x13n's committed patch silently drops them as a reviewer,
-# and the note above the diff explained only the approver change. These pin the behaviour so the
-# wider edit cannot happen by accident, and so the disclosure cannot be dropped without a failure.
+# A finding about approval does not justify ending a separate review responsibility. Pin the
+# narrower edit so a draft cannot silently drop the person from both roles again.
 
-def test_retire_removes_the_handle_from_reviewers_too_and_that_is_deliberate():
+def test_retire_preserves_reviewers_when_the_finding_only_covers_approval():
     from tombstone import act
     before = {"approvers": ["someone-else", "x"], "reviewers": ["someone-else", "x"],
               "options": {"no_parent_owners": True}}
     after = act.retire(before, "x")
     assert after["approvers"] == ["someone-else"]
-    assert after["reviewers"] == ["someone-else"], (
-        "retire() is documented as moving the handle out of approvers AND reviewers; if that "
-        "changes, the patch note that discloses it has to change with it")
+    assert after["reviewers"] == ["someone-else", "x"], (
+        "retiring approval cannot justify removing independent review responsibility")
     assert after["emeritus_approvers"] == ["x"]
     assert after["options"] == {"no_parent_owners": True}, "unrelated keys must survive"
 

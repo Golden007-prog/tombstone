@@ -1,15 +1,18 @@
 # Sending these upstream
 
-The two patches in this directory were drafted from the graph. One is ready to send to
-`kubernetes/kubernetes` after a small hand-edit. The other is not, and the reason it is not is
-filed as [#13](https://github.com/aviralgarg05/tombstone/issues/13).
+The two patches in this directory are local drafts from the graph. Both now preserve the
+original policy comments, key order and reviewer membership, addressing the drafting defect in
+[#13](https://github.com/aviralgarg05/tombstone/issues/13). Neither has been sent upstream.
 
-Both findings were re-checked against `master` on **19 Oct 2026** and both files still match the
-snapshot this project was built from, so the contradictions are live.
+Both source files were re-checked against Kubernetes `master` on **23 Oct 2026**, at commit
+`061e55d37f0219a7ca8f0b980c8e86b7cd706347`. Their parsed contents still match this snapshot;
+the original text is now retained with it. The finding is still a question about intent, not
+evidence that either person should stop approving an area. Re-check upstream before using a
+draft and ask the person or area maintainers to confirm the intended change.
 
 ---
 
-## Ready: `hack/jenkins/OWNERS`
+## Draft: `hack/jenkins/OWNERS`
 
 Upstream today:
 
@@ -28,9 +31,8 @@ reviewers:
 active approver here. They appear only in `approvers`, not in `reviewers`, so moving them is a
 clean single change.
 
-**Hand-edit before sending:** keep the leading comment. The drafted diff is against a canonical
-re-serialisation of the parsed file, so it drops the `# See the OWNERS docs` line. Make the edit
-by hand in the real file instead of applying the patch:
+The draft retains the leading comment and changes only approval membership and the new
+emeritus entry. Its proposed file is:
 
 ```yaml
 # See the OWNERS docs at https://go.k8s.io/owners
@@ -65,10 +67,9 @@ emeritus_approvers:
 >
 > **Special notes for your reviewer**:
 >
-> I deliberately did not send a second, similar change for
-> `pkg/scheduler/framework/autoscaler_contract/OWNERS`: there the person is listed in both
-> `approvers` and `reviewers`, and stepping back from approving is not the same as giving up
-> reviewing, so that one needs a human decision I am not in a position to make.
+> The drafting tool preserves reviewer membership independently of approval membership. Any
+> similar change for `pkg/scheduler/framework/autoscaler_contract/OWNERS` also needs the named
+> person's or area maintainers' confirmation; these graph findings do not establish intent.
 >
 > **Does this PR introduce a user-facing change?**
 >
@@ -88,7 +89,7 @@ sig-testing's `reviewers` line.
 
 ---
 
-## Not ready: `pkg/scheduler/framework/autoscaler_contract/OWNERS`
+## Draft: `pkg/scheduler/framework/autoscaler_contract/OWNERS`
 
 Upstream today:
 
@@ -106,12 +107,8 @@ reviewers:
   - x13n
 ```
 
-`x13n` is emeritus in three other files and still an active approver here — the finding is real.
-But the drafted patch also **removes them from `reviewers`**, and the patch's own header says that
-part is not justified by the finding. It additionally drops the comment explaining why
-inheritance is disabled.
-
-Sending a change that deletes a policy comment and makes an edit the tool itself disclaims is how
-you get a reputation with maintainers. Fix [#13](https://github.com/aviralgarg05/tombstone/issues/13)
-first, or hand-write the narrow version: move `x13n` out of `approvers` only, leave `reviewers`,
-`options` and both comments exactly as they are.
+`x13n` is emeritus in three other files and still an active approver here. The draft now moves
+`x13n` out of `approvers` only and leaves `reviewers`, `options` and both comments intact. It
+does not claim that approval responsibility in this area has ended: that requires human
+confirmation. A missing or stale original source is refused, so a legacy parsed-only snapshot
+cannot silently recreate this file without its policy comments.

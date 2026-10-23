@@ -1,8 +1,8 @@
 {
-  "data/corpus.json.gz": "acf66973b25948e1",
-  "scripts_gen_readme_shots.py": "579433c961144e11",
-  "src/tombstone/act.py": "6939acbb9fe2bbba",
-  "src/tombstone/agent.py": "7edc79f80620963d",
+  "data/corpus.json.gz": "f764ed7bf7ffd0e1",
+  "scripts_gen_readme_shots.py": "9745c99127dcf207",
+  "src/tombstone/act.py": "56e17f4cac3662b4",
+  "src/tombstone/agent.py": "b8499a0c8f77be64",
   "src/tombstone/build.py": "858637df7edba710",
   "src/tombstone/tools.py": "530810b2cd38858f",
   "web/app.js": "c7ed82b731d1ca06",

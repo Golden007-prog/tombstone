@@ -224,7 +224,7 @@ a wrong answer or a timeout.
 
 One command: `./preflight.sh` — twenty-four checks. The graph counts are re-derived against the
 live database; the benchmark ratios are reported with their conditions rather than gated.
-37 CI steps on every push, 39 runs because two repeat across Python 3.11 and 3.14. 164 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
+37 CI steps on every push, 39 runs because two repeat across Python 3.11 and 3.14. 190 tests. Each answer in the UI carries its Cypher, that query's hash, the arguments it was answered with,
 a coverage statement, and a line saying no model wrote the prose.
 
 ## "What is weakest?"

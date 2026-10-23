@@ -40,9 +40,9 @@ say which gate has to pass.
 >   [Honest limits](#honest-limits).
 > - **See it work without running anything:** the picture two screens down renders inline —
 >   depth 1 returns nothing, depth 4 explains why. There is also an
->   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (699 KB, downloads;
+>   [86-second captioned walkthrough](docs/video/walkthrough-silent.mp4) (771 KB, downloads;
 >   GitHub does not play repo-committed video in the browser — I checked rather than assumed).
-> - **Nothing here is asserted.** 164 tests, 36 graph claims, 18 rendered UI states, and **two of
+> - **Nothing here is asserted.** 190 tests, 36 graph claims, 18 rendered UI states, and **two of
 >   the seven benchmarks** re-run by **37 CI steps on each push** — the other five build a thousand
 >   graphs, millions of edges, a memory curve or a second vector index, so they are dated
 >   measurements with committed scripts rather than
@@ -115,7 +115,7 @@ with the exact location of each item and an honest status.
 | A public source-code repository | this repo, Apache-2.0 | **done** |
 | A README with setup instructions and the graph data model | [Quickstart](#quickstart) and [The graph data model](#the-graph-data-model) | **done** |
 | The Cypher queries or graph algorithms the product depends on | [The Cypher this product depends on](#the-cypher-this-product-depends-on) — **all twelve** query constants generated from `src/tombstone/tools.py`, and **CI fails the build if this README drifts from the source**. It carried nine of the twelve until the 17 Oct audit, and the drift check was a *substring* test, so an addition to the section could not fail it; it is an equality test now, and the three that were missing included the product's only use of `algo.labelPropagation` — the graph algorithm this rule names | **done** |
-| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 699 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
+| A demo video of the working project | **[the 86-second captioned walkthrough](docs/video/walkthrough-silent.mp4)** — 771 KB, in-repo, every frame a real screenshot of the running app. It **downloads** rather than plays: GitHub serves repo-committed `.mp4` as `application/octet-stream` with `nosniff`, so neither the blob page nor the raw URL gives you a player. I shipped this row claiming it played in the browser, then opened the page and counted zero `<video>` elements. The artefact that genuinely needs no click is the depth-contrast GIF in the README, which renders inline | silent walkthrough committed; narrated cut to follow |
 | A live deployment, **or** complete local setup instructions if it cannot be deployed | [Quickstart](#quickstart) — `./run.sh`, no API key and no account. A CI job runs the quickstart from a fresh clone on a machine that **already has a container called `falkordb`** — the case that used to break it — and requires the app to reuse that instance, serve, and answer | satisfied via local setup **plus a video, which is how the FAQ words the fallback** — not "either/or" but *complete local setup instructions **and** a working demo video* if you cannot deploy; Rule 10 requires the video separately, so both halves are present. **Satisfied both ways as of 17 Oct: there is now a live deployment at <https://tombstone-vvn9.onrender.com>** — verified against the running instance, not asserted: `/api/health` reports FalkorDB up with 681 decisions, 752 named options, 794 people and 585 ownership files; all thirteen tools answer; free text routes with no key; and a `POST` of a filesystem argument is refused on the public instance **and says so in the answer** — so that one is checkable by a stranger with curl rather than only by me with a shell in the container, which is what it was until the 17 Oct audit. Built from this Dockerfile, which CI also builds and boots on every push. |
 | The track you are entering | **Track 3, Company Brain**, stated at the top of this README | **done** |
 
@@ -197,10 +197,13 @@ And it never claims the straggler is a mistake. Stepping back from nine areas an
 keeping a tenth is normal and correct, so every draft carries both readings and is addressed to a
 human to confirm. The output is a patch **and the question**, which is the honest shape for this.
 
-Two caveats stated on the face of every draft: the diff is against a canonical re-serialisation of
-the *parsed* file — the committed snapshot stores parsed OWNERS structures, so upstream comments
-and key order are not preserved — and the full proposed file is appended underneath, because a
-minimal diff can reuse an identical line and read misleadingly.
+Drafts edit the original OWNERS text, preserving unrelated comments, key order and reviewer
+membership. The snapshot carries that text for the two draftable files, checked against upstream
+on 23 Oct 2026; future corpus loads retain the original text too. Missing text, a mismatch with
+the parsed record, or unsupported YAML produces an explicit refusal instead of a reconstructed
+patch. The full proposed file is still appended underneath, because a minimal diff can reuse an
+identical line and read misleadingly. Re-check upstream and confirm the person's intent before
+using a draft: the snapshot is evidence of a finding, not permission to retire an approver.
 
 `PYTHONPATH=src ./.venv/bin/python verify_action.py` re-checks every number in this section against a live run.
 
@@ -922,7 +925,7 @@ swaps the router for a model. It changes *who picks the tool*. It does not chang
 
 ```bash
 ./preflight.sh                                # all of the below, one command, one verdict
-PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 164 invariant tests
+PYTHONPATH=src ./.venv/bin/python -m pytest tests/ -q     # 190 invariant tests
 PYTHONPATH=src ./.venv/bin/python verify_claims.py        # re-queries the 36 graph claims
 ```
 
@@ -1883,7 +1886,7 @@ times. Each fix made the claim narrower and more defensible.
 ## Contributing
 
 This started as a four-day hackathon entry and is now open to contributors. The gates are real —
-a push gate, twenty-four preflight checks, 164 tests — and they are all explained in
+a push gate, twenty-four preflight checks, 190 tests — and they are all explained in
 [CONTRIBUTING.md](CONTRIBUTING.md), along with a `./preflight.sh --quick` path that needs no
 Docker, no Chrome and no seeded graph, so a first change does not require the full environment.
 

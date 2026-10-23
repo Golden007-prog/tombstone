@@ -125,7 +125,7 @@ if [ "$QUICK" -eq 1 ]; then
   run "no universal claims about checking"    "$PY" scripts_check_verification_claims.py
   echo
   echo "  NOT run, because they need a live graph, the app on 8099, or Chrome:"
-  echo "    the invariants (164 tests) · every README number against the graph · the drafting"
+  echo "    the invariants (190 tests) · every README number against the graph · the drafting"
   echo "    action's claims · the memory claims · retrieval · the keyless router · the text"
   echo "    baseline · every rendered UI state · the data model · both benchmarks · the Cypher"
   echo "    catalogue. That is most of the suite, and a green run here does not predict them."

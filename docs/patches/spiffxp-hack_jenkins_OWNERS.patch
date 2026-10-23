@@ -1,9 +1,9 @@
 # Drafted from the graph. Review before applying.
 # `spiffxp` is recorded emeritus in 9 other OWNERS files and is still an active approver here. Either they kept this area deliberately, or it was missed when they stepped back -- this patch assumes the second and is for a human to confirm.
-# The diff is against a canonical re-serialisation of the parsed file, so upstream comments and key order are not preserved. The full proposed file is appended below the diff, because a minimal diff can reuse an identical line and read misleadingly.
+# The diff uses the original OWNERS text; unrelated comments, key order and reviewer membership are preserved. The full proposed file is appended below the diff, because a minimal diff can reuse an identical line and read misleadingly.
 --- a/hack/jenkins/OWNERS
 +++ b/hack/jenkins/OWNERS
-@@ -1,6 +1,7 @@
+@@ -3,6 +3,7 @@
  approvers:
    - bentheelder
    - cblecker
@@ -14,6 +14,8 @@
 +  - spiffxp
 
 # ---- proposed hack/jenkins/OWNERS in full ----
+# # See the OWNERS docs at https://go.k8s.io/owners
+#
 # approvers:
 #   - bentheelder
 #   - cblecker

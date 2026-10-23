@@ -203,6 +203,7 @@ class Corpus:
     parse_failures: list = field(default_factory=list)        # rel_path -> kep.yaml dict
     readmes: dict = field(default_factory=dict)     # rel_path -> markdown
     owners: dict = field(default_factory=dict)      # rel_path -> OWNERS dict
+    owners_texts: dict = field(default_factory=dict)  # original policy text for targeted edits
     aliases: dict = field(default_factory=dict)
     legacy_files: list = field(default_factory=list)
 
@@ -239,9 +240,13 @@ class Corpus:
                 continue
             p = os.path.join(dp, "OWNERS")
             try:
-                d = yaml.load(open(p, encoding="utf-8", errors="replace"), Loader=_StrDateLoader)
+                with open(p, encoding="utf-8", newline="") as source:
+                    text = source.read()
+                d = yaml.load(text, Loader=_StrDateLoader)
                 if isinstance(d, dict):
-                    self.owners[os.path.relpath(p, k8s_root)] = d
+                    rel = os.path.relpath(p, k8s_root)
+                    self.owners[rel] = d
+                    self.owners_texts[rel] = text
             except Exception as e:
                 self.parse_failures.append(
                     {"path": os.path.relpath(p, k8s_root), "error": f"{type(e).__name__}: {e}"})

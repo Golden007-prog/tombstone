@@ -45,6 +45,7 @@ def export(corpus, path: str = SNAPSHOT) -> dict:
         "keps": {k: _slim_kep(v) for k, v in corpus.keps.items()},
         "alternatives": alts,
         "owners": {k: _slim_owners(v) for k, v in corpus.owners.items()},
+        "owners_texts": corpus.owners_texts,
         "aliases": corpus.aliases,
         "legacy_files": corpus.legacy_files,
         "parse_failures": corpus.parse_failures,
@@ -122,6 +123,7 @@ def load(path: str = SNAPSHOT):
     c = Corpus()
     c.keps = p["keps"]
     c.owners = p["owners"]
+    c.owners_texts = p.get("owners_texts", {})
     c.aliases = p["aliases"]
     c.legacy_files = p.get("legacy_files", [])
     c.parse_failures = p.get("parse_failures", [])

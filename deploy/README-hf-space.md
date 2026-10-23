@@ -54,7 +54,7 @@ was measured serially and the hosted Render instance was killed on 17 Oct by con
 covered.
 
 The graph counts above — 681, 958, 794, 585 — are re-queried against the live database by
-scripts that run in CI on every push, along with 36 graph claims and 164 tests. The boot and
+scripts that run in CI on every push, along with 36 graph claims and 190 tests. The boot and
 memory figures are not: they need Docker and a built image, so they are measured by
 `scripts_verify_deploy.sh` on a developer machine and are dated readings rather than gates. This
 sentence used to say "every number above", which covered both and was true of only one.

@@ -683,9 +683,20 @@ class Agent:
                 if kind != "direct":
                     rows.append([person, path, stepped_back_in, kind, why, "", ""])
                     continue
+                source = getattr(corpus, "owners_texts", {}).get(path)
+                if source is None:
+                    rows.append([person, path, stepped_back_in, "missing_source",
+                                 "Original OWNERS text is unavailable; a parsed record cannot "
+                                 "preserve upstream policy comments, so no patch is drafted.", "", ""])
+                    continue
+                try:
+                    proposed = act.retire_source(source, declared, person)
+                except ValueError as exc:
+                    rows.append([person, path, stepped_back_in, "unpatchable_source",
+                                 f"No patch drafted: {exc}.", "", ""])
+                    continue
                 after = act.retire(declared, person)
-                diff = act.unified(path, declared, after)
-                proposed = act.canonical(after)
+                diff = act.unified_text(path, source, proposed)
                 note = (f"`{person}` is recorded emeritus in {stepped_back_in} other OWNERS files "
                         f"and is still an active approver here. Either they kept this area "
                         f"deliberately, or it was missed when they stepped back -- this patch "
@@ -694,19 +705,8 @@ class Agent:
                     inherits = self._inherited_by(path)
                     note += (f" Applying it would leave `{path}` with no approvers of its own, so "
                              f"approval would fall back to {inherits}.")
-                # `act.retire` has always dropped the handle from `reviewers` as well as
-                # `approvers`, and the note never said so. That is a bigger change than this
-                # finding justifies: the finding is that they are recorded emeritus elsewhere and
-                # still an ACTIVE APPROVER here, and someone can stop approving an area while
-                # still reviewing it. The diff alone does not show it either -- moving the handle
-                # under a new `emeritus_approvers:` key reuses the `  - handle` line that was the
-                # reviewer entry, so a removal reads as a relocation. x13n's committed patch is
-                # exactly that case. The note is what the human reviewing this reads, so it says.
                 if person in (declared.get("reviewers") or []):
-                    note += (f" It also removes `{person}` from `reviewers` here, which this "
-                             f"finding does not by itself justify -- stepping back from approving "
-                             f"an area is not the same as giving up reviewing it. Drop that part "
-                             f"if they are still reviewing.")
+                    note += " Reviewer membership is unchanged; this finding concerns approval only."
                 rows.append([person, path, stepped_back_in, "patch", note, diff, proposed])
                 if write_to:
                     os.makedirs(write_to, exist_ok=True)
@@ -714,13 +714,14 @@ class Agent:
                     with open(fn, "w") as fh:
                         fh.write(f"# Drafted from the graph. Review before applying.\n"
                                  f"# {note}\n"
-                                 f"# The diff is against a canonical re-serialisation of the "
-                                 f"parsed file, so upstream comments and key order are not "
-                                 f"preserved. The full proposed file is appended below the "
+                                 f"# The diff uses the original OWNERS text; unrelated comments, "
+                                 f"key order and reviewer membership are preserved. "
+                                 f"The full proposed file is appended below the "
                                  f"diff, because a minimal diff can reuse an identical line and "
                                  f"read misleadingly.\n{diff}\n"
                                  f"# ---- proposed {path} in full ----\n"
-                                 + "".join(f"# {ln}\n" for ln in proposed.splitlines()))
+                                 + "".join(f"# {ln}\n" if ln else "#\n"
+                                           for ln in proposed.splitlines()))
                     written.append(fn)
 
         drafted = sum(1 for r in rows if r[3] == "patch")

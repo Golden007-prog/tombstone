@@ -1,25 +1,29 @@
 # Drafted from the graph. Review before applying.
-# `x13n` is recorded emeritus in 3 other OWNERS files and is still an active approver here. Either they kept this area deliberately, or it was missed when they stepped back -- this patch assumes the second and is for a human to confirm. It also removes `x13n` from `reviewers` here, which this finding does not by itself justify -- stepping back from approving an area is not the same as giving up reviewing it. Drop that part if they are still reviewing.
-# The diff is against a canonical re-serialisation of the parsed file, so upstream comments and key order are not preserved. The full proposed file is appended below the diff, because a minimal diff can reuse an identical line and read misleadingly.
+# `x13n` is recorded emeritus in 3 other OWNERS files and is still an active approver here. Either they kept this area deliberately, or it was missed when they stepped back -- this patch assumes the second and is for a human to confirm. Reviewer membership is unchanged; this finding concerns approval only.
+# The diff uses the original OWNERS text; unrelated comments, key order and reviewer membership are preserved. The full proposed file is appended below the diff, because a minimal diff can reuse an identical line and read misleadingly.
 --- a/pkg/scheduler/framework/autoscaler_contract/OWNERS
 +++ b/pkg/scheduler/framework/autoscaler_contract/OWNERS
-@@ -1,8 +1,8 @@
+@@ -5,7 +5,8 @@
+   no_parent_owners: true
  approvers:
    - sig-autoscaling-maintainers
 -  - x13n
  reviewers:
    - sig-autoscaling-maintainers
-+emeritus_approvers:
    - x13n
- options:
-   no_parent_owners: true
++emeritus_approvers:
++  - x13n
 
 # ---- proposed pkg/scheduler/framework/autoscaler_contract/OWNERS in full ----
+# # See the OWNERS docs at https://go.k8s.io/owners
+#
+# # Disable inheritance as code changes under this package should be known to sig-autoscaling team.
+# options:
+#   no_parent_owners: true
 # approvers:
 #   - sig-autoscaling-maintainers
 # reviewers:
 #   - sig-autoscaling-maintainers
+#   - x13n
 # emeritus_approvers:
 #   - x13n
-# options:
-#   no_parent_owners: true

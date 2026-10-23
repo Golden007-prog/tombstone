@@ -47,7 +47,7 @@ export HF_TOKEN=hf_xxxxxxxxxxxx      # huggingface.co/settings/tokens -> New tok
 ```
 
 The script creates the Space, swaps in the Space README (Spaces reads config from its own
-front-matter, not this repo's) and uploads 106 files / 3.4 MB. First build takes a few minutes;
+front-matter, not this repo's) and uploads 108 files / 3.3 MB. First build takes a few minutes;
 after that it boots in seconds.
 
 **`./deploy_hf.sh` needs the token and nothing else — not Docker.** It stages from
@@ -65,7 +65,7 @@ to be the embedder rather than `GRAPH.COPY`), and — with FalkorDB killed insid
 `DEGRADED` for a question it had just answered, and kept serving the page.
 **That run dates from 16 Oct and is now ~90 commits old** — a date rather than a count, because a count re-rots on every push — and `server.py`, `agent.py` and `tools.py` have all changed
 since. Saying "already verified" without that caveat was the stale half of this file.
-What runs against the current tree: **164 tests and `./preflight.sh` 24/24 against a live graph**,
+What runs against the current tree: **190 tests and `./preflight.sh` 24/24 against a live graph**,
 and — added since — a CI **`image` job on every push that builds this Dockerfile, boots it as the
 Space does, requires the graph to seed to 681 decisions inside the container, answers a real
 question, and proves the HTTP trust boundary holds on the built image.** So the thing that used to

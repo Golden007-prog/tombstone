@@ -36,14 +36,16 @@ Three guards exist because each one, left out, would have produced a wrong patch
    an ancestor. The draft says so, and names what would inherit it. This is the check a text tool
    cannot perform, because the consequence lives in the inheritance tree rather than in the file.
 
-The diff is produced against a canonical re-serialisation of the PARSED file, not against the
-bytes upstream: the committed snapshot stores parsed OWNERS structures, so comments and key order
-from the original are not preserved. Every draft says this on its face. The patch is written to
-disk for a human to read, and nothing is ever sent anywhere.
+Drafts use the original OWNERS text carried by the corpus. Missing, stale or unsupported
+source is refused rather than reconstructed: a parsed mapping cannot preserve policy comments.
+The patch is written to disk for a human to read, and nothing is ever sent anywhere.
 """
 from __future__ import annotations
 
 import difflib
+import re
+
+import yaml
 
 # Kubernetes writes OWNERS keys in this order. Anything unrecognised is kept, after these.
 KEY_ORDER = ["approvers", "reviewers", "emeritus_approvers", "labels", "options"]
@@ -78,19 +80,124 @@ def canonical(owners: dict) -> str:
 
 
 def retire(owners: dict, handle: str) -> dict:
-    """Move `handle` out of approvers/reviewers and into emeritus_approvers."""
+    """Move `handle` out of approvers only and into emeritus_approvers."""
     out = {k: (list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v)
            for k, v in owners.items()}
-    for field in ("approvers", "reviewers"):
+    for field in ("approvers",):
         if field in out:
             out[field] = [h for h in out[field] if h != handle]
             if not out[field]:
                 del out[field]
     emeritus = out.get("emeritus_approvers", [])
     if handle not in emeritus:
-        emeritus = sorted([*emeritus, handle])
+        emeritus = [*emeritus, handle]
     out["emeritus_approvers"] = emeritus
     return out
+
+
+def retire_source(source: str, owners: dict, handle: str) -> str:
+    """Make a targeted approval edit, or refuse a source we cannot preserve."""
+    if not isinstance(source, str) or not source or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*", handle):
+        raise ValueError("original OWNERS text and a literal GitHub handle are required")
+    if not source.endswith("\n"):
+        raise ValueError("OWNERS text without a final newline needs a manual edit")
+    try:
+        events = list(yaml.parse(source))
+        if any(isinstance(e, yaml.AliasEvent) or getattr(e, "anchor", None) for e in events):
+            raise ValueError("OWNERS anchors and aliases need a manual edit")
+        parsed = yaml.safe_load(source)
+        tree = yaml.compose(source)
+    except yaml.YAMLError as exc:
+        raise ValueError("original OWNERS text is not a single valid YAML mapping") from exc
+    if parsed != owners or not isinstance(tree, yaml.MappingNode):
+        raise ValueError("original OWNERS text does not match the parsed ownership record")
+
+    def check(node):
+        if isinstance(node, yaml.MappingNode):
+            if node.flow_style:
+                raise ValueError("flow-style OWNERS mappings need a manual edit")
+            names = [k.value for k, _ in node.value]
+            if len(set(names)) != len(names):
+                raise ValueError("duplicate OWNERS keys need a manual edit")
+            for key, value in node.value:
+                if not isinstance(key, yaml.ScalarNode):
+                    raise ValueError("complex OWNERS keys need a manual edit")
+                check(value)
+        elif isinstance(node, yaml.SequenceNode):
+            if node.flow_style:
+                raise ValueError("flow-style OWNERS lists need a manual edit")
+            for item in node.value:
+                check(item)
+
+    check(tree)
+    entries = {key.value: (key, value) for key, value in tree.value}
+    approvers = owners.get("approvers")
+    if not isinstance(approvers, list) or handle not in approvers:
+        raise ValueError("the finding does not name a direct approver")
+    key, sequence = entries["approvers"]
+    if not isinstance(sequence, yaml.SequenceNode):
+        raise ValueError("approvers must be a block list")
+    lines = source.splitlines(keepends=True)
+    newline = "\r\n" if "\r\n" in source else "\n"
+    edits = {}
+    additions = {}
+
+    def remove_line(line_number, end_column, prefix):
+        tail = lines[line_number][end_column:].rstrip("\r\n")
+        if tail.strip() and not tail.lstrip().startswith("#"):
+            raise ValueError("OWNERS entries sharing a line need a manual edit")
+        edits[line_number] = prefix + tail.lstrip() + newline if tail.strip() else ""
+
+    for item in sequence.value:
+        if not isinstance(item, yaml.ScalarNode) or item.start_mark.line != item.end_mark.line:
+            raise ValueError("approvers must contain one literal handle per line")
+        if item.value != handle:
+            continue
+        prefix = lines[item.start_mark.line][:item.start_mark.column]
+        if not re.fullmatch(r"\s*-\s*", prefix):
+            raise ValueError("approvers must contain one literal handle per line")
+        remove_line(item.start_mark.line, item.end_mark.column, prefix[:prefix.index("-")])
+    if not [name for name in approvers if name != handle]:
+        header = lines[key.start_mark.line]
+        comment = header.find("#", key.end_mark.column)
+        edits[key.start_mark.line] = (header[:key.start_mark.column] + header[comment:].rstrip("\r\n")
+                                     + newline) if comment >= 0 else ""
+
+    emeritus = owners.get("emeritus_approvers", [])
+    if not isinstance(emeritus, list):
+        raise ValueError("emeritus_approvers must be a block list")
+    if handle not in emeritus:
+        if "emeritus_approvers" in entries:
+            _, old = entries["emeritus_approvers"]
+            if not isinstance(old, yaml.SequenceNode) or not old.value:
+                raise ValueError("emeritus_approvers must be a nonempty block list")
+            if any(not isinstance(item, yaml.ScalarNode)
+                   or item.start_mark.line != item.end_mark.line for item in old.value):
+                raise ValueError("emeritus_approvers must contain one literal handle per line")
+            indent = " " * max(0, old.value[0].start_mark.column - 2)
+            additions[old.value[-1].end_mark.line + 1] = indent + "- " + handle + newline
+        else:
+            additions[len(lines)] = ("" if source.endswith(("\n", "\r")) else newline)
+            additions[len(lines)] += "emeritus_approvers:" + newline + "  - " + handle + newline
+    output = []
+    for number, line in enumerate(lines):
+        output.append(additions.get(number, ""))
+        output.append(edits.get(number, line))
+    output.append(additions.get(len(lines), ""))
+    result = "".join(output)
+    try:
+        if yaml.safe_load(result) != retire(owners, handle):
+            raise ValueError("targeted edit did not preserve the ownership record")
+    except yaml.YAMLError as exc:
+        raise ValueError("targeted edit did not preserve valid OWNERS YAML") from exc
+    return result
+
+
+def unified_text(path: str, before: str, after: str) -> str:
+    return "".join(difflib.unified_diff(
+        before.splitlines(keepends=True), after.splitlines(keepends=True),
+        fromfile=f"a/{path}", tofile=f"b/{path}",
+    ))
 
 
 def unified(path: str, before: dict, after: dict) -> str:

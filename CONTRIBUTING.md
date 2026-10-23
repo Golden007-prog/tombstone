@@ -2,7 +2,7 @@
 
 Thanks for looking. This file exists because an honest audit of this repository said it was
 hostile to newcomers — not by intent, by construction. There is a push gate with ten checks, a
-preflight with twenty-four more, 164 tests, and artefact fingerprints that fail the build if you
+preflight with twenty-four more, 190 tests, and artefact fingerprints that fail the build if you
 touch `agent.py` without regenerating a *video*. All of that is deliberate and all of it is
 undocumented, which is a bad combination. So here is the map.
 
@@ -64,7 +64,7 @@ src/tombstone/
 src/graphkit/
   ingest.py         generic two-phase FalkorDB loader. No Kubernetes in it at all.
 web/                three files: index.html, app.js, style.css. No framework, no build step.
-tests/              164 invariants, each one locking in a bug that actually happened.
+tests/              190 invariants, each one locking in a bug that actually happened.
 scripts_check_*.py  the gates. Most have a --self-test that proves they can still fail.
 docs/               GROUND-TRUTH.md is the list of things this project got wrong and corrected.
 ```

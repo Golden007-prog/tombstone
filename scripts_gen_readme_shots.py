@@ -76,7 +76,7 @@ _clear_memory()
 OUT = "docs/img"
 
 SHOTS = [
-    ("drafted-patch.png", "run=draft_owners_patch&focus=1", 1280, 980),
+    ("drafted-patch.png", "run=draft_owners_patch&focus=1", 1280, 1400),
     ("keyless-refusal.png", "ask=write+me+a+poem+about+kubernetes&focus=1", 1280, 420),
 ]
 
